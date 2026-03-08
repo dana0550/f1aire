@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CodexLoopResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "status",
+    "selected_gap",
+    "priority",
+    "summary",
+    "tests_run",
+    "tests_passed",
+    "commit",
+    "remaining_counts",
+    "blocking_reason"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["implemented", "no_work_left", "blocked"]
+    },
+    "selected_gap": {
+      "type": ["string", "null"]
+    },
+    "priority": {
+      "type": ["string", "null"],
+      "enum": ["P0", "P1", "P2", "P3", null]
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tests_run": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "tests_passed": {
+      "type": "boolean"
+    },
+    "commit": {
+      "type": ["string", "null"]
+    },
+    "remaining_counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["P0", "P1", "P2", "P3"],
+      "properties": {
+        "P0": { "type": "integer", "minimum": 0 },
+        "P1": { "type": "integer", "minimum": 0 },
+        "P2": { "type": "integer", "minimum": 0 },
+        "P3": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "blocking_reason": {
+      "type": ["string", "null"]
+    }
+  }
+}

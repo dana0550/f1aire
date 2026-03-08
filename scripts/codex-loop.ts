@@ -1,3 +1,5 @@
+import path from 'node:path';
+
 type LoopStatus = 'implemented' | 'no_work_left' | 'blocked';
 type LoopPriority = 'P0' | 'P1' | 'P2' | 'P3' | null;
 
@@ -43,6 +45,30 @@ export function buildCodexExecCommand(options: {
   args.push('-');
 
   return { command: 'codex', args };
+}
+
+export function getDefaultSchemaPath(repoRoot: string) {
+  return path.join(repoRoot, 'scripts', 'codex-loop-output.schema.json');
+}
+
+export function renderLoopPrompt(options: {
+  cwd: string;
+  referenceRepo: string;
+  iteration: number;
+}) {
+  return [
+    `You are working in ${options.cwd}.`,
+    `Reference repository: ${options.referenceRepo}.`,
+    `This is iteration ${options.iteration}.`,
+    'Audit f1aire against the reference repo for F1 data usage and understanding gaps.',
+    'Focus on feed definitions, parsing, normalization, processors, typed models, APIs, replay/control primitives, analysis tooling, and team radio workflows.',
+    'Rank remaining work as P0, P1, P2, or P3.',
+    'Implement exactly one highest-priority P0, P1, or P2 item.',
+    'Run targeted verification before you claim success.',
+    'Commit on main using the global git user after verification passes.',
+    'If no P0, P1, or P2 items remain, do not make changes and report no_work_left.',
+    'Return only the final JSON object required by the output schema.',
+  ].join('\n');
 }
 
 export function validateLoopResult(value: unknown): LoopResult {

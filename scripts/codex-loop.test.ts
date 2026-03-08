@@ -3,6 +3,8 @@ import { describe, expect, test } from 'vitest';
 import {
   buildCodexExecCommand,
   determineNextAction,
+  getDefaultSchemaPath,
+  renderLoopPrompt,
   validateLoopResult,
 } from './codex-loop.ts';
 
@@ -10,7 +12,7 @@ describe('buildCodexExecCommand', () => {
   test('includes explicit YOLO mode', () => {
     const command = buildCodexExecCommand({
       cwd: '/Users/shayne/code/f1aire',
-      schemaPath: '/Users/shayne/code/f1aire/scripts/codex-loop-output.schema.json',
+      schemaPath: getDefaultSchemaPath('/Users/shayne/code/f1aire'),
       outputPath: '/tmp/final.json',
       search: true,
     });
@@ -18,6 +20,23 @@ describe('buildCodexExecCommand', () => {
     expect(command.command).toBe('codex');
     expect(command.args).toContain('--dangerously-bypass-approvals-and-sandbox');
     expect(command.args).toContain('--json');
+    expect(command.args).toContain(
+      '/Users/shayne/code/f1aire/scripts/codex-loop-output.schema.json',
+    );
+  });
+});
+
+describe('renderLoopPrompt', () => {
+  test('targets the undercut reference repo and one priority item at a time', () => {
+    const prompt = renderLoopPrompt({
+      cwd: '/Users/shayne/code/f1aire',
+      referenceRepo: '/Users/shayne/code/undercut-f1',
+      iteration: 3,
+    });
+
+    expect(prompt).toContain('/Users/shayne/code/undercut-f1');
+    expect(prompt).toContain('Implement exactly one highest-priority P0, P1, or P2 item');
+    expect(prompt).toContain('Commit on main');
   });
 });
 
