@@ -65,9 +65,113 @@ describe('tools', () => {
     expect(tools).toHaveProperty('get_sc_vsc_deltas');
     expect(tools).toHaveProperty('get_pit_loss_estimate');
     expect(tools).toHaveProperty('get_position_changes');
+    expect(tools).toHaveProperty('get_race_control_events');
     expect(tools).toHaveProperty('get_team_radio_events');
     expect(tools).toHaveProperty('download_team_radio');
     expect(tools).toHaveProperty('set_time_cursor');
+  });
+
+  it('get_race_control_events returns typed events filtered by the current cursor', async () => {
+    const tools = makeTools({
+      store,
+      processors: {
+        ...processors,
+        timingData: {
+          state: {
+            Lines: {
+              '4': { Position: '1' },
+            },
+          },
+          bestLaps: new Map(),
+          getLapHistory: () => [],
+          getLapNumbers: () => [14, 15],
+          driversByLap: new Map([
+            [
+              14,
+              new Map([
+                [
+                  '4',
+                  {
+                    __dateTime: new Date('2024-05-26T12:15:00Z'),
+                    NumberOfLaps: 14,
+                    Position: '1',
+                  },
+                ],
+              ]),
+            ],
+            [
+              15,
+              new Map([
+                [
+                  '4',
+                  {
+                    __dateTime: new Date('2024-05-26T12:16:00Z'),
+                    NumberOfLaps: 15,
+                    Position: '1',
+                  },
+                ],
+              ]),
+            ],
+          ]),
+        },
+        raceControlMessages: {
+          state: {
+            Messages: {
+              '0': {
+                Utc: '2024-05-26T12:14:40',
+                Lap: 14,
+                Category: 'Flag',
+                Flag: 'YELLOW',
+                Scope: 'Sector',
+                Sector: 2,
+                Message: 'YELLOW IN TRACK SECTOR 2',
+              },
+              '1': {
+                Utc: '2024-05-26T12:15:40',
+                Lap: 15,
+                Category: 'Flag',
+                Flag: 'CLEAR',
+                Scope: 'Sector',
+                Sector: 2,
+                Message: 'CLEAR IN TRACK SECTOR 2',
+              },
+            },
+          },
+        },
+      } as any,
+      timeCursor: { lap: 14 },
+      onTimeCursorChange: () => {},
+    });
+
+    const result = await tools.get_race_control_events.execute({
+      category: 'flag',
+    } as any);
+
+    expect(result).toEqual({
+      asOf: {
+        source: 'lap',
+        lap: 14,
+        dateTime: new Date('2024-05-26T12:15:00.000Z'),
+        includeFuture: false,
+      },
+      total: 1,
+      returned: 1,
+      events: [
+        {
+          messageId: '0',
+          utc: '2024-05-26T12:14:40',
+          dateTime: '2024-05-26T12:14:40.000Z',
+          lap: 14,
+          category: 'Flag',
+          flag: 'YELLOW',
+          scope: 'Sector',
+          sector: 2,
+          status: null,
+          driverNumber: null,
+          message: 'YELLOW IN TRACK SECTOR 2',
+        },
+      ],
+    });
   });
 
   it('get_team_radio_events resolves newest clips with absolute asset URLs and lap context', async () => {

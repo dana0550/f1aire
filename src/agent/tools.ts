@@ -36,6 +36,10 @@ import {
   getSessionStaticPrefix,
   getTeamRadioCaptures,
 } from '../core/team-radio.js';
+import {
+  getRaceControlEvents,
+  type RaceControlEvent,
+} from '../core/processors/race-control-messages.js';
 import type { TimeCursor } from '../core/time-cursor.js';
 import { getDataBookIndex, getDataBookTopic } from './data-book/data-book.js';
 import type { LapRecord } from '../core/analysis-index.js';
@@ -149,7 +153,18 @@ export function makeTools({
       };
     };
     topThree?: { state?: unknown | null };
-    raceControlMessages?: { state?: unknown | null };
+    raceControlMessages?: {
+      state?: unknown | null;
+      getMessages?: (query?: {
+        before?: Date | string | null;
+        category?: string;
+        flag?: string;
+        scope?: string;
+        driverNumber?: string | number;
+        search?: string;
+        limit?: number;
+      }) => RaceControlEvent[];
+    };
     teamRadio?: { state?: unknown | null };
     championshipPrediction?: { state?: unknown | null };
     pitStopSeries?: { state?: unknown | null };
@@ -261,6 +276,37 @@ export function makeTools({
   const pyodideCacheDir = getPyodideBaseDir();
 
   const resolveCurrentCursor = () => analysisIndex.resolveAsOf(currentCursor);
+
+  const serializeRaceControlEvent = (event: RaceControlEvent) => ({
+    ...event,
+    dateTime: event.dateTime ? event.dateTime.toISOString() : null,
+  });
+
+  const listRaceControlEvents = (opts: {
+    includeFuture?: boolean;
+    category?: string;
+    flag?: string;
+    scope?: string;
+    driverNumber?: string | number;
+    search?: string;
+    limit?: number;
+  } = {}) => {
+    const resolved = resolveCurrentCursor();
+    const query = {
+      before: opts.includeFuture ? null : resolved.dateTime,
+      category: opts.category,
+      flag: opts.flag,
+      scope: opts.scope,
+      driverNumber: opts.driverNumber,
+      search: opts.search,
+      limit: opts.limit,
+    };
+    const getter = processors.raceControlMessages?.getMessages;
+    const events = getter
+      ? getter(query)
+      : getRaceControlEvents(processors.raceControlMessages?.state, query);
+    return { resolved, events };
+  };
   const getDefaultEndLap = () => {
     const resolved = resolveCurrentCursor();
     return typeof resolved.lap === 'number' ? resolved.lap : undefined;
@@ -509,12 +555,13 @@ export function makeTools({
     }
 
     if (topic === 'RaceControlMessages') {
-      const state = processors.raceControlMessages?.state as any;
-      const messages = state?.Messages;
+      const recent = listRaceControlEvents({ limit: 8 }).events.map(
+        serializeRaceControlEvent,
+      );
       return {
         asOf,
-        count: isPlainObject(messages) ? Object.keys(messages).length : null,
-        recent: pickLastIndexedValues(messages, 8),
+        count: listRaceControlEvents().events.length,
+        recent,
       };
     }
 
@@ -966,6 +1013,56 @@ export function makeTools({
       description: 'Get merged RaceControlMessages (Messages dict)',
       inputSchema: z.object({}),
       execute: async () => processors.raceControlMessages?.state ?? null,
+    }),
+    get_race_control_events: tool({
+      description:
+        'Get deterministic race control events newest-first, filtered to the current analysis cursor unless includeFuture is true.',
+      inputSchema: z.object({
+        category: z.string().optional(),
+        flag: z.string().optional(),
+        scope: z.string().optional(),
+        driverNumber: z.union([z.string(), z.number()]).optional(),
+        search: z.string().optional(),
+        limit: z.number().int().positive().max(200).optional(),
+        includeFuture: z.boolean().optional(),
+      }),
+      execute: async ({
+        category,
+        flag,
+        scope,
+        driverNumber,
+        search,
+        limit,
+        includeFuture,
+      }) => {
+        const { resolved, events } = listRaceControlEvents({
+          category,
+          flag,
+          scope,
+          driverNumber,
+          search,
+          limit,
+          includeFuture,
+        });
+        return {
+          asOf: {
+            source: resolved.source,
+            lap: resolved.lap,
+            dateTime: resolved.dateTime,
+            includeFuture: Boolean(includeFuture),
+          },
+          total: listRaceControlEvents({
+            category,
+            flag,
+            scope,
+            driverNumber,
+            search,
+            includeFuture,
+          }).events.length,
+          returned: events.length,
+          events: events.map(serializeRaceControlEvent),
+        };
+      },
     }),
     get_team_radio: tool({
       description: 'Get merged TeamRadio (Captures dict)',

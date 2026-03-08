@@ -290,7 +290,7 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
       'Do not assume Messages is already a dictionary; normalize first.',
     ],
     relatedTopics: ['TrackStatus', 'TimingData'],
-    bestTools: ['get_race_control_messages', 'inspect_topic', 'get_topic_timeline'],
+    bestTools: ['get_race_control_events', 'get_race_control_messages', 'inspect_topic', 'get_topic_timeline'],
   },
   {
     topic: 'TeamRadio',
