@@ -169,7 +169,8 @@ export const TOPIC_REGISTRY: TopicDefinition[] = [
     aliases: ['CarData.z'],
     availability: 'all-sessions',
     semantics: 'batched',
-    notes: 'Compressed (base64+deflate). Contains Entries[] batches of per-car channels.',
+    notes:
+      'Compressed (base64+deflate). Contains Entries[] batches of per-car channels.',
   },
   {
     topic: 'Position',
@@ -177,7 +178,8 @@ export const TOPIC_REGISTRY: TopicDefinition[] = [
     aliases: ['Position.z'],
     availability: 'all-sessions',
     semantics: 'batched',
-    notes: 'Compressed (base64+deflate). Contains Position[] batches of per-car XYZ.',
+    notes:
+      'Compressed (base64+deflate). Contains Position[] batches of per-car XYZ.',
   },
   {
     topic: 'PitLaneTimeCollection',
@@ -202,7 +204,9 @@ export const TOPIC_REGISTRY: TopicDefinition[] = [
     topic: 'ChampionshipPrediction',
     streamName: 'ChampionshipPrediction',
     availability: 'race-only',
-    semantics: 'replace',
+    semantics: 'patch',
+    notes:
+      'Incremental feed; updates often include only changed driver/team predictions and should be merged.',
   },
   {
     topic: 'DriverRaceInfo',
@@ -233,12 +237,16 @@ export const TOPIC_REGISTRY: TopicDefinition[] = [
 export function getStreamTopicsForSessionType(sessionType: string): string[] {
   const normalized = sessionType.trim().toLowerCase();
   const isRace = normalized === 'race' || normalized === 'sprint';
-  return TOPIC_REGISTRY
-    .filter((def) => def.availability === 'all-sessions' || (isRace && def.availability === 'race-only'))
-    .map((def) => def.streamName);
+  return TOPIC_REGISTRY.filter(
+    (def) =>
+      def.availability === 'all-sessions' ||
+      (isRace && def.availability === 'race-only'),
+  ).map((def) => def.streamName);
 }
 
-export function getTopicDefinition(topicOrStreamName: string): TopicDefinition | null {
+export function getTopicDefinition(
+  topicOrStreamName: string,
+): TopicDefinition | null {
   const normalized = topicOrStreamName.endsWith('.jsonStream')
     ? topicOrStreamName.slice(0, -'.jsonStream'.length)
     : topicOrStreamName;

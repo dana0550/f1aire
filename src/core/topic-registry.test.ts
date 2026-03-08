@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { getStreamTopicsForSessionType, getTopicDefinition } from './topic-registry.js';
+import {
+  getStreamTopicsForSessionType,
+  getTopicDefinition,
+} from './topic-registry.js';
 
 describe('topic-registry', () => {
   it('includes modern all-session feeds for non-race sessions', () => {
@@ -33,5 +36,8 @@ describe('topic-registry', () => {
     expect(getTopicDefinition('TimingDataF1')?.topic).toBe('TimingDataF1');
     expect(getTopicDefinition('CarData.z')?.topic).toBe('CarData');
     expect(getTopicDefinition('Position.z.jsonStream')?.topic).toBe('Position');
+    expect(getTopicDefinition('ChampionshipPrediction')?.semantics).toBe(
+      'patch',
+    );
   });
 });

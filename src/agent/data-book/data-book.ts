@@ -582,13 +582,16 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
     topic: 'ChampionshipPrediction',
     aliases: ['ChampionshipPrediction'],
     availability: 'race-only',
-    semantics: 'replace',
+    semantics: 'patch',
     purpose:
       'Standings prediction snapshot (driver/team current vs predicted positions/points). Useful for championship context during races.',
     engineerUse: [
       'Answer “if it finishes like this, what happens to the championship?” style questions (high-level).',
     ],
-    normalization: ['_kf is stripped during normalization when present.'],
+    normalization: [
+      '_kf is stripped during normalization when present.',
+      'Treat live updates as incremental patches; merge Drivers/Teams dictionaries across updates.',
+    ],
     keyFields: [
       {
         path: 'Drivers.<driver>.CurrentPoints',
@@ -609,6 +612,7 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
     ],
     pitfalls: [
       'This is a snapshot/prediction; do not treat as official final standings.',
+      'Late-race updates can include only the drivers/teams whose predictions changed.',
     ],
     relatedTopics: ['TimingData'],
     bestTools: ['get_championship_prediction', 'inspect_topic'],

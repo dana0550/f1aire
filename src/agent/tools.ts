@@ -70,6 +70,11 @@ import {
   getTimingStatsTrapTables,
 } from '../core/timing-stats.js';
 import {
+  buildChampionshipPredictionState,
+  getChampionshipPredictionDrivers,
+  getChampionshipPredictionTeams,
+} from '../core/championship-prediction.js';
+import {
   getRaceControlEvents,
   type RaceControlEvent,
 } from '../core/processors/race-control-messages.js';
@@ -831,6 +836,67 @@ export function makeTools({
     }
 
     return { resolved, events };
+  };
+
+  const listChampionshipPrediction = (
+    opts: {
+      driverNumber?: string | number;
+      teamName?: string;
+      includeFuture?: boolean;
+      limit?: number;
+    } = {},
+  ) => {
+    const resolved = resolveCurrentCursor();
+    const subscribeState = normalizePoint({
+      type: 'ChampionshipPrediction',
+      json: (store.raw.subscribe as any)?.ChampionshipPrediction ?? {},
+      dateTime: resolved.dateTime ?? new Date(0),
+    }).json;
+    const timeline = analysis.getTopicTimeline('ChampionshipPrediction', {
+      to: opts.includeFuture ? undefined : (resolved.dateTime ?? undefined),
+    });
+
+    let state = buildChampionshipPredictionState({
+      baseState: subscribeState,
+      timeline,
+    });
+
+    let allDrivers = getChampionshipPredictionDrivers({
+      state,
+      driverListState: processors.driverList?.state ?? null,
+    });
+    let allTeams = getChampionshipPredictionTeams({ state });
+
+    if (
+      allDrivers.length === 0 &&
+      allTeams.length === 0 &&
+      processors.championshipPrediction?.state
+    ) {
+      state = (processors.championshipPrediction.state ?? null) as typeof state;
+      allDrivers = getChampionshipPredictionDrivers({
+        state,
+        driverListState: processors.driverList?.state ?? null,
+      });
+      allTeams = getChampionshipPredictionTeams({ state });
+    }
+
+    return {
+      resolved,
+      totalDrivers: allDrivers.length,
+      totalTeams: allTeams.length,
+      drivers: getChampionshipPredictionDrivers({
+        state,
+        driverListState: processors.driverList?.state ?? null,
+        driverNumber: opts.driverNumber,
+        teamName: opts.teamName,
+        limit: opts.limit,
+      }),
+      teams: getChampionshipPredictionTeams({
+        state,
+        teamName: opts.teamName,
+        limit: opts.limit,
+      }),
+    };
   };
 
   const listWeatherSeries = (
@@ -2421,9 +2487,46 @@ export function makeTools({
       },
     }),
     get_championship_prediction: tool({
-      description: 'Get merged ChampionshipPrediction',
-      inputSchema: z.object({}),
-      execute: async () => processors.championshipPrediction?.state ?? null,
+      description:
+        'Get deterministic championship prediction tables for drivers and teams, filtered to the current analysis cursor unless includeFuture is true.',
+      inputSchema: z.object({
+        driverNumber: z.union([z.string(), z.number()]).optional(),
+        teamName: z.string().optional(),
+        includeFuture: z.boolean().optional(),
+        limit: z.number().int().positive().max(50).optional(),
+      }),
+      execute: async ({ driverNumber, teamName, includeFuture, limit }) => {
+        const snapshot = listChampionshipPrediction({
+          driverNumber,
+          teamName,
+          includeFuture,
+          limit,
+        });
+
+        if (
+          snapshot.totalDrivers === 0 &&
+          snapshot.totalTeams === 0 &&
+          snapshot.drivers.length === 0 &&
+          snapshot.teams.length === 0
+        ) {
+          return null;
+        }
+
+        return {
+          asOf: {
+            source: snapshot.resolved.source,
+            lap: snapshot.resolved.lap,
+            dateTime: snapshot.resolved.dateTime,
+            includeFuture: Boolean(includeFuture),
+          },
+          totalDrivers: snapshot.totalDrivers,
+          totalTeams: snapshot.totalTeams,
+          returnedDrivers: snapshot.drivers.length,
+          returnedTeams: snapshot.teams.length,
+          drivers: snapshot.drivers,
+          teams: snapshot.teams,
+        };
+      },
     }),
     get_pit_stop_series: tool({
       description: 'Get merged PitStopSeries',

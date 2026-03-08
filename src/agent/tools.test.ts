@@ -1449,6 +1449,136 @@ describe('tools', () => {
     });
   });
 
+  it('get_championship_prediction returns deterministic driver and team tables', async () => {
+    const tools = makeTools({
+      store: {
+        ...store,
+        raw: {
+          ...store.raw,
+          subscribe: {
+            ChampionshipPrediction: {
+              Drivers: {
+                '1': {
+                  RacingNumber: '1',
+                  CurrentPosition: 1,
+                  PredictedPosition: 1,
+                  CurrentPoints: 100,
+                  PredictedPoints: 108,
+                },
+                '4': {
+                  RacingNumber: '4',
+                  CurrentPosition: 2,
+                  PredictedPosition: 2,
+                  CurrentPoints: 95,
+                  PredictedPoints: 101,
+                },
+              },
+              Teams: {
+                'Red Bull Racing': {
+                  TeamName: 'Red Bull Racing',
+                  CurrentPosition: 1,
+                  PredictedPosition: 1,
+                  CurrentPoints: 180,
+                  PredictedPoints: 188,
+                },
+                'McLaren Mercedes': {
+                  TeamName: 'McLaren Mercedes',
+                  CurrentPosition: 2,
+                  PredictedPosition: 2,
+                  CurrentPoints: 170,
+                  PredictedPoints: 181,
+                },
+              },
+            },
+          },
+        },
+        topic: (name: string) => ({
+          latest: null,
+          timeline: () =>
+            name === 'ChampionshipPrediction'
+              ? [
+                  {
+                    type: 'ChampionshipPrediction',
+                    json: {
+                      Drivers: {
+                        '4': {
+                          PredictedPosition: 1,
+                          PredictedPoints: 109,
+                        },
+                      },
+                      Teams: {
+                        'McLaren Mercedes': {
+                          PredictedPosition: 1,
+                          PredictedPoints: 190,
+                        },
+                      },
+                    },
+                    dateTime: new Date('2025-01-01T12:00:00Z'),
+                  },
+                ]
+              : [],
+        }),
+      } as any,
+      processors: {
+        ...processors,
+        driverList: {
+          state: {
+            '1': { FullName: 'Max Verstappen', TeamName: 'Red Bull Racing' },
+            '4': { FullName: 'Lando Norris', TeamName: 'McLaren Mercedes' },
+          },
+          getName: (driverNumber: string) =>
+            driverNumber === '1'
+              ? 'Max Verstappen'
+              : driverNumber === '4'
+                ? 'Lando Norris'
+                : null,
+        },
+        championshipPrediction: {
+          state: {
+            Drivers: {},
+            Teams: {},
+          },
+        },
+      } as any,
+      timeCursor: { latest: true },
+      onTimeCursorChange: () => {},
+    });
+
+    await expect(
+      tools.get_championship_prediction.execute({
+        teamName: 'McLaren',
+      } as any),
+    ).resolves.toMatchObject({
+      asOf: {
+        includeFuture: false,
+      },
+      totalDrivers: 2,
+      totalTeams: 2,
+      returnedDrivers: 1,
+      returnedTeams: 1,
+      drivers: [
+        {
+          driverNumber: '4',
+          driverName: 'Lando Norris',
+          teamName: 'McLaren Mercedes',
+          predictedPosition: 1,
+          positionsGained: 1,
+          pointsDelta: 14,
+          gapToLeaderPoints: 0,
+        },
+      ],
+      teams: [
+        {
+          teamName: 'McLaren Mercedes',
+          predictedPosition: 1,
+          positionsGained: 1,
+          pointsDelta: 20,
+          gapToLeaderPoints: 0,
+        },
+      ],
+    });
+  });
+
   it('get_latest returns merged state for auxiliary patch topics', async () => {
     const tools = makeTools({
       store: {

@@ -39,6 +39,10 @@ describe('data-book', () => {
     );
   });
 
+  it('documents championship prediction as a patch feed', () => {
+    expect(getDataBookTopic('ChampionshipPrediction')?.semantics).toBe('patch');
+  });
+
   it('documents deterministic lap-series tooling', () => {
     expect(getDataBookTopic('LapSeries')?.bestTools).toContain(
       'get_lap_series',
