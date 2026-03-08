@@ -21,8 +21,16 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
     normalization: ['_kf is stripped during normalization when present.'],
     keyFields: [
       { path: 'Name', description: 'Session name (e.g. Race, Qualifying).' },
-      { path: 'Type', description: 'Session type string (Race, Qualifying, Practice, Sprint).' },
-      { path: 'Path', description: 'Static data path prefix used to download session streams and assets.' },
+      {
+        path: 'Type',
+        description:
+          'Session type string (Race, Qualifying, Practice, Sprint).',
+      },
+      {
+        path: 'Path',
+        description:
+          'Static data path prefix used to download session streams and assets.',
+      },
       { path: 'Meeting.Location', description: 'Event location.' },
     ],
     pitfalls: [
@@ -45,7 +53,10 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
     normalization: ['_kf is stripped during normalization when present.'],
     keyFields: [
       { path: 'Utc', description: 'UTC timestamp string for the message.' },
-      { path: 'UtcTime', description: 'Alternate field sometimes used instead of Utc.' },
+      {
+        path: 'UtcTime',
+        description: 'Alternate field sometimes used instead of Utc.',
+      },
     ],
     pitfalls: [
       'Offset timestamps in jsonStream lines are relative to the session start; Heartbeat is used to derive the absolute start.',
@@ -69,9 +80,14 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
     keyFields: [
       { path: 'Utc', description: 'UTC timestamp for the clock state.' },
       { path: 'Remaining', description: 'Time remaining (HH:MM:SS).' },
-      { path: 'Extrapolating', description: 'Whether the clock is being extrapolated.' },
+      {
+        path: 'Extrapolating',
+        description: 'Whether the clock is being extrapolated.',
+      },
     ],
-    pitfalls: ['Remaining is a string; do not assume numeric seconds without parsing.'],
+    pitfalls: [
+      'Remaining is a string; do not assume numeric seconds without parsing.',
+    ],
     relatedTopics: ['Heartbeat', 'TrackStatus'],
     bestTools: ['get_extrapolated_clock', 'get_latest', 'get_topic_timeline'],
   },
@@ -91,15 +107,26 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
       'TrackStatusProcessor keeps a change history with timestamps.',
     ],
     keyFields: [
-      { path: 'Status', description: 'Status code (commonly stringified numeric codes).' },
-      { path: 'Message', description: 'Human-readable state (e.g. Yellow, AllClear).' },
+      {
+        path: 'Status',
+        description: 'Status code (commonly stringified numeric codes).',
+      },
+      {
+        path: 'Message',
+        description: 'Human-readable state (e.g. Yellow, AllClear).',
+      },
     ],
     pitfalls: [
       'Status is often a stringified number (e.g. "2").',
       'Message conventions vary; prefer using both Status and Message when filtering.',
     ],
     relatedTopics: ['RaceControlMessages', 'TimingData'],
-    bestTools: ['get_track_status', 'get_track_status_history', 'get_sc_vsc_deltas', 'get_lap_table'],
+    bestTools: [
+      'get_track_status',
+      'get_track_status_history',
+      'get_sc_vsc_deltas',
+      'get_lap_table',
+    ],
   },
   {
     topic: 'WeatherData',
@@ -114,10 +141,25 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
     ],
     normalization: ['_kf is stripped during normalization when present.'],
     keyFields: [
-      { path: 'AirTemp', description: 'Ambient temperature.', units: 'C (typically)' },
-      { path: 'TrackTemp', description: 'Track surface temperature.', units: 'C (typically)' },
-      { path: 'WindSpeed', description: 'Wind speed.', units: 'm/s or km/h (varies)' },
-      { path: 'Rainfall', description: 'Rainfall indicator/amount (varies by feed).' },
+      {
+        path: 'AirTemp',
+        description: 'Ambient temperature.',
+        units: 'C (typically)',
+      },
+      {
+        path: 'TrackTemp',
+        description: 'Track surface temperature.',
+        units: 'C (typically)',
+      },
+      {
+        path: 'WindSpeed',
+        description: 'Wind speed.',
+        units: 'm/s or km/h (varies)',
+      },
+      {
+        path: 'Rainfall',
+        description: 'Rainfall indicator/amount (varies by feed).',
+      },
     ],
     pitfalls: [
       'Units and field names vary by season/feed; inspect topic shape if fields are missing.',
@@ -167,14 +209,42 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
       'Derived field IsPitLap may be set when InPit/PitOut/PitIn appear.',
     ],
     keyFields: [
-      { path: 'Lines.<driver>.Position|Line', description: 'Race position (string/number; sometimes both keys exist).' },
-      { path: 'Lines.<driver>.NumberOfLaps', description: 'Current lap number for that driver.' },
-      { path: 'Lines.<driver>.GapToLeader', description: 'Gap to leader; leader may show "LAP 54".' },
-      { path: 'Lines.<driver>.IntervalToPositionAhead.Value', description: 'Interval to car ahead; may be time or "5L".' },
-      { path: 'Lines.<driver>.LastLapTime.Value', description: 'Last completed lap time.', units: 'mm:ss.mmm' },
-      { path: 'Lines.<driver>.Sectors.<idx>.Value', description: 'Sector time by index (usually idx = "0","1","2").', units: 'mm:ss.mmm' },
-      { path: 'Lines.<driver>.Sectors.<idx>.Segments.<idx>.Status', description: 'Mini-sector status bitmask.' },
-      { path: 'Lines.<driver>.Speeds.(I1|I2|FL|ST).Value', description: 'Speed trap values.', units: 'km/h (typically)' },
+      {
+        path: 'Lines.<driver>.Position|Line',
+        description:
+          'Race position (string/number; sometimes both keys exist).',
+      },
+      {
+        path: 'Lines.<driver>.NumberOfLaps',
+        description: 'Current lap number for that driver.',
+      },
+      {
+        path: 'Lines.<driver>.GapToLeader',
+        description: 'Gap to leader; leader may show "LAP 54".',
+      },
+      {
+        path: 'Lines.<driver>.IntervalToPositionAhead.Value',
+        description: 'Interval to car ahead; may be time or "5L".',
+      },
+      {
+        path: 'Lines.<driver>.LastLapTime.Value',
+        description: 'Last completed lap time.',
+        units: 'mm:ss.mmm',
+      },
+      {
+        path: 'Lines.<driver>.Sectors.<idx>.Value',
+        description: 'Sector time by index (usually idx = "0","1","2").',
+        units: 'mm:ss.mmm',
+      },
+      {
+        path: 'Lines.<driver>.Sectors.<idx>.Segments.<idx>.Status',
+        description: 'Mini-sector status bitmask.',
+      },
+      {
+        path: 'Lines.<driver>.Speeds.(I1|I2|FL|ST).Value',
+        description: 'Speed trap values.',
+        units: 'km/h (typically)',
+      },
     ],
     pitfalls: [
       'GapToLeader for the leader can be "LAP N" rather than "+0.000".',
@@ -182,8 +252,21 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
       'Sectors/Segments may be missing or incomplete; do not assume 3 sectors always exist.',
       'TimingData is a patch stream; you must merge state (do not treat each line as full state).',
     ],
-    relatedTopics: ['TimingAppData', 'TrackStatus', 'RaceControlMessages', 'Position', 'CarData'],
-    bestTools: ['get_timing_state', 'get_lap_table', 'get_drs_trains', 'compare_drivers', 'get_clean_lap_pace', 'inspect_topic'],
+    relatedTopics: [
+      'TimingAppData',
+      'TrackStatus',
+      'RaceControlMessages',
+      'Position',
+      'CarData',
+    ],
+    bestTools: [
+      'get_timing_state',
+      'get_lap_table',
+      'get_drs_trains',
+      'compare_drivers',
+      'get_clean_lap_pace',
+      'inspect_topic',
+    ],
   },
   {
     topic: 'TimingAppData',
@@ -196,13 +279,30 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
       'Current and historical tyre compounds and stint lengths.',
       'Strategy context (who is on what compound, stint age).',
     ],
-    normalization: ['Stints can arrive as arrays; normalized to indexed dictionaries for consistent access.'],
+    normalization: [
+      'Stints can arrive as arrays; normalized to indexed dictionaries for consistent access.',
+    ],
     keyFields: [
-      { path: 'Lines.<driver>.GridPos', description: 'Starting grid position (race sessions only).' },
-      { path: 'Lines.<driver>.Stints.<n>.Compound', description: 'Tyre compound (SOFT/MEDIUM/HARD/INTER/WET).' },
-      { path: 'Lines.<driver>.Stints.<n>.New', description: 'Whether the tyres were new in that stint.' },
-      { path: 'Lines.<driver>.Stints.<n>.TotalLaps', description: 'Stint length in laps.' },
-      { path: 'Lines.<driver>.Stints.<n>.StartLaps', description: 'Start lap offset for the stint.' },
+      {
+        path: 'Lines.<driver>.GridPos',
+        description: 'Starting grid position (race sessions only).',
+      },
+      {
+        path: 'Lines.<driver>.Stints.<n>.Compound',
+        description: 'Tyre compound (SOFT/MEDIUM/HARD/INTER/WET).',
+      },
+      {
+        path: 'Lines.<driver>.Stints.<n>.New',
+        description: 'Whether the tyres were new in that stint.',
+      },
+      {
+        path: 'Lines.<driver>.Stints.<n>.TotalLaps',
+        description: 'Stint length in laps.',
+      },
+      {
+        path: 'Lines.<driver>.Stints.<n>.StartLaps',
+        description: 'Start lap offset for the stint.',
+      },
     ],
     pitfalls: [
       'Not all sessions have rich stint data (Practice/Quali may be sparse).',
@@ -224,9 +324,14 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
     ],
     normalization: ['_kf is stripped during normalization when present.'],
     keyFields: [
-      { path: 'Lines.<driver>.*', description: 'Per-driver stats (structure varies; inspect if needed).' },
+      {
+        path: 'Lines.<driver>.*',
+        description: 'Per-driver stats (structure varies; inspect if needed).',
+      },
     ],
-    pitfalls: ['Structure can vary; if unsure, call inspect_topic(TimingStats).'],
+    pitfalls: [
+      'Structure can vary; if unsure, call inspect_topic(TimingStats).',
+    ],
     relatedTopics: ['TimingData'],
     bestTools: ['get_timing_stats', 'inspect_topic'],
   },
@@ -237,13 +342,20 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
     semantics: 'replace',
     purpose:
       'Broadcast-oriented top three summary (positions, names, diffs). Useful for a quick “headline” view.',
-    engineerUse: ['Quickly report top 3 and their deltas without building ordering from TimingData.'],
+    engineerUse: [
+      'Quickly report top 3 and their deltas without building ordering from TimingData.',
+    ],
     normalization: ['_kf is stripped during normalization when present.'],
     keyFields: [
       { path: 'Withheld', description: 'Whether TopThree is withheld.' },
-      { path: 'Lines[0..2].(RacingNumber|FullName|Team|DiffToLeader)', description: 'Top 3 driver summary.' },
+      {
+        path: 'Lines[0..2].(RacingNumber|FullName|Team|DiffToLeader)',
+        description: 'Top 3 driver summary.',
+      },
     ],
-    pitfalls: ['TopThree is not a complete classification; use TimingData for full order.'],
+    pitfalls: [
+      'TopThree is not a complete classification; use TimingData for full order.',
+    ],
     relatedTopics: ['TimingData', 'DriverList'],
     bestTools: ['get_top_three', 'get_timing_state'],
   },
@@ -261,9 +373,14 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
     normalization: ['_kf is stripped during normalization when present.'],
     keyFields: [
       { path: 'Series[].(Utc|Lap)', description: 'Timestamped lap series.' },
-      { path: 'StatusSeries[].(Utc|TrackStatus)', description: 'Timestamped status markers.' },
+      {
+        path: 'StatusSeries[].(Utc|TrackStatus)',
+        description: 'Timestamped status markers.',
+      },
     ],
-    pitfalls: ['Series arrays can be short at subscription time; rely on timelines when available.'],
+    pitfalls: [
+      'Series arrays can be short at subscription time; rely on timelines when available.',
+    ],
     relatedTopics: ['TrackStatus', 'TimingData', 'Heartbeat'],
     bestTools: ['get_session_data', 'get_topic_timeline', 'inspect_topic'],
   },
@@ -278,19 +395,38 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
       'Incident timeline: yellow, SC/VSC, red flags, investigations, penalties.',
       'Explain sudden pace/position changes with official messaging.',
     ],
-    normalization: ['Messages may arrive as an array; normalized to an indexed dictionary.'],
+    normalization: [
+      'Messages may arrive as an array; normalized to an indexed dictionary.',
+    ],
     keyFields: [
-      { path: 'Messages.<id>.Utc', description: 'Message timestamp (may be partial ISO).' },
-      { path: 'Messages.<id>.Category', description: 'Category (Flag, Incident, Other, etc).' },
-      { path: 'Messages.<id>.Message', description: 'Human-readable message text.' },
-      { path: 'Messages.<id>.Lap', description: 'Lap number reference when present.' },
+      {
+        path: 'Messages.<id>.Utc',
+        description: 'Message timestamp (may be partial ISO).',
+      },
+      {
+        path: 'Messages.<id>.Category',
+        description: 'Category (Flag, Incident, Other, etc).',
+      },
+      {
+        path: 'Messages.<id>.Message',
+        description: 'Human-readable message text.',
+      },
+      {
+        path: 'Messages.<id>.Lap',
+        description: 'Lap number reference when present.',
+      },
     ],
     pitfalls: [
       'Messages can be partial ISO timestamps or lack timezone; treat as informational unless aligned with Heartbeat.',
       'Do not assume Messages is already a dictionary; normalize first.',
     ],
     relatedTopics: ['TrackStatus', 'TimingData'],
-    bestTools: ['get_race_control_events', 'get_race_control_messages', 'inspect_topic', 'get_topic_timeline'],
+    bestTools: [
+      'get_race_control_events',
+      'get_race_control_messages',
+      'inspect_topic',
+      'get_topic_timeline',
+    ],
   },
   {
     topic: 'TeamRadio',
@@ -303,15 +439,25 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
       'List recent radio events for a driver and correlate with track events.',
       'Download clips for local playback or cached transcription workflows when a stable file path is needed.',
     ],
-    normalization: ['Captures may arrive as an array; normalized to an indexed dictionary.'],
+    normalization: [
+      'Captures may arrive as an array; normalized to an indexed dictionary.',
+    ],
     keyFields: [
       { path: 'Captures.<id>.Utc', description: 'Capture timestamp.' },
       { path: 'Captures.<id>.RacingNumber', description: 'Driver number.' },
       { path: 'Captures.<id>.Path', description: 'Relative asset path (mp3).' },
     ],
-    pitfalls: ['Captures often lack transcription in the raw feed; use transcribe_team_radio when you need reusable text.'],
+    pitfalls: [
+      'Captures often lack transcription in the raw feed; use transcribe_team_radio when you need reusable text.',
+    ],
     relatedTopics: ['RaceControlMessages', 'TimingData', 'SessionInfo'],
-    bestTools: ['get_team_radio', 'get_team_radio_events', 'download_team_radio', 'transcribe_team_radio', 'inspect_topic'],
+    bestTools: [
+      'get_team_radio',
+      'get_team_radio_events',
+      'download_team_radio',
+      'transcribe_team_radio',
+      'inspect_topic',
+    ],
   },
   {
     topic: 'CarData',
@@ -324,21 +470,47 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
       'Quick checks: speed/gear/throttle/brake/DRS state at the latest known timestamp.',
       'Correlate throttle/brake patterns with lap time deltas qualitatively.',
     ],
-    normalization: ['Downloaded as CarData.z (base64+deflate) and inflated during normalization.'],
+    normalization: [
+      'Downloaded as CarData.z (base64+deflate) and inflated during normalization.',
+    ],
     keyFields: [
       { path: 'Entries[-1].Utc', description: 'UTC timestamp for the batch.' },
-      { path: 'Entries[-1].Cars.<driver>.Channels.2', description: 'Speed channel.', units: 'km/h (typically)' },
-      { path: 'Entries[-1].Cars.<driver>.Channels.3', description: 'Gear channel.' },
-      { path: 'Entries[-1].Cars.<driver>.Channels.4', description: 'Throttle channel.', units: '%' },
-      { path: 'Entries[-1].Cars.<driver>.Channels.5', description: 'Brake channel.', units: '%' },
-      { path: 'Entries[-1].Cars.<driver>.Channels.45', description: 'DRS channel (0-14 style codes).' },
+      {
+        path: 'Entries[-1].Cars.<driver>.Channels.2',
+        description: 'Speed channel.',
+        units: 'km/h (typically)',
+      },
+      {
+        path: 'Entries[-1].Cars.<driver>.Channels.3',
+        description: 'Gear channel.',
+      },
+      {
+        path: 'Entries[-1].Cars.<driver>.Channels.4',
+        description: 'Throttle channel.',
+        units: '%',
+      },
+      {
+        path: 'Entries[-1].Cars.<driver>.Channels.5',
+        description: 'Brake channel.',
+        units: '%',
+      },
+      {
+        path: 'Entries[-1].Cars.<driver>.Channels.45',
+        description: 'DRS channel (0-14 style codes).',
+      },
     ],
     pitfalls: [
       'CarData is time-batched; it is not per-lap telemetry and can have gaps.',
       'DRS is an encoded integer; treat it as “off/eligible/on-ish” unless you have a confirmed mapping.',
     ],
     relatedTopics: ['Position', 'TimingData'],
-    bestTools: ['get_drs_state', 'get_drs_usage', 'get_car_telemetry', 'get_car_data', 'inspect_topic'],
+    bestTools: [
+      'get_drs_state',
+      'get_drs_usage',
+      'get_car_telemetry',
+      'get_car_data',
+      'inspect_topic',
+    ],
   },
   {
     topic: 'Position',
@@ -351,11 +523,23 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
       'Traffic context: who is near whom on track.',
       'Qualitative explanations: battling, catching, spacing on circuit.',
     ],
-    normalization: ['Downloaded as Position.z (base64+deflate) and inflated during normalization.'],
+    normalization: [
+      'Downloaded as Position.z (base64+deflate) and inflated during normalization.',
+    ],
     keyFields: [
-      { path: 'Position[-1].Timestamp', description: 'Timestamp for the batch.' },
-      { path: 'Position[-1].Entries.<driver>.X|Y|Z', description: 'Car position coordinates.', units: 'cm (typically)' },
-      { path: 'Position[-1].Entries.<driver>.Status', description: 'OnTrack/OffTrack status.' },
+      {
+        path: 'Position[-1].Timestamp',
+        description: 'Timestamp for the batch.',
+      },
+      {
+        path: 'Position[-1].Entries.<driver>.X|Y|Z',
+        description: 'Car position coordinates.',
+        units: 'cm (typically)',
+      },
+      {
+        path: 'Position[-1].Entries.<driver>.Status',
+        description: 'OnTrack/OffTrack status.',
+      },
     ],
     pitfalls: [
       'Coordinates are in a track-specific coordinate system; do not interpret as GPS lat/long.',
@@ -371,13 +555,20 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
     semantics: 'replace',
     purpose:
       'Race lap count information. Useful for quickly answering current lap / total laps context when available.',
-    engineerUse: ['Race context: current lap and total scheduled laps (when present).'],
+    engineerUse: [
+      'Race context: current lap and total scheduled laps (when present).',
+    ],
     normalization: ['_kf is stripped during normalization when present.'],
     keyFields: [
       { path: 'CurrentLap', description: 'Current lap number (when present).' },
-      { path: 'TotalLaps', description: 'Total scheduled laps (when present).' },
+      {
+        path: 'TotalLaps',
+        description: 'Total scheduled laps (when present).',
+      },
     ],
-    pitfalls: ['Field names vary; inspect topic if CurrentLap/TotalLaps are missing.'],
+    pitfalls: [
+      'Field names vary; inspect topic if CurrentLap/TotalLaps are missing.',
+    ],
     relatedTopics: ['TimingData'],
     bestTools: ['get_lap_count', 'inspect_topic'],
   },
@@ -393,12 +584,26 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
     ],
     normalization: ['_kf is stripped during normalization when present.'],
     keyFields: [
-      { path: 'Drivers.<driver>.CurrentPoints', description: 'Current points in championship.' },
-      { path: 'Drivers.<driver>.PredictedPoints', description: 'Predicted points if current result holds.' },
-      { path: 'Drivers.<driver>.PredictedPosition', description: 'Predicted championship position.' },
-      { path: 'Teams.<team>.*', description: 'Team-side equivalents (structure varies).' },
+      {
+        path: 'Drivers.<driver>.CurrentPoints',
+        description: 'Current points in championship.',
+      },
+      {
+        path: 'Drivers.<driver>.PredictedPoints',
+        description: 'Predicted points if current result holds.',
+      },
+      {
+        path: 'Drivers.<driver>.PredictedPosition',
+        description: 'Predicted championship position.',
+      },
+      {
+        path: 'Teams.<team>.*',
+        description: 'Team-side equivalents (structure varies).',
+      },
     ],
-    pitfalls: ['This is a snapshot/prediction; do not treat as official final standings.'],
+    pitfalls: [
+      'This is a snapshot/prediction; do not treat as official final standings.',
+    ],
     relatedTopics: ['TimingData'],
     bestTools: ['get_championship_prediction', 'inspect_topic'],
   },
@@ -415,8 +620,14 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
     ],
     normalization: ['PitTimes._deleted key is removed when present.'],
     keyFields: [
-      { path: 'PitTimes.<driver>.Duration', description: 'Pit lane duration (string; format varies).' },
-      { path: 'PitTimes.<driver>.Lap', description: 'Lap number associated with the pit lane time.' },
+      {
+        path: 'PitTimes.<driver>.Duration',
+        description: 'Pit lane duration (string; format varies).',
+      },
+      {
+        path: 'PitTimes.<driver>.Lap',
+        description: 'Lap number associated with the pit lane time.',
+      },
     ],
     pitfalls: [
       'PitTimes may be sparse or absent in some sessions.',
@@ -436,11 +647,24 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
       'List pit stops and stop durations by driver.',
       'Strategy review: stop timing and pit lane time vs competitors.',
     ],
-    normalization: ['PitTimes.<driver> may arrive as arrays; normalized to indexed dictionaries.'],
+    normalization: [
+      'PitTimes.<driver> may arrive as arrays; normalized to indexed dictionaries.',
+    ],
     keyFields: [
-      { path: 'PitTimes.<driver>.<stop>.PitStop.PitStopTime', description: 'Stationary pit stop time.', units: 's (string)' },
-      { path: 'PitTimes.<driver>.<stop>.PitStop.PitLaneTime', description: 'Pit lane time.', units: 's (string)' },
-      { path: 'PitTimes.<driver>.<stop>.PitStop.Lap', description: 'Lap number of the stop.' },
+      {
+        path: 'PitTimes.<driver>.<stop>.PitStop.PitStopTime',
+        description: 'Stationary pit stop time.',
+        units: 's (string)',
+      },
+      {
+        path: 'PitTimes.<driver>.<stop>.PitStop.PitLaneTime',
+        description: 'Pit lane time.',
+        units: 's (string)',
+      },
+      {
+        path: 'PitTimes.<driver>.<stop>.PitStop.Lap',
+        description: 'Lap number of the stop.',
+      },
     ],
     pitfalls: [
       'Often empty until later in the session or post-session.',
@@ -456,10 +680,19 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
     semantics: 'replace',
     purpose:
       'Pit stop related snapshot. The shape can vary by season; treat as a raw blob and inspect when needed.',
-    engineerUse: ['Supplement pit stop analysis when PitStopSeries is missing or incomplete.'],
+    engineerUse: [
+      'Supplement pit stop analysis when PitStopSeries is missing or incomplete.',
+    ],
     normalization: ['_kf is stripped during normalization when present.'],
-    keyFields: [{ path: '*', description: 'Shape is not guaranteed; inspect_topic is recommended.' }],
-    pitfalls: ['This topic is not consistently modelled; prefer PitStopSeries/PitLaneTimeCollection for structured pit data.'],
+    keyFields: [
+      {
+        path: '*',
+        description: 'Shape is not guaranteed; inspect_topic is recommended.',
+      },
+    ],
+    pitfalls: [
+      'This topic is not consistently modelled; prefer PitStopSeries/PitLaneTimeCollection for structured pit data.',
+    ],
     relatedTopics: ['PitStopSeries', 'PitLaneTimeCollection'],
     bestTools: ['get_pit_stop', 'inspect_topic'],
   },
@@ -476,7 +709,10 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
     ],
     normalization: ['_kf is stripped during normalization when present.'],
     keyFields: [
-      { path: 'Status', description: 'Archive generation state (e.g. Generating, Complete).' },
+      {
+        path: 'Status',
+        description: 'Archive generation state (e.g. Generating, Complete).',
+      },
     ],
     pitfalls: [
       'Status reflects archive build state, not sporting result status.',
@@ -499,7 +735,9 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
     keyFields: [
       { path: 'Status', description: 'Session lifecycle status string.' },
     ],
-    pitfalls: ['Status vocabulary can vary by season/session type; do not hardcode a single enum.'],
+    pitfalls: [
+      'Status vocabulary can vary by season/session type; do not hardcode a single enum.',
+    ],
     relatedTopics: ['SessionInfo', 'TrackStatus', 'ArchiveStatus'],
     bestTools: ['get_latest', 'get_topic_timeline', 'get_keyframe'],
   },
@@ -514,19 +752,32 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
       'Discover available stream metadata (language, URI, path).',
       'Explain whether additional commentary/content channels exist for the session.',
     ],
-    normalization: ['Streams can appear as arrays and later as indexed patches; inspect shape when needed.'],
+    normalization: [
+      'Streams can appear as arrays and later as indexed patches; inspect shape when needed.',
+    ],
     keyFields: [
       { path: 'Streams.<id>.Type', description: 'Content stream type.' },
-      { path: 'Streams.<id>.Language', description: 'Language code for the stream.' },
+      {
+        path: 'Streams.<id>.Language',
+        description: 'Language code for the stream.',
+      },
       { path: 'Streams.<id>.Uri', description: 'Source URI for the stream.' },
-      { path: 'Streams.<id>.Path', description: 'Relative path when provided.' },
+      {
+        path: 'Streams.<id>.Path',
+        description: 'Relative path when provided.',
+      },
     ],
     pitfalls: [
       'These are metadata links; they are not direct sporting telemetry.',
       'Shape can alternate between array snapshots and keyed patches.',
     ],
     relatedTopics: ['AudioStreams', 'TeamRadio', 'SessionInfo'],
-    bestTools: ['get_latest', 'get_keyframe', 'inspect_topic'],
+    bestTools: [
+      'get_content_streams',
+      'get_latest',
+      'get_keyframe',
+      'inspect_topic',
+    ],
   },
   {
     topic: 'AudioStreams',
@@ -550,7 +801,12 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
       'No transcript or semantic event annotations; treat as transport metadata only.',
     ],
     relatedTopics: ['ContentStreams', 'TeamRadio'],
-    bestTools: ['get_latest', 'get_keyframe', 'inspect_topic'],
+    bestTools: [
+      'get_audio_streams',
+      'get_latest',
+      'get_keyframe',
+      'inspect_topic',
+    ],
   },
   {
     topic: 'TyreStintSeries',
@@ -563,12 +819,26 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
       'Build stint chronology without relying only on TimingAppData snapshots.',
       'Cross-check pit strategy narratives and tyre age changes.',
     ],
-    normalization: ['Stints may be arrays or indexed dictionaries by driver/stop.'],
+    normalization: [
+      'Stints may be arrays or indexed dictionaries by driver/stop.',
+    ],
     keyFields: [
-      { path: 'Stints.<driver>.<stint>.Compound', description: 'Tyre compound for the stint.' },
-      { path: 'Stints.<driver>.<stint>.New', description: 'Whether set is marked new.' },
-      { path: 'Stints.<driver>.<stint>.StartLaps', description: 'Lap offset where stint started.' },
-      { path: 'Stints.<driver>.<stint>.TotalLaps', description: 'Total laps completed in stint.' },
+      {
+        path: 'Stints.<driver>.<stint>.Compound',
+        description: 'Tyre compound for the stint.',
+      },
+      {
+        path: 'Stints.<driver>.<stint>.New',
+        description: 'Whether set is marked new.',
+      },
+      {
+        path: 'Stints.<driver>.<stint>.StartLaps',
+        description: 'Lap offset where stint started.',
+      },
+      {
+        path: 'Stints.<driver>.<stint>.TotalLaps',
+        description: 'Total laps completed in stint.',
+      },
     ],
     pitfalls: [
       'New/TyresNotChanged can appear as strings; cast carefully.',
@@ -590,8 +860,14 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
     ],
     normalization: ['Patch stream keyed by driver number.'],
     keyFields: [
-      { path: 'Tyres.<driver>.Compound', description: 'Current tyre compound.' },
-      { path: 'Tyres.<driver>.New', description: 'Whether current set is new (when available).' },
+      {
+        path: 'Tyres.<driver>.Compound',
+        description: 'Current tyre compound.',
+      },
+      {
+        path: 'Tyres.<driver>.New',
+        description: 'Whether current set is new (when available).',
+      },
     ],
     pitfalls: [
       'Not a full stint history; use TyreStintSeries or TimingAppData for historical context.',
@@ -610,16 +886,27 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
       'Summarize position evolution by lap for a driver.',
       'Cross-check overtake/position change narratives against timing-derived order.',
     ],
-    normalization: ['Payload can start as full arrays and continue as incremental keyed patches.'],
+    normalization: [
+      'Payload can start as full arrays and continue as incremental keyed patches.',
+    ],
     keyFields: [
       { path: '<driver>.RacingNumber', description: 'Driver racing number.' },
-      { path: '<driver>.LapPosition', description: 'Lap-by-lap position sequence or indexed patch.' },
+      {
+        path: '<driver>.LapPosition',
+        description: 'Lap-by-lap position sequence or indexed patch.',
+      },
     ],
     pitfalls: [
       'LapPosition may switch representation (array vs indexed object) across updates.',
     ],
     relatedTopics: ['TimingData', 'Position', 'OvertakeSeries'],
-    bestTools: ['get_weather_series', 'get_latest', 'get_topic_timeline', 'get_keyframe', 'inspect_topic'],
+    bestTools: [
+      'get_weather_series',
+      'get_latest',
+      'get_topic_timeline',
+      'get_keyframe',
+      'inspect_topic',
+    ],
   },
   {
     topic: 'WeatherDataSeries',
@@ -632,12 +919,23 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
       'Trend analysis: rain onset, track temp drift, wind shifts over session time.',
       'Correlate evolving conditions with pace changes and tyre behavior.',
     ],
-    normalization: ['Series may start as array and continue with indexed patch updates.'],
+    normalization: [
+      'Series may start as array and continue with indexed patch updates.',
+    ],
     keyFields: [
-      { path: 'Series.<idx>.Timestamp', description: 'Weather sample timestamp.' },
+      {
+        path: 'Series.<idx>.Timestamp',
+        description: 'Weather sample timestamp.',
+      },
       { path: 'Series.<idx>.Weather.AirTemp', description: 'Air temperature.' },
-      { path: 'Series.<idx>.Weather.TrackTemp', description: 'Track temperature.' },
-      { path: 'Series.<idx>.Weather.Rainfall', description: 'Rainfall indicator/value.' },
+      {
+        path: 'Series.<idx>.Weather.TrackTemp',
+        description: 'Track temperature.',
+      },
+      {
+        path: 'Series.<idx>.Weather.Rainfall',
+        description: 'Rainfall indicator/value.',
+      },
       { path: 'Series.<idx>.Weather.WindSpeed', description: 'Wind speed.' },
     ],
     pitfalls: [
@@ -645,7 +943,12 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
       'Timeline intervals are approximate and can have gaps.',
     ],
     relatedTopics: ['WeatherData', 'TimingData', 'TrackStatus'],
-    bestTools: ['get_latest', 'get_topic_timeline', 'get_keyframe', 'inspect_topic'],
+    bestTools: [
+      'get_latest',
+      'get_topic_timeline',
+      'get_keyframe',
+      'inspect_topic',
+    ],
   },
   {
     topic: 'TimingDataF1',
@@ -660,18 +963,38 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
     ],
     normalization: ['Patch stream; requires state merge across updates.'],
     keyFields: [
-      { path: 'Lines.<driver>.Position|Line', description: 'Position/ranking fields.' },
-      { path: 'Lines.<driver>.GapToLeader', description: 'Gap to session leader.' },
-      { path: 'Lines.<driver>.IntervalToPositionAhead.Value', description: 'Interval to car ahead.' },
-      { path: 'Lines.<driver>.NumberOfLaps', description: 'Current lap number.' },
-      { path: 'Lines.<driver>.Sectors.<idx>.Value', description: 'Sector values when present.' },
+      {
+        path: 'Lines.<driver>.Position|Line',
+        description: 'Position/ranking fields.',
+      },
+      {
+        path: 'Lines.<driver>.GapToLeader',
+        description: 'Gap to session leader.',
+      },
+      {
+        path: 'Lines.<driver>.IntervalToPositionAhead.Value',
+        description: 'Interval to car ahead.',
+      },
+      {
+        path: 'Lines.<driver>.NumberOfLaps',
+        description: 'Current lap number.',
+      },
+      {
+        path: 'Lines.<driver>.Sectors.<idx>.Value',
+        description: 'Sector values when present.',
+      },
     ],
     pitfalls: [
       'Do not assume identical schema to TimingData.',
       'Like TimingData, this is incremental patch data and not full snapshots per line.',
     ],
     relatedTopics: ['TimingData', 'TimingStats', 'DriverRaceInfo'],
-    bestTools: ['get_latest', 'get_keyframe', 'inspect_topic', 'get_topic_timeline'],
+    bestTools: [
+      'get_latest',
+      'get_keyframe',
+      'inspect_topic',
+      'get_topic_timeline',
+    ],
   },
   {
     topic: 'TlaRcm',
@@ -684,9 +1007,14 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
       'Build concise session event timeline using short official message phrases.',
       'Cross-reference control messages against track status changes.',
     ],
-    normalization: ['Each update is typically a single Timestamp+Message payload.'],
+    normalization: [
+      'Each update is typically a single Timestamp+Message payload.',
+    ],
     keyFields: [
-      { path: 'Timestamp', description: 'Message timestamp (often local/event format).' },
+      {
+        path: 'Timestamp',
+        description: 'Message timestamp (often local/event format).',
+      },
       { path: 'Message', description: 'Short message text.' },
     ],
     pitfalls: [
@@ -707,19 +1035,32 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
       'Quickly list ordered runner board without reconstructing map keys.',
       'Compare broadcast board state with TimingData for validation.',
     ],
-    normalization: ['Lines can arrive as an array snapshot then indexed patches.'],
+    normalization: [
+      'Lines can arrive as an array snapshot then indexed patches.',
+    ],
     keyFields: [
       { path: 'Withheld', description: 'Whether board is withheld.' },
-      { path: 'Lines.<idx>.RacingNumber', description: 'Driver at board index.' },
+      {
+        path: 'Lines.<idx>.RacingNumber',
+        description: 'Driver at board index.',
+      },
       { path: 'Lines.<idx>.Position', description: 'Displayed position.' },
-      { path: 'Lines.<idx>.DiffToAhead|DiffToLeader', description: 'Displayed interval strings.' },
+      {
+        path: 'Lines.<idx>.DiffToAhead|DiffToLeader',
+        description: 'Displayed interval strings.',
+      },
     ],
     pitfalls: [
       'Line index is display order and can differ from driver-number keyed maps.',
       'Not all detailed timing fields are present.',
     ],
     relatedTopics: ['TopThree', 'TimingData', 'DriverList'],
-    bestTools: ['get_latest', 'get_topic_timeline', 'get_keyframe', 'inspect_topic'],
+    bestTools: [
+      'get_latest',
+      'get_topic_timeline',
+      'get_keyframe',
+      'inspect_topic',
+    ],
   },
   {
     topic: 'DriverRaceInfo',
@@ -734,19 +1075,36 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
     ],
     normalization: ['Patch stream keyed by racing number.'],
     keyFields: [
-      { path: '<driver>.Position', description: 'Current classified position.' },
+      {
+        path: '<driver>.Position',
+        description: 'Current classified position.',
+      },
       { path: '<driver>.Gap', description: 'Gap string to leader context.' },
-      { path: '<driver>.Interval', description: 'Interval string to car ahead.' },
+      {
+        path: '<driver>.Interval',
+        description: 'Interval string to car ahead.',
+      },
       { path: '<driver>.PitStops', description: 'Current pit stop count.' },
-      { path: '<driver>.Catching', description: 'Flag/indicator for catching state.' },
-      { path: '<driver>.OvertakeState', description: 'Overtake state indicator.' },
+      {
+        path: '<driver>.Catching',
+        description: 'Flag/indicator for catching state.',
+      },
+      {
+        path: '<driver>.OvertakeState',
+        description: 'Overtake state indicator.',
+      },
     ],
     pitfalls: [
       'Gap/Interval are strings and can be lap-based or formatted text.',
       'Indicator fields are encoded integers/flags; inspect before deriving strict booleans.',
     ],
     relatedTopics: ['TimingData', 'TimingDataF1', 'OvertakeSeries'],
-    bestTools: ['get_latest', 'get_topic_timeline', 'inspect_topic', 'get_keyframe'],
+    bestTools: [
+      'get_latest',
+      'get_topic_timeline',
+      'inspect_topic',
+      'get_keyframe',
+    ],
   },
   {
     topic: 'OvertakeSeries',
@@ -759,17 +1117,30 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
       'Identify where overtakes concentrated (by driver and timing).',
       'Support race recap with overtaking activity evidence.',
     ],
-    normalization: ['Overtakes keyed by driver with arrays of timestamped count entries.'],
+    normalization: [
+      'Overtakes keyed by driver with arrays of timestamped count entries.',
+    ],
     keyFields: [
-      { path: 'Overtakes.<driver>[].Timestamp', description: 'Timestamp of overtake-series event.' },
-      { path: 'Overtakes.<driver>[].count', description: 'Count/metric value for the event entry.' },
+      {
+        path: 'Overtakes.<driver>[].Timestamp',
+        description: 'Timestamp of overtake-series event.',
+      },
+      {
+        path: 'Overtakes.<driver>[].count',
+        description: 'Count/metric value for the event entry.',
+      },
     ],
     pitfalls: [
       'The count field semantics can vary by season/feed implementation.',
       'Not every positional change is guaranteed to appear as an overtake event.',
     ],
     relatedTopics: ['LapSeries', 'DriverRaceInfo', 'TimingData'],
-    bestTools: ['get_latest', 'get_keyframe', 'inspect_topic', 'get_topic_timeline'],
+    bestTools: [
+      'get_latest',
+      'get_keyframe',
+      'inspect_topic',
+      'get_topic_timeline',
+    ],
   },
   {
     topic: 'SPFeed',
@@ -782,7 +1153,12 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
       'Inspect for legacy historical datasets where this feed exists.',
     ],
     normalization: ['No stable schema guarantee; treat as opaque payload.'],
-    keyFields: [{ path: '*', description: 'Schema varies by season; inspect topic before use.' }],
+    keyFields: [
+      {
+        path: '*',
+        description: 'Schema varies by season; inspect topic before use.',
+      },
+    ],
     pitfalls: [
       'Often absent in modern seasons.',
       'Semantics are not stable enough for deterministic strategy calculations without inspection.',
@@ -807,7 +1183,8 @@ export function getDataBookTopic(topicOrAlias: string): DataBookTopic | null {
   const needle = canonicalizeTopic(topicOrAlias);
   for (const entry of DATA_BOOK_TOPICS) {
     if (entry.topic === needle) return entry;
-    if (entry.aliases.some((alias) => canonicalizeTopic(alias) === needle)) return entry;
+    if (entry.aliases.some((alias) => canonicalizeTopic(alias) === needle))
+      return entry;
   }
   return null;
 }

@@ -216,6 +216,48 @@ describe('TimingService', () => {
       },
     });
   });
+
+  it('normalizes stream metadata array payloads before merging', () => {
+    const service = new TimingService();
+
+    service.enqueue({
+      type: 'AudioStreams',
+      json: {
+        Streams: [
+          { Name: 'Main', Language: 'en', Path: 'AudioStreams/main.m3u8' },
+        ],
+      },
+      dateTime: new Date('2025-01-01T00:00:01Z'),
+    });
+    service.enqueue({
+      type: 'AudioStreams',
+      json: {
+        Streams: {
+          '1': {
+            Name: 'FX',
+            Language: 'en',
+            Path: 'AudioStreams/fx.m3u8',
+          },
+        },
+      },
+      dateTime: new Date('2025-01-01T00:00:02Z'),
+    });
+
+    expect(service.processors.extraTopics.AudioStreams.state).toEqual({
+      Streams: {
+        '0': {
+          Name: 'Main',
+          Language: 'en',
+          Path: 'AudioStreams/main.m3u8',
+        },
+        '1': {
+          Name: 'FX',
+          Language: 'en',
+          Path: 'AudioStreams/fx.m3u8',
+        },
+      },
+    });
+  });
   it('routes ExtrapolatedClock through the dedicated clock processor', () => {
     const service = new TimingService();
 

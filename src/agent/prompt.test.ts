@@ -34,6 +34,11 @@ describe('systemPrompt', () => {
     expect(systemPrompt).toContain('get_weather_series');
   });
 
+  it('mentions stream metadata tools for playback workflows', () => {
+    expect(systemPrompt).toContain('get_audio_streams');
+    expect(systemPrompt).toContain('get_content_streams');
+  });
+
   it('mentions deterministic pit stop event tooling', () => {
     expect(systemPrompt).toContain('get_pit_stop_events');
   });

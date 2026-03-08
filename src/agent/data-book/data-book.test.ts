@@ -35,4 +35,13 @@ describe('data-book', () => {
       'get_pit_stop_events',
     );
   });
+
+  it('documents deterministic stream metadata tooling', () => {
+    expect(getDataBookTopic('AudioStreams')?.bestTools).toContain(
+      'get_audio_streams',
+    );
+    expect(getDataBookTopic('ContentStreams')?.bestTools).toContain(
+      'get_content_streams',
+    );
+  });
 });

@@ -46,6 +46,7 @@ import {
   getWeatherSeriesRecords,
   summarizeWeatherSeries,
 } from '../core/weather-series.js';
+import { getStreamMetadataRecords } from '../core/stream-metadata.js';
 import {
   getRaceControlEvents,
   type RaceControlEvent,
@@ -434,7 +435,9 @@ export function makeTools({
       driverName: getDriverName(record.driverNumber),
     }));
 
-  const serializePitStopEvent = (event: ReturnType<typeof getPitStopEventRecords>[number]) => ({
+  const serializePitStopEvent = (
+    event: ReturnType<typeof getPitStopEventRecords>[number],
+  ) => ({
     ...event,
     driverName: getDriverName(event.driverNumber),
     dateTime: event.dateTime ? event.dateTime.toISOString() : null,
@@ -526,10 +529,54 @@ export function makeTools({
       samples,
       summary: summarizeWeatherSeries(samples),
       total: getWeatherSeriesRecords({
-        weatherDataSeriesState: processors.extraTopics?.WeatherDataSeries?.state,
+        weatherDataSeriesState:
+          processors.extraTopics?.WeatherDataSeries?.state,
         weatherDataState: processors.weatherData?.state,
         weatherDataTimestamp: latestWeather?.dateTime ?? null,
       }).length,
+    };
+  };
+
+  const listStreamMetadata = (
+    topic: 'AudioStreams' | 'ContentStreams',
+    opts: {
+      language?: string;
+      search?: string;
+      limit?: number;
+    } = {},
+  ) => {
+    const staticPrefix = getSessionStaticPrefix(store);
+    const allStreams = getStreamMetadataRecords({
+      topic,
+      state: getNormalizedLatest(topic)?.json ?? null,
+      staticPrefix,
+      language: opts.language,
+      search: opts.search,
+    });
+    const streams =
+      typeof opts.limit === 'number'
+        ? allStreams.slice(0, opts.limit)
+        : allStreams;
+
+    return {
+      sessionPrefix: staticPrefix,
+      total: allStreams.length,
+      returned: streams.length,
+      languages: Array.from(
+        new Set(
+          allStreams
+            .map((stream) => stream.language)
+            .filter((language): language is string => Boolean(language)),
+        ),
+      ).sort((left, right) => left.localeCompare(right)),
+      types: Array.from(
+        new Set(
+          allStreams
+            .map((stream) => stream.type)
+            .filter((type): type is string => Boolean(type)),
+        ),
+      ).sort((left, right) => left.localeCompare(right)),
+      streams,
     };
   };
 
@@ -1377,6 +1424,36 @@ export function makeTools({
         };
       },
     }),
+    get_content_streams: tool({
+      description:
+        'Get deterministic content/commentary stream metadata with resolved URLs for playback or inspection workflows.',
+      inputSchema: z.object({
+        language: z.string().optional(),
+        search: z.string().optional(),
+        limit: z.number().int().positive().max(100).optional(),
+      }),
+      execute: async ({ language, search, limit }) =>
+        listStreamMetadata('ContentStreams', {
+          language,
+          search,
+          limit,
+        }),
+    }),
+    get_audio_streams: tool({
+      description:
+        'Get deterministic audio stream metadata with resolved URLs for external playback and synchronization workflows.',
+      inputSchema: z.object({
+        language: z.string().optional(),
+        search: z.string().optional(),
+        limit: z.number().int().positive().max(100).optional(),
+      }),
+      execute: async ({ language, search, limit }) =>
+        listStreamMetadata('AudioStreams', {
+          language,
+          search,
+          limit,
+        }),
+    }),
     get_session_info: tool({
       description: 'Get merged SessionInfo',
       inputSchema: z.object({}),
@@ -1615,15 +1692,16 @@ export function makeTools({
         });
 
         const serialized = events.map(serializePitStopEvent);
-        const driver =
-          driverNumber === undefined ? null : String(driverNumber);
+        const driver = driverNumber === undefined ? null : String(driverNumber);
 
         if (driver) {
           return {
             asOf: {
               source: resolved.source,
               lap: resolved.lap,
-              dateTime: resolved.dateTime ? resolved.dateTime.toISOString() : null,
+              dateTime: resolved.dateTime
+                ? resolved.dateTime.toISOString()
+                : null,
             },
             driverNumber: driver,
             driverName: getDriverName(driver),
@@ -1636,7 +1714,9 @@ export function makeTools({
           asOf: {
             source: resolved.source,
             lap: resolved.lap,
-            dateTime: resolved.dateTime ? resolved.dateTime.toISOString() : null,
+            dateTime: resolved.dateTime
+              ? resolved.dateTime.toISOString()
+              : null,
           },
           total: serialized.length,
           totalDrivers: new Set(events.map((event) => event.driverNumber)).size,

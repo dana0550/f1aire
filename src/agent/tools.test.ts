@@ -71,6 +71,8 @@ describe('tools', () => {
     expect(tools).toHaveProperty('get_tyre_stints');
     expect(tools).toHaveProperty('get_pit_stop_events');
     expect(tools).toHaveProperty('get_weather_series');
+    expect(tools).toHaveProperty('get_content_streams');
+    expect(tools).toHaveProperty('get_audio_streams');
     expect(tools).toHaveProperty('get_lap_snapshot');
     expect(tools).toHaveProperty('get_best_laps');
     expect(tools).toHaveProperty('download_team_radio');
@@ -131,6 +133,142 @@ describe('tools', () => {
           sampleCorners: [{ number: 1, x: 5.5, y: 6.5 }],
         },
       },
+    });
+  });
+
+  it('get_audio_streams returns resolved playback metadata', async () => {
+    const tools = makeTools({
+      store: {
+        ...store,
+        raw: {
+          subscribe: {
+            SessionInfo: {
+              Path: '2025/2025-03-01_Test_Weekend/2025-03-01_Race/',
+            },
+          },
+          live: [],
+        },
+      } as any,
+      processors: {
+        ...processors,
+        extraTopics: {
+          AudioStreams: {
+            state: {
+              Streams: {
+                '10': {
+                  Name: 'FX',
+                  Language: 'en',
+                  Path: 'AudioStreams/FX.m3u8',
+                },
+                '2': {
+                  Name: 'Driver',
+                  Language: 'de',
+                  Uri: 'https://cdn.example.test/driver.m3u8',
+                },
+              },
+            },
+          },
+        },
+      } as any,
+      timeCursor: { latest: true },
+      onTimeCursorChange: () => {},
+    });
+
+    const result = await tools.get_audio_streams.execute({ limit: 10 } as any);
+
+    expect(result).toEqual({
+      sessionPrefix:
+        'https://livetiming.formula1.com/static/2025/2025-03-01_Test_Weekend/2025-03-01_Race/',
+      total: 2,
+      returned: 2,
+      languages: ['de', 'en'],
+      types: [],
+      streams: [
+        {
+          streamId: '2',
+          name: 'Driver',
+          language: 'de',
+          type: null,
+          uri: 'https://cdn.example.test/driver.m3u8',
+          path: null,
+          resolvedUrl: 'https://cdn.example.test/driver.m3u8',
+        },
+        {
+          streamId: '10',
+          name: 'FX',
+          language: 'en',
+          type: null,
+          uri: null,
+          path: 'AudioStreams/FX.m3u8',
+          resolvedUrl:
+            'https://livetiming.formula1.com/static/2025/2025-03-01_Test_Weekend/2025-03-01_Race/AudioStreams/FX.m3u8',
+        },
+      ],
+    });
+  });
+
+  it('get_content_streams filters deterministic metadata by language and search text', async () => {
+    const tools = makeTools({
+      store: {
+        ...store,
+        raw: {
+          subscribe: {
+            SessionInfo: {
+              Path: '2025/2025-03-01_Test_Weekend/2025-03-01_Race/',
+            },
+          },
+          live: [],
+        },
+      } as any,
+      processors: {
+        ...processors,
+        extraTopics: {
+          ContentStreams: {
+            state: {
+              Streams: {
+                '0': {
+                  Type: 'Commentary',
+                  Language: 'en',
+                  Path: 'Content/commentary-en.json',
+                },
+                '1': {
+                  Type: 'Telemetry',
+                  Language: 'es',
+                  Uri: 'https://cdn.example.test/telemetry-es.json',
+                },
+              },
+            },
+          },
+        },
+      } as any,
+      timeCursor: { latest: true },
+      onTimeCursorChange: () => {},
+    });
+
+    const result = await tools.get_content_streams.execute({
+      language: 'en',
+      search: 'commentary',
+    } as any);
+
+    expect(result).toEqual({
+      sessionPrefix:
+        'https://livetiming.formula1.com/static/2025/2025-03-01_Test_Weekend/2025-03-01_Race/',
+      total: 1,
+      returned: 1,
+      languages: ['en'],
+      types: ['Commentary'],
+      streams: [
+        {
+          streamId: '0',
+          name: null,
+          language: 'en',
+          type: 'Commentary',
+          uri: null,
+          path: 'Content/commentary-en.json',
+          resolvedUrl:
+            'https://livetiming.formula1.com/static/2025/2025-03-01_Test_Weekend/2025-03-01_Race/Content/commentary-en.json',
+        },
+      ],
     });
   });
 
@@ -881,8 +1019,14 @@ describe('tools', () => {
             [
               14,
               new Map([
-                ['4', { __dateTime: new Date('2025-01-01T00:00:14Z'), Line: 1 }],
-                ['81', { __dateTime: new Date('2025-01-01T00:00:14Z'), Line: 2 }],
+                [
+                  '4',
+                  { __dateTime: new Date('2025-01-01T00:00:14Z'), Line: 1 },
+                ],
+                [
+                  '81',
+                  { __dateTime: new Date('2025-01-01T00:00:14Z'), Line: 2 },
+                ],
               ]),
             ],
           ]),
@@ -989,8 +1133,14 @@ describe('tools', () => {
             [
               14,
               new Map([
-                ['4', { __dateTime: new Date('2025-01-01T00:00:14Z'), Line: 1 }],
-                ['81', { __dateTime: new Date('2025-01-01T00:00:14Z'), Line: 2 }],
+                [
+                  '4',
+                  { __dateTime: new Date('2025-01-01T00:00:14Z'), Line: 1 },
+                ],
+                [
+                  '81',
+                  { __dateTime: new Date('2025-01-01T00:00:14Z'), Line: 2 },
+                ],
               ]),
             ],
           ]),
@@ -1107,15 +1257,27 @@ describe('tools', () => {
             [
               12,
               new Map([
-                ['4', { __dateTime: new Date('2025-01-01T00:12:00Z'), Line: 1 }],
-                ['81', { __dateTime: new Date('2025-01-01T00:12:00Z'), Line: 2 }],
+                [
+                  '4',
+                  { __dateTime: new Date('2025-01-01T00:12:00Z'), Line: 1 },
+                ],
+                [
+                  '81',
+                  { __dateTime: new Date('2025-01-01T00:12:00Z'), Line: 2 },
+                ],
               ]),
             ],
             [
               15,
               new Map([
-                ['4', { __dateTime: new Date('2025-01-01T00:15:00Z'), Line: 1 }],
-                ['81', { __dateTime: new Date('2025-01-01T00:15:00Z'), Line: 2 }],
+                [
+                  '4',
+                  { __dateTime: new Date('2025-01-01T00:15:00Z'), Line: 1 },
+                ],
+                [
+                  '81',
+                  { __dateTime: new Date('2025-01-01T00:15:00Z'), Line: 2 },
+                ],
               ]),
             ],
           ]),
