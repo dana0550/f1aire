@@ -47,6 +47,7 @@ import {
   summarizeWeatherSeries,
 } from '../core/weather-series.js';
 import { getStreamMetadataRecords } from '../core/stream-metadata.js';
+import { getLapSeriesRecords, summarizeLapSeries } from '../core/lap-series.js';
 import {
   getRaceControlEvents,
   type RaceControlEvent,
@@ -434,6 +435,54 @@ export function makeTools({
       ...record,
       driverName: getDriverName(record.driverNumber),
     }));
+
+  const serializeLapSeriesRecord = (
+    record: ReturnType<typeof getLapSeriesRecords>[number],
+  ) => ({
+    ...record,
+    driverName: getDriverName(record.driverNumber),
+  });
+
+  const listLapSeries = (
+    opts: {
+      driverNumber?: string | number;
+      startLap?: number;
+      endLap?: number;
+      includeFuture?: boolean;
+      limit?: number;
+      order?: 'asc' | 'desc';
+    } = {},
+  ) => {
+    const resolved = resolveCurrentCursor();
+    const requestedEndLap =
+      typeof opts.endLap === 'number' ? opts.endLap : undefined;
+    const effectiveEndLap =
+      !opts.includeFuture && typeof resolved.lap === 'number'
+        ? Math.min(requestedEndLap ?? resolved.lap, resolved.lap)
+        : requestedEndLap;
+
+    const allRecords = getLapSeriesRecords({
+      lapSeriesState: processors.extraTopics?.LapSeries?.state,
+      driverNumber: opts.driverNumber,
+      startLap: opts.startLap,
+      endLap: effectiveEndLap,
+    });
+
+    let records = allRecords;
+    if (opts.order === 'desc') {
+      records = [...records].reverse();
+    }
+    if (typeof opts.limit === 'number' && opts.limit > 0) {
+      records = records.slice(0, Math.floor(opts.limit));
+    }
+
+    return {
+      resolved,
+      total: allRecords.length,
+      allRecords,
+      records,
+    };
+  };
 
   const serializePitStopEvent = (
     event: ReturnType<typeof getPitStopEventRecords>[number],
@@ -929,6 +978,44 @@ export function makeTools({
       };
     }
 
+    if (topic === 'LapSeries') {
+      const { allRecords, records } = listLapSeries({
+        driverNumber: resolvedDriver ?? undefined,
+        limit: resolvedDriver ? 12 : 24,
+      });
+      if (!allRecords.length) return null;
+
+      if (resolvedDriver) {
+        return {
+          asOf,
+          driverNumber: resolvedDriver,
+          driverName: getDriverName(resolvedDriver),
+          summary: summarizeLapSeries(allRecords),
+          records: records.map(serializeLapSeriesRecord),
+        };
+      }
+
+      const grouped = new Map<string, typeof allRecords>();
+      for (const record of allRecords) {
+        const entries = grouped.get(record.driverNumber) ?? [];
+        entries.push(record);
+        grouped.set(record.driverNumber, entries);
+      }
+
+      return {
+        asOf,
+        totalDrivers: grouped.size,
+        drivers: Array.from(grouped.entries()).map(
+          ([driverNumber, entries]) => ({
+            driverNumber,
+            driverName: getDriverName(driverNumber),
+            summary: summarizeLapSeries(entries),
+          }),
+        ),
+        sampleRecords: records.slice(0, 12).map(serializeLapSeriesRecord),
+      };
+    }
+
     if (topic === 'WeatherData') {
       const state = processors.weatherData?.state ?? null;
       if (!state) return null;
@@ -1367,6 +1454,82 @@ export function makeTools({
             driverName: getDriverName(driver),
             stints: records,
           })),
+        };
+      },
+    }),
+    get_lap_series: tool({
+      description:
+        'Get deterministic lap-by-lap classified positions from LapSeries, filtered to the current analysis cursor unless includeFuture is true.',
+      inputSchema: z.object({
+        driverNumber: z.union([z.string(), z.number()]).optional(),
+        startLap: z.number().int().positive().optional(),
+        endLap: z.number().int().positive().optional(),
+        includeFuture: z.boolean().optional(),
+        limit: z.number().int().positive().max(500).optional(),
+        order: z.enum(['asc', 'desc']).optional(),
+      }),
+      execute: async ({
+        driverNumber,
+        startLap,
+        endLap,
+        includeFuture,
+        limit,
+        order,
+      }) => {
+        const { resolved, allRecords, records, total } = listLapSeries({
+          driverNumber,
+          startLap,
+          endLap,
+          includeFuture,
+          limit,
+          order,
+        });
+
+        if (driverNumber !== undefined) {
+          const normalizedDriver = String(driverNumber);
+          return {
+            asOf: {
+              source: resolved.source,
+              lap: resolved.lap,
+              dateTime: resolved.dateTime,
+              includeFuture: Boolean(includeFuture),
+            },
+            driverNumber: normalizedDriver,
+            driverName: getDriverName(normalizedDriver),
+            total,
+            returned: records.length,
+            order: order ?? 'asc',
+            summary: summarizeLapSeries(allRecords),
+            records: records.map(serializeLapSeriesRecord),
+          };
+        }
+
+        const grouped = new Map<string, typeof allRecords>();
+        for (const record of allRecords) {
+          const entries = grouped.get(record.driverNumber) ?? [];
+          entries.push(record);
+          grouped.set(record.driverNumber, entries);
+        }
+
+        return {
+          asOf: {
+            source: resolved.source,
+            lap: resolved.lap,
+            dateTime: resolved.dateTime,
+            includeFuture: Boolean(includeFuture),
+          },
+          totalRecords: total,
+          returnedRecords: records.length,
+          totalDrivers: grouped.size,
+          order: order ?? 'asc',
+          drivers: Array.from(grouped.entries()).map(
+            ([normalizedDriver, entries]) => ({
+              driverNumber: normalizedDriver,
+              driverName: getDriverName(normalizedDriver),
+              summary: summarizeLapSeries(entries),
+            }),
+          ),
+          records: records.map(serializeLapSeriesRecord),
         };
       },
     }),

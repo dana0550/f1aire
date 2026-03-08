@@ -901,7 +901,7 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
     ],
     relatedTopics: ['TimingData', 'Position', 'OvertakeSeries'],
     bestTools: [
-      'get_weather_series',
+      'get_lap_series',
       'get_latest',
       'get_topic_timeline',
       'get_keyframe',

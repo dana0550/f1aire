@@ -36,6 +36,12 @@ describe('data-book', () => {
     );
   });
 
+  it('documents deterministic lap-series tooling', () => {
+    expect(getDataBookTopic('LapSeries')?.bestTools).toContain(
+      'get_lap_series',
+    );
+  });
+
   it('documents deterministic stream metadata tooling', () => {
     expect(getDataBookTopic('AudioStreams')?.bestTools).toContain(
       'get_audio_streams',

@@ -30,6 +30,10 @@ describe('systemPrompt', () => {
     expect(systemPrompt).toContain('get_tyre_stints');
   });
 
+  it('mentions the lap series tool for position progression questions', () => {
+    expect(systemPrompt).toContain('get_lap_series');
+  });
+
   it('mentions the weather series tool for condition trend questions', () => {
     expect(systemPrompt).toContain('get_weather_series');
   });

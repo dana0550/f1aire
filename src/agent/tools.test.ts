@@ -69,6 +69,7 @@ describe('tools', () => {
     expect(tools).toHaveProperty('get_team_radio_events');
     expect(tools).toHaveProperty('get_current_tyres');
     expect(tools).toHaveProperty('get_tyre_stints');
+    expect(tools).toHaveProperty('get_lap_series');
     expect(tools).toHaveProperty('get_pit_stop_events');
     expect(tools).toHaveProperty('get_weather_series');
     expect(tools).toHaveProperty('get_content_streams');
@@ -1230,6 +1231,233 @@ describe('tools', () => {
           ],
         },
       ],
+    });
+  });
+
+  it('get_lap_series returns cursor-aware lap position progression', async () => {
+    const tools = makeTools({
+      store,
+      processors: {
+        ...processors,
+        driverList: {
+          state: {},
+          getName: (driverNumber: string) =>
+            driverNumber === '4' ? 'Lando Norris' : 'Oscar Piastri',
+        },
+        timingData: {
+          state: { Lines: { '4': { Line: 2 }, '81': { Line: 4 } } },
+          bestLaps: new Map(),
+          getLapHistory: () => [],
+          getLapNumbers: () => [1, 2, 3],
+          driversByLap: new Map([
+            [
+              1,
+              new Map([
+                [
+                  '4',
+                  { __dateTime: new Date('2025-01-01T00:01:00Z'), Line: 2 },
+                ],
+              ]),
+            ],
+            [
+              2,
+              new Map([
+                [
+                  '4',
+                  { __dateTime: new Date('2025-01-01T00:02:00Z'), Line: 3 },
+                ],
+              ]),
+            ],
+            [
+              3,
+              new Map([
+                [
+                  '4',
+                  { __dateTime: new Date('2025-01-01T00:03:00Z'), Line: 1 },
+                ],
+              ]),
+            ],
+          ]),
+        },
+        extraTopics: {
+          LapSeries: {
+            state: {
+              '4': {
+                RacingNumber: '4',
+                LapPosition: ['2', '3', '1', '1'],
+              },
+              '81': {
+                RacingNumber: '81',
+                LapPosition: ['4', '4', '5', '5'],
+              },
+            },
+          },
+        },
+      } as any,
+      timeCursor: { lap: 3 },
+      onTimeCursorChange: () => {},
+    });
+
+    await expect(
+      tools.get_lap_series.execute({ driverNumber: '4' } as any),
+    ).resolves.toEqual({
+      asOf: {
+        source: 'lap',
+        lap: 3,
+        dateTime: new Date('2025-01-01T00:03:00Z'),
+        includeFuture: false,
+      },
+      driverNumber: '4',
+      driverName: 'Lando Norris',
+      total: 3,
+      returned: 3,
+      order: 'asc',
+      summary: {
+        driverNumber: '4',
+        totalLaps: 3,
+        startLap: 1,
+        endLap: 3,
+        startPosition: 2,
+        endPosition: 1,
+        bestPosition: 1,
+        worstPosition: 3,
+        positionsGained: 1,
+        changes: 2,
+      },
+      records: [
+        {
+          driverNumber: '4',
+          driverName: 'Lando Norris',
+          lap: 1,
+          position: 2,
+          source: 'LapSeries',
+        },
+        {
+          driverNumber: '4',
+          driverName: 'Lando Norris',
+          lap: 2,
+          position: 3,
+          source: 'LapSeries',
+        },
+        {
+          driverNumber: '4',
+          driverName: 'Lando Norris',
+          lap: 3,
+          position: 1,
+          source: 'LapSeries',
+        },
+      ],
+    });
+  });
+
+  it('get_topic_reference shows typed LapSeries examples', async () => {
+    const tools = makeTools({
+      store,
+      processors: {
+        ...processors,
+        driverList: {
+          state: {},
+          getName: (driverNumber: string) =>
+            driverNumber === '4' ? 'Lando Norris' : null,
+        },
+        timingData: {
+          state: { Lines: { '4': { Line: 2 } } },
+          bestLaps: new Map(),
+          getLapHistory: () => [],
+          getLapNumbers: () => [1, 2, 3],
+          driversByLap: new Map([
+            [
+              1,
+              new Map([
+                [
+                  '4',
+                  { __dateTime: new Date('2025-01-01T00:01:00Z'), Line: 2 },
+                ],
+              ]),
+            ],
+            [
+              2,
+              new Map([
+                [
+                  '4',
+                  { __dateTime: new Date('2025-01-01T00:02:00Z'), Line: 3 },
+                ],
+              ]),
+            ],
+            [
+              3,
+              new Map([
+                [
+                  '4',
+                  { __dateTime: new Date('2025-01-01T00:03:00Z'), Line: 1 },
+                ],
+              ]),
+            ],
+          ]),
+        },
+        extraTopics: {
+          LapSeries: {
+            state: {
+              '4': {
+                RacingNumber: '4',
+                LapPosition: ['2', '3', '1', '1'],
+              },
+            },
+          },
+        },
+      } as any,
+      timeCursor: { lap: 3 },
+      onTimeCursorChange: () => {},
+    });
+
+    const result = await tools.get_topic_reference.execute({
+      topic: 'LapSeries',
+      driverNumber: '4',
+      includeExample: true,
+    } as any);
+
+    expect(result).toMatchObject({
+      canonicalTopic: 'LapSeries',
+      found: true,
+      present: true,
+      example: {
+        asOf: {
+          source: 'lap',
+          lap: 3,
+          dateTime: new Date('2025-01-01T00:03:00Z'),
+        },
+        driverNumber: '4',
+        driverName: 'Lando Norris',
+        summary: {
+          driverNumber: '4',
+          totalLaps: 3,
+          startPosition: 2,
+          endPosition: 1,
+        },
+        records: [
+          {
+            driverNumber: '4',
+            driverName: 'Lando Norris',
+            lap: 1,
+            position: 2,
+            source: 'LapSeries',
+          },
+          {
+            driverNumber: '4',
+            driverName: 'Lando Norris',
+            lap: 2,
+            position: 3,
+            source: 'LapSeries',
+          },
+          {
+            driverNumber: '4',
+            driverName: 'Lando Norris',
+            lap: 3,
+            position: 1,
+            source: 'LapSeries',
+          },
+        ],
+      },
     });
   });
 
