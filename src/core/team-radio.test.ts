@@ -7,6 +7,8 @@ import {
   getDefaultTeamRadioDownloadDir,
   getSessionStaticPrefix,
   getTeamRadioCaptures,
+  getTeamRadioPlaybackCommand,
+  playTeamRadioCapture,
   resolveStaticAssetUrl,
   transcribeTeamRadioCapture,
 } from './team-radio.js';
@@ -304,6 +306,109 @@ describe('team radio helpers', () => {
           hasTranscription: true,
         },
       ]);
+    } finally {
+      rmSync(destinationDir, { recursive: true, force: true });
+    }
+  });
+  it('builds playback commands for system and explicit players', () => {
+    expect(
+      getTeamRadioPlaybackCommand('/tmp/radio.mp3', { platform: 'darwin' }),
+    ).toEqual({
+      player: 'system',
+      command: 'open',
+      args: ['/tmp/radio.mp3'],
+      detached: true,
+      shell: false,
+    });
+
+    expect(
+      getTeamRadioPlaybackCommand('/tmp/radio.mp3', { player: 'ffplay' }),
+    ).toEqual({
+      player: 'ffplay',
+      command: 'ffplay',
+      args: ['-nodisp', '-autoexit', '-loglevel', 'error', '/tmp/radio.mp3'],
+      detached: true,
+      shell: false,
+    });
+  });
+
+  it('plays a radio clip via the selected player after downloading it', async () => {
+    const destinationDir = mkdtempSync(
+      path.join(tmpdir(), 'f1aire-team-radio-play-'),
+    );
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response('radio-bytes', { status: 200 }));
+    const once = vi.fn();
+    const unref = vi.fn();
+    const spawnImpl = vi.fn().mockReturnValue({
+      pid: 4321,
+      once,
+      unref,
+    });
+
+    try {
+      const source = {
+        raw: {
+          download: {
+            prefix:
+              'https://livetiming.formula1.com/static/2024/2024-05-26_Test_Weekend/2024-05-26_Race/',
+            session: {
+              path: '2024/2024-05-26_Test_Weekend/2024-05-26_Race/',
+            },
+          },
+          subscribe: {},
+          keyframes: null,
+        },
+      };
+      const state = {
+        Captures: {
+          '1': {
+            Utc: '2024-05-26T12:16:25.710Z',
+            RacingNumber: '4',
+            Path: 'TeamRadio/LANNOR01_4_20240526_121625.mp3',
+          },
+        },
+      };
+      const filePath = path.join(
+        destinationDir,
+        'LANNOR01_4_20240526_121625.mp3',
+      );
+
+      const result = await playTeamRadioCapture({
+        source,
+        state,
+        captureId: '1',
+        destinationDir,
+        fetchImpl,
+        player: 'ffplay',
+        spawnImpl,
+      });
+
+      expect(result).toMatchObject({
+        captureId: '1',
+        driverNumber: '4',
+        filePath,
+        player: 'ffplay',
+        command: 'ffplay',
+        args: ['-nodisp', '-autoexit', '-loglevel', 'error', filePath],
+        pid: 4321,
+      });
+      expect(fetchImpl).toHaveBeenCalledTimes(1);
+      expect(spawnImpl).toHaveBeenCalledWith(
+        'ffplay',
+        ['-nodisp', '-autoexit', '-loglevel', 'error', filePath],
+        {
+          stdio: 'ignore',
+          detached: true,
+          shell: false,
+        },
+      );
+      expect(once).toHaveBeenCalledWith('error', expect.any(Function));
+      expect(unref).toHaveBeenCalledTimes(1);
+      expect((state as any).Captures['1']).toMatchObject({
+        DownloadedFilePath: filePath,
+      });
     } finally {
       rmSync(destinationDir, { recursive: true, force: true });
     }

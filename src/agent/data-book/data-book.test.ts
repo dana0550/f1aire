@@ -24,7 +24,10 @@ describe('data-book', () => {
     expect(getDataBookTopic('Position.z')?.topic).toBe('Position');
   });
 
-  it('documents the team radio transcription workflow', () => {
+  it('documents the team radio playback and transcription workflow', () => {
+    expect(getDataBookTopic('TeamRadio')?.bestTools).toContain(
+      'play_team_radio',
+    );
     expect(getDataBookTopic('TeamRadio')?.bestTools).toContain(
       'transcribe_team_radio',
     );

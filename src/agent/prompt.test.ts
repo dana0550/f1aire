@@ -21,7 +21,8 @@ describe('systemPrompt', () => {
     expect(systemPrompt).toContain('run_until_complete');
   });
 
-  it('mentions the team radio transcription tool', () => {
+  it('mentions the team radio playback and transcription tools', () => {
+    expect(systemPrompt).toContain('play_team_radio');
     expect(systemPrompt).toContain('transcribe_team_radio');
   });
 

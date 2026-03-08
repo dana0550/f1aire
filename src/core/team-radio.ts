@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
+import { spawn } from 'node:child_process';
 import type { SessionStore } from './session-store.js';
 import { getDataDir } from './xdg.js';
 
@@ -12,6 +13,16 @@ const DEFAULT_APP_NAME = 'f1aire';
 const TEAM_RADIO_CACHE_DIR = 'team-radio';
 const TEAM_RADIO_TRANSCRIPTION_CACHE_SUFFIX = '.transcription.json';
 const DEFAULT_TEAM_RADIO_TRANSCRIPTION_MODEL = 'gpt-4o-transcribe';
+
+export const TEAM_RADIO_PLAYERS = [
+  'system',
+  'afplay',
+  'ffplay',
+  'mpv',
+  'vlc',
+] as const;
+
+export type TeamRadioPlayer = (typeof TEAM_RADIO_PLAYERS)[number];
 
 type ObjectRecord = Record<string, unknown>;
 
@@ -57,11 +68,44 @@ export type TeamRadioTranscriptionResult = TeamRadioDownloadResult & {
   model: string;
 };
 
+export type TeamRadioPlaybackCommand = {
+  player: TeamRadioPlayer;
+  command: string;
+  args: string[];
+  detached: boolean;
+  shell: boolean;
+};
+
+export type TeamRadioPlaybackResult = TeamRadioDownloadResult & {
+  player: TeamRadioPlayer;
+  command: string;
+  args: string[];
+  pid: number | null;
+};
+
 type TeamRadioTranscriptionCache = {
   text: string;
   model: string;
   createdAt: string;
 };
+
+type TeamRadioSpawnOptions = {
+  stdio: 'ignore';
+  detached: boolean;
+  shell: boolean;
+};
+
+type TeamRadioSpawnedProcess = {
+  pid?: number;
+  once?: (event: string, listener: (...args: unknown[]) => void) => unknown;
+  unref?: () => void;
+};
+
+type TeamRadioSpawnImpl = (
+  command: string,
+  args: string[],
+  options: TeamRadioSpawnOptions,
+) => TeamRadioSpawnedProcess;
 
 function isPlainObject(value: unknown): value is ObjectRecord {
   if (!value || typeof value !== 'object') {
@@ -316,6 +360,123 @@ function guessAudioContentType(filePath: string): string {
 
 function getTranscriptionCachePath(filePath: string): string {
   return `${filePath}${TEAM_RADIO_TRANSCRIPTION_CACHE_SUFFIX}`;
+}
+
+export function getTeamRadioPlaybackCommand(
+  filePath: string,
+  options: {
+    player?: TeamRadioPlayer;
+    platform?: NodeJS.Platform;
+  } = {},
+): TeamRadioPlaybackCommand {
+  const player = options.player ?? 'system';
+  const platform = options.platform ?? process.platform;
+
+  switch (player) {
+    case 'afplay':
+      return {
+        player,
+        command: 'afplay',
+        args: [filePath],
+        detached: true,
+        shell: false,
+      };
+    case 'ffplay':
+      return {
+        player,
+        command: 'ffplay',
+        args: ['-nodisp', '-autoexit', '-loglevel', 'error', filePath],
+        detached: true,
+        shell: false,
+      };
+    case 'mpv':
+      return {
+        player,
+        command: 'mpv',
+        args: ['--really-quiet', '--force-window=no', filePath],
+        detached: true,
+        shell: false,
+      };
+    case 'vlc':
+      return {
+        player,
+        command: 'vlc',
+        args: ['--intf', 'dummy', '--play-and-exit', filePath],
+        detached: true,
+        shell: false,
+      };
+    case 'system':
+    default:
+      if (platform === 'darwin') {
+        return {
+          player,
+          command: 'open',
+          args: [filePath],
+          detached: true,
+          shell: false,
+        };
+      }
+      if (platform === 'win32') {
+        return {
+          player,
+          command: 'cmd',
+          args: ['/c', 'start', '', filePath],
+          detached: true,
+          shell: false,
+        };
+      }
+      return {
+        player,
+        command: 'xdg-open',
+        args: [filePath],
+        detached: true,
+        shell: false,
+      };
+  }
+}
+
+async function launchTeamRadioPlayback(
+  playback: TeamRadioPlaybackCommand,
+  spawnImpl: TeamRadioSpawnImpl,
+): Promise<number | null> {
+  const child = spawnImpl(playback.command, playback.args, {
+    stdio: 'ignore',
+    detached: playback.detached,
+    shell: playback.shell,
+  });
+
+  const pid = typeof child.pid === 'number' ? child.pid : null;
+
+  await new Promise<void>((resolve, reject) => {
+    let settled = false;
+
+    const finish = (handler: () => void) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      handler();
+    };
+
+    if (typeof child.once === 'function') {
+      child.once('error', (error) => {
+        finish(() => {
+          reject(error instanceof Error ? error : new Error(String(error)));
+        });
+      });
+    }
+
+    setTimeout(() => {
+      finish(() => {
+        if (playback.detached) {
+          child.unref?.();
+        }
+        resolve();
+      });
+    }, 0);
+  });
+
+  return pid;
 }
 
 async function readTranscriptionCache(
@@ -730,5 +891,52 @@ export async function transcribeTeamRadioCapture(opts: {
     transcriptionFilePath,
     transcriptionReused: false,
     model: requestedModel,
+  };
+}
+
+export async function playTeamRadioCapture(opts: {
+  source: unknown;
+  state: unknown;
+  captureId?: string | number;
+  driverNumber?: string | number;
+  destinationDir?: string;
+  appName?: string;
+  overwriteDownload?: boolean;
+  fetchImpl?: typeof fetch;
+  player?: TeamRadioPlayer;
+  platform?: NodeJS.Platform;
+  spawnImpl?: TeamRadioSpawnImpl;
+}): Promise<TeamRadioPlaybackResult> {
+  const download = await downloadTeamRadioCapture({
+    source: opts.source,
+    state: opts.state,
+    captureId: opts.captureId,
+    driverNumber: opts.driverNumber,
+    destinationDir: opts.destinationDir,
+    appName: opts.appName,
+    overwrite: opts.overwriteDownload,
+    fetchImpl: opts.fetchImpl,
+  });
+
+  const playback = getTeamRadioPlaybackCommand(download.filePath, {
+    player: opts.player,
+    platform: opts.platform,
+  });
+  const pid = await launchTeamRadioPlayback(
+    playback,
+    opts.spawnImpl ??
+      ((command, args, options) => spawn(command, args, options)),
+  );
+
+  updateCaptureRecord(opts.state, download.captureId, {
+    DownloadedFilePath: download.filePath,
+  });
+
+  return {
+    ...download,
+    player: playback.player,
+    command: playback.command,
+    args: [...playback.args],
+    pid,
   };
 }

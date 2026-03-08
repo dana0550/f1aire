@@ -454,6 +454,7 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
     bestTools: [
       'get_team_radio',
       'get_team_radio_events',
+      'play_team_radio',
       'download_team_radio',
       'transcribe_team_radio',
       'inspect_topic',

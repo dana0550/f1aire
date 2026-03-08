@@ -33,8 +33,10 @@ import {
 } from '../core/race-engineer-metrics.js';
 import {
   downloadTeamRadioCapture,
+  playTeamRadioCapture,
   getSessionStaticPrefix,
   getTeamRadioCaptures,
+  TEAM_RADIO_PLAYERS,
   transcribeTeamRadioCapture,
 } from '../core/team-radio.js';
 import {
@@ -1984,6 +1986,38 @@ export function makeTools({
           total: captures.length,
           returned: sliced.length,
           captures: sliced,
+        };
+      },
+    }),
+    play_team_radio: tool({
+      description:
+        'Download a team radio clip if needed and launch local playback via the system opener or a specific player binary.',
+      inputSchema: z.object({
+        captureId: z.union([z.string(), z.number()]).optional(),
+        driverNumber: z.union([z.string(), z.number()]).optional(),
+        overwriteDownload: z.boolean().optional(),
+        player: z.enum(TEAM_RADIO_PLAYERS).optional(),
+      }),
+      execute: async ({
+        captureId,
+        driverNumber,
+        overwriteDownload,
+        player,
+      }) => {
+        const playback = await playTeamRadioCapture({
+          source: store,
+          state: processors.teamRadio?.state,
+          captureId,
+          driverNumber,
+          overwriteDownload,
+          player,
+        });
+
+        return {
+          ...playback,
+          driverName: playback.driverNumber
+            ? getDriverName(playback.driverNumber)
+            : null,
         };
       },
     }),

@@ -69,6 +69,7 @@ describe('tools', () => {
     expect(tools).toHaveProperty('get_driver_tracker');
     expect(tools).toHaveProperty('get_driver_race_info');
     expect(tools).toHaveProperty('get_team_radio_events');
+    expect(tools).toHaveProperty('play_team_radio');
     expect(tools).toHaveProperty('get_current_tyres');
     expect(tools).toHaveProperty('get_tyre_stints');
     expect(tools).toHaveProperty('get_lap_series');
