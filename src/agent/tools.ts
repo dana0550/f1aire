@@ -31,6 +31,10 @@ import {
   computePitLaneTimeStats,
   computeScVscDeltas,
 } from '../core/race-engineer-metrics.js';
+import {
+  getSessionStaticPrefix,
+  getTeamRadioCaptures,
+} from '../core/team-radio.js';
 import type { TimeCursor } from '../core/time-cursor.js';
 import { getDataBookIndex, getDataBookTopic } from './data-book/data-book.js';
 
@@ -704,6 +708,35 @@ export function makeTools({
       description: 'Get merged TeamRadio (Captures dict)',
       inputSchema: z.object({}),
       execute: async () => processors.teamRadio?.state ?? null,
+    }),
+    get_team_radio_events: tool({
+      description:
+        'List team radio captures newest-first with resolved static clip URLs. Useful for playback/download workflows and for correlating radio with track events.',
+      inputSchema: z.object({
+        driverNumber: z.union([z.string(), z.number()]).optional(),
+        limit: z.number().int().positive().max(100).optional(),
+      }),
+      execute: async ({ driverNumber, limit }) => {
+        const staticPrefix = getSessionStaticPrefix(store);
+        const captures = getTeamRadioCaptures(processors.teamRadio?.state, {
+          staticPrefix,
+        });
+        const filtered =
+          driverNumber === undefined
+            ? captures
+            : captures.filter((capture) => capture.driverNumber === String(driverNumber));
+        const sliced = filtered.slice(0, limit ?? 20).map((capture) => ({
+          ...capture,
+          driverName: capture.driverNumber ? getDriverName(capture.driverNumber) : null,
+        }));
+
+        return {
+          sessionPrefix: staticPrefix,
+          total: captures.length,
+          returned: sliced.length,
+          captures: sliced,
+        };
+      },
     }),
     get_championship_prediction: tool({
       description: 'Get merged ChampionshipPrediction',

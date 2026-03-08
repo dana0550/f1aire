@@ -57,7 +57,72 @@ describe('tools', () => {
     expect(tools).toHaveProperty('get_sc_vsc_deltas');
     expect(tools).toHaveProperty('get_pit_loss_estimate');
     expect(tools).toHaveProperty('get_position_changes');
+    expect(tools).toHaveProperty('get_team_radio_events');
     expect(tools).toHaveProperty('set_time_cursor');
+  });
+
+  it('get_team_radio_events resolves newest clips with absolute asset URLs', async () => {
+    const tools = makeTools({
+      store: {
+        ...store,
+        raw: {
+          subscribe: {
+            SessionInfo: {
+              Path: '2024/2024-05-26_Test_Weekend/2024-05-26_Race/',
+            },
+          },
+          live: [],
+        },
+      } as any,
+      processors: {
+        ...processors,
+        driverList: {
+          state: {},
+          getName: (driverNumber: string) =>
+            driverNumber === '4'
+              ? 'Lando Norris'
+              : driverNumber === '81'
+                ? 'Oscar Piastri'
+                : null,
+        },
+        teamRadio: {
+          state: {
+            Captures: {
+              '0': {
+                Utc: '2024-05-26T12:15:25.710Z',
+                RacingNumber: '81',
+                Path: 'TeamRadio/OSCPIA01_81_20240526_121525.mp3',
+              },
+              '1': {
+                Utc: '2024-05-26T12:16:25.710Z',
+                RacingNumber: '4',
+                Path: 'TeamRadio/LANNOR01_4_20240526_121625.mp3',
+              },
+            },
+          },
+        },
+      } as any,
+      timeCursor: { latest: true },
+      onTimeCursorChange: () => {},
+    });
+
+    const result = await tools.get_team_radio_events.execute({ limit: 1 } as any);
+
+    expect(result).toMatchObject({
+      sessionPrefix:
+        'https://livetiming.formula1.com/static/2024/2024-05-26_Test_Weekend/2024-05-26_Race/',
+      total: 2,
+      returned: 1,
+      captures: [
+        {
+          captureId: '1',
+          driverNumber: '4',
+          driverName: 'Lando Norris',
+          assetUrl:
+            'https://livetiming.formula1.com/static/2024/2024-05-26_Test_Weekend/2024-05-26_Race/TeamRadio/LANNOR01_4_20240526_121625.mp3',
+        },
+      ],
+    });
   });
 
   it('get_data_book_index returns entries', async () => {
