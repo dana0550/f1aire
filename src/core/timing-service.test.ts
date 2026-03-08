@@ -26,6 +26,38 @@ describe('TimingService', () => {
     );
   });
 
+  it('routes TimingDataF1 into the primary timing processor', () => {
+    const service = new TimingService();
+
+    service.enqueue({
+      type: 'TimingDataF1',
+      json: {
+        Lines: {
+          '81': {
+            Line: 1,
+            NumberOfLaps: 12,
+            BestLapTime: { Value: '1:29.999' },
+          },
+        },
+      },
+      dateTime: new Date('2025-01-01T00:00:03Z'),
+    });
+
+    expect(service.processors.timingData.state).toEqual({
+      Lines: {
+        '81': {
+          Line: 1,
+          NumberOfLaps: 12,
+          BestLapTime: { Value: '1:29.999' },
+        },
+      },
+    });
+    expect(service.processors.timingData.bestLaps.get('81')?.time).toBe(
+      '1:29.999',
+    );
+    expect(service.processors.timingData.getLapNumbers()).toEqual([12]);
+  });
+
   it('merges auxiliary patch topics into deterministic state', () => {
     const service = new TimingService();
 

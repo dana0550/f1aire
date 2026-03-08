@@ -106,6 +106,33 @@ describe('summarizeFromLines', () => {
 
     expect(summary.winner?.number).toBe('4');
   });
+
+  it('uses TimingDataF1 as a fallback timing source for summaries', () => {
+    const raw = [
+      JSON.stringify({
+        type: 'DriverList',
+        json: { '81': { FullName: 'Oscar Piastri' }, '4': { FullName: 'Lando Norris' } },
+        dateTime: '2024-01-01T00:00:00.000Z',
+      }),
+      JSON.stringify({
+        type: 'TimingDataF1',
+        json: {
+          Lines: {
+            '81': { Line: 1, BestLapTime: { Value: '1:29.999' } },
+            '4': { Line: 2, BestLapTime: { Value: '1:30.100' } },
+          },
+        },
+        dateTime: '2024-01-01T00:00:10.000Z',
+      }),
+      JSON.stringify({ type: 'LapCount', json: { TotalLaps: 52 }, dateTime: '2024-01-01T00:01:01.000Z' }),
+    ].join('\n');
+
+    const summary = summarizeFromLines(raw);
+
+    expect(summary.winner).toEqual({ number: '81', name: 'Oscar Piastri' });
+    expect(summary.fastestLap?.time).toBe('1:29.999');
+    expect(summary.totalLaps).toBe(52);
+  });
 });
 
 describe('parseLapTimeMs', () => {

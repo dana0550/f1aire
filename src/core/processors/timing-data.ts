@@ -5,6 +5,12 @@ import { mergeDeep } from './merge.js';
 type BestLap = { time: string; timeMs: number };
 type TimingLine = Record<string, unknown>;
 type TimingState = { Lines?: Record<string, TimingLine> } & Record<string, unknown>;
+type TimingPointType = 'TimingData' | 'TimingDataF1';
+
+const SUPPORTED_TIMING_TYPES = new Set<TimingPointType>([
+  'TimingData',
+  'TimingDataF1',
+]);
 
 export class TimingDataProcessor implements Processor<TimingState> {
   latest: TimingState | null = null;
@@ -32,7 +38,8 @@ export class TimingDataProcessor implements Processor<TimingState> {
   }
 
   process(point: RawPoint) {
-    if (point.type !== 'TimingData') return;
+    if (!SUPPORTED_TIMING_TYPES.has(point.type as TimingPointType)) return;
+
     const patch = point.json ?? {};
     if (!this.state) {
       this.state = structuredClone(patch) as TimingState;

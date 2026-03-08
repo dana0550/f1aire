@@ -13,11 +13,13 @@ type TimingLines = Record<string, TimingEntry>;
 
 type BestLap = { num: string; timeMs: number; time: string };
 
+const SUPPORTED_TIMING_SUMMARY_TYPES = new Set(['TimingData', 'TimingDataF1']);
+
 export function summarizeFromLines(raw: string): Summary {
   const driverNames = new Map<string, string>();
   let totalLaps: number | null = null;
-  // TimingData is a jsonStream of incremental patches; keep a merged state of only the
-  // fields we need for a lightweight summary (Position and BestLapTime.Value).
+  // TimingData and TimingDataF1 are incremental patch feeds; keep a merged state of only the
+  // fields we need for a lightweight summary (Position/Line and BestLapTime.Value).
   const timingState: TimingLines = {};
 
   for (const line of raw.split('\n').filter((value) => value.trim().length > 0)) {
@@ -35,7 +37,7 @@ export function summarizeFromLines(raw: string): Summary {
         if (name) driverNames.set(num, name);
       }
     }
-    if (entry.type === 'TimingData') {
+    if (SUPPORTED_TIMING_SUMMARY_TYPES.has(entry.type)) {
       const patchLines = entry.json?.Lines as Record<string, unknown> | undefined;
       if (patchLines && typeof patchLines === 'object') {
         for (const [num, patch] of Object.entries(patchLines)) {
@@ -44,8 +46,12 @@ export function summarizeFromLines(raw: string): Summary {
           const current = timingState[num] ?? {};
           const next: TimingEntry = { ...current };
 
-          if (typeof patchDriver.Position === 'string') {
-            next.Position = patchDriver.Position;
+          const positionValue = patchDriver.Position ?? patchDriver.Line;
+          if (positionValue !== null && positionValue !== undefined) {
+            const normalizedPosition = String(positionValue).trim();
+            if (normalizedPosition.length > 0) {
+              next.Position = normalizedPosition;
+            }
           }
 
           const bestLapValue = patchDriver?.BestLapTime?.Value;
