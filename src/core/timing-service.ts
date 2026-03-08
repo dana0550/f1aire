@@ -1,5 +1,6 @@
 import type { RawPoint } from './processors/types.js';
 import { CarDataProcessor } from './processors/car-data.js';
+import { DriverTrackerProcessor } from './processors/driver-tracker.js';
 import { DriverRaceInfoProcessor } from './processors/driver-race-info.js';
 import { DriverListProcessor } from './processors/driver-list.js';
 import { ExtrapolatedClockProcessor } from './processors/extrapolated-clock.js';
@@ -27,6 +28,7 @@ const EXPLICIT_PROCESSOR_TOPICS = new Set([
   'SessionData',
   'ExtrapolatedClock',
   'TopThree',
+  'DriverTracker',
   'RaceControlMessages',
   'TeamRadio',
   'ChampionshipPrediction',
@@ -69,6 +71,7 @@ export class TimingService {
     sessionData: new MergeProcessor('SessionData'),
     extrapolatedClock: new ExtrapolatedClockProcessor(),
     topThree: new MergeProcessor('TopThree'),
+    driverTracker: new DriverTrackerProcessor(),
     raceControlMessages: new RaceControlMessagesProcessor(),
     teamRadio: new MergeProcessor('TeamRadio'),
     championshipPrediction: new MergeProcessor('ChampionshipPrediction'),
@@ -96,6 +99,7 @@ export class TimingService {
       this.processors.sessionData,
       this.processors.extrapolatedClock,
       this.processors.topThree,
+      this.processors.driverTracker,
       this.processors.raceControlMessages,
       this.processors.teamRadio,
       this.processors.championshipPrediction,

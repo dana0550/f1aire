@@ -42,6 +42,12 @@ describe('data-book', () => {
     );
   });
 
+  it('documents deterministic driver-tracker tooling', () => {
+    expect(getDataBookTopic('DriverTracker')?.bestTools).toContain(
+      'get_driver_tracker',
+    );
+  });
+
   it('documents deterministic stream metadata tooling', () => {
     expect(getDataBookTopic('AudioStreams')?.bestTools).toContain(
       'get_audio_streams',

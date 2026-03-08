@@ -1056,6 +1056,7 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
     ],
     relatedTopics: ['TopThree', 'TimingData', 'DriverList'],
     bestTools: [
+      'get_driver_tracker',
       'get_latest',
       'get_topic_timeline',
       'get_keyframe',

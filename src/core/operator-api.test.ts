@@ -50,6 +50,23 @@ describe('createOperatorApi', () => {
       dateTime: new Date('2025-01-01T00:00:01Z'),
     },
     {
+      type: 'DriverTracker',
+      json: {
+        Withheld: false,
+        Lines: [
+          { Position: '1', RacingNumber: '81', ShowPosition: true },
+          {
+            Position: '2',
+            RacingNumber: '4',
+            ShowPosition: true,
+            DiffToAhead: '+0.9',
+            DiffToLeader: '+0.9',
+          },
+        ],
+      },
+      dateTime: new Date('2025-01-01T00:00:10Z'),
+    },
+    {
       type: 'TimingData',
       json: {
         Lines: {
@@ -106,6 +123,32 @@ describe('createOperatorApi', () => {
       data: {
         '4': { FullName: 'Lando Norris' },
         '81': { FullName: 'Oscar Piastri' },
+      },
+    });
+
+    expect(api.getLatest('DriverTracker')).toEqual({
+      topic: 'DriverTracker',
+      streamName: 'DriverTracker',
+      availability: 'all-sessions',
+      semantics: 'patch',
+      source: 'processor',
+      dateTime: '2025-01-01T00:00:10.000Z',
+      data: {
+        Withheld: false,
+        Lines: {
+          '0': {
+            Position: '1',
+            RacingNumber: '81',
+            ShowPosition: true,
+          },
+          '1': {
+            Position: '2',
+            RacingNumber: '4',
+            ShowPosition: true,
+            DiffToAhead: '+0.9',
+            DiffToLeader: '+0.9',
+          },
+        },
       },
     });
   });

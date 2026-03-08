@@ -49,6 +49,11 @@ import {
 import { getStreamMetadataRecords } from '../core/stream-metadata.js';
 import { getLapSeriesRecords, summarizeLapSeries } from '../core/lap-series.js';
 import {
+  buildDriverTrackerState,
+  getDriverTrackerMeta,
+  getDriverTrackerRows,
+} from '../core/driver-tracker.js';
+import {
   buildDriverRaceInfoState,
   getDriverRaceInfoRows,
 } from '../core/driver-race-info.js';
@@ -185,6 +190,13 @@ export function makeTools({
     };
     teamRadio?: { state?: unknown | null };
     championshipPrediction?: { state?: unknown | null };
+    driverTracker?: {
+      state?: unknown | null;
+      getRows?: (opts?: {
+        driverListState?: Record<string, unknown> | null;
+        driverNumber?: string | number;
+      }) => unknown[];
+    };
     driverRaceInfo?: {
       state?: unknown | null;
       getRows?: (opts?: {
@@ -238,6 +250,8 @@ export function makeTools({
         return processors.extrapolatedClock?.state ?? null;
       case 'TopThree':
         return processors.topThree?.state ?? null;
+      case 'DriverTracker':
+        return processors.driverTracker?.state ?? null;
       case 'RaceControlMessages':
         return processors.raceControlMessages?.state ?? null;
       case 'TeamRadio':
@@ -424,6 +438,57 @@ export function makeTools({
     return {
       resolved,
       rows,
+    };
+  };
+
+  const listDriverTracker = (
+    opts: {
+      driverNumber?: string | number;
+      includeFuture?: boolean;
+    } = {},
+  ) => {
+    const resolved = resolveCurrentCursor();
+    const subscribeState = normalizePoint({
+      type: 'DriverTracker',
+      json: (store.raw.subscribe as any)?.DriverTracker ?? {},
+      dateTime: resolved.dateTime ?? new Date(0),
+    }).json;
+    const timeline = analysis.getTopicTimeline('DriverTracker', {
+      to: opts.includeFuture ? undefined : (resolved.dateTime ?? undefined),
+    });
+
+    let state = buildDriverTrackerState({
+      baseState: subscribeState,
+      timeline,
+    });
+    let rows = getDriverTrackerRows({
+      state,
+      driverListState: processors.driverList?.state ?? null,
+      driverNumber: opts.driverNumber,
+    });
+
+    if (!rows.length && processors.driverTracker?.state) {
+      state = (processors.driverTracker.state ?? null) as typeof state;
+      rows = getDriverTrackerRows({
+        state,
+        driverListState: processors.driverList?.state ?? null,
+        driverNumber: opts.driverNumber,
+      });
+    }
+
+    const enrichedRows = rows.map((row) => ({
+      ...row,
+      driverName:
+        row.driverNumber === null
+          ? row.driverName
+          : (row.driverName ?? getDriverName(row.driverNumber)),
+    }));
+
+    return {
+      resolved,
+      state,
+      meta: getDriverTrackerMeta(state),
+      rows: enrichedRows,
     };
   };
 
@@ -901,6 +966,30 @@ export function makeTools({
       };
     }
 
+    if (topic === 'DriverTracker') {
+      const { meta, rows } = listDriverTracker({
+        driverNumber: resolvedDriver ?? undefined,
+      });
+      if (!rows.length && meta.withheld === null && meta.sessionPart === null) {
+        return null;
+      }
+      if (resolvedDriver) {
+        return {
+          asOf,
+          withheld: meta.withheld,
+          sessionPart: meta.sessionPart,
+          row: rows[0] ?? null,
+        };
+      }
+      return {
+        asOf,
+        withheld: meta.withheld,
+        sessionPart: meta.sessionPart,
+        total: rows.length,
+        rows: rows.slice(0, 8),
+      };
+    }
+
     if (topic === 'DriverRaceInfo') {
       const { rows } = listDriverRaceInfo({
         driverNumber: resolvedDriver ?? undefined,
@@ -1305,12 +1394,18 @@ export function makeTools({
       execute: async ({ topic, driverNumber, includeExample }) => {
         const entry = getDataBookTopic(topic);
         const canonical = entry ? entry.topic : canonicalizeTopicName(topic);
+        const example =
+          includeExample === false
+            ? null
+            : buildTopicExample(canonical, driverNumber);
 
         // Determine whether we have data loaded for this topic.
         const presentByProcessor = getTopicState(canonical) !== null;
 
         const present =
-          presentByProcessor || getNormalizedLatest(canonical) !== null;
+          presentByProcessor ||
+          getNormalizedLatest(canonical) !== null ||
+          example !== null;
 
         return {
           requested: topic,
@@ -1318,10 +1413,7 @@ export function makeTools({
           found: Boolean(entry),
           present,
           reference: entry,
-          example:
-            includeExample === false
-              ? null
-              : buildTopicExample(canonical, driverNumber),
+          example,
         };
       },
     }),
@@ -1800,6 +1892,59 @@ export function makeTools({
           includeFuture: Boolean(includeFuture),
           total: rows.length,
           rows,
+        };
+      },
+    }),
+    get_driver_tracker: tool({
+      description:
+        'Get deterministic DriverTracker board rows, filtered to the current analysis cursor unless includeFuture is true.',
+      inputSchema: z.object({
+        driverNumber: z.union([z.string(), z.number()]).optional(),
+        includeFuture: z.boolean().optional(),
+        limit: z.number().int().positive().max(60).optional(),
+      }),
+      execute: async ({ driverNumber, includeFuture, limit }) => {
+        const { resolved, meta, rows } = listDriverTracker({
+          driverNumber,
+          includeFuture,
+        });
+        const returned =
+          driverNumber === undefined || limit === undefined
+            ? rows
+            : rows.slice(0, Math.floor(limit));
+
+        if (driverNumber !== undefined) {
+          const normalizedDriver = String(driverNumber);
+          return {
+            asOf: {
+              source: resolved.source,
+              lap: resolved.lap,
+              dateTime: resolved.dateTime,
+              includeFuture: Boolean(includeFuture),
+            },
+            withheld: meta.withheld,
+            sessionPart: meta.sessionPart,
+            driverNumber: normalizedDriver,
+            driverName: getDriverName(normalizedDriver),
+            total: rows.length,
+            returned: returned.length,
+            rows: returned,
+            row: returned[0] ?? null,
+          };
+        }
+
+        return {
+          asOf: {
+            source: resolved.source,
+            lap: resolved.lap,
+            dateTime: resolved.dateTime,
+            includeFuture: Boolean(includeFuture),
+          },
+          withheld: meta.withheld,
+          sessionPart: meta.sessionPart,
+          total: rows.length,
+          returned: returned.length,
+          rows: returned.slice(0, limit ?? rows.length),
         };
       },
     }),

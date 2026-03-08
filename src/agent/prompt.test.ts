@@ -34,6 +34,10 @@ describe('systemPrompt', () => {
     expect(systemPrompt).toContain('get_lap_series');
   });
 
+  it('mentions the driver tracker tool for board-state questions', () => {
+    expect(systemPrompt).toContain('get_driver_tracker');
+  });
+
   it('mentions the weather series tool for condition trend questions', () => {
     expect(systemPrompt).toContain('get_weather_series');
   });

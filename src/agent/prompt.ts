@@ -17,7 +17,7 @@ Tools:
 - get_data_book_index, get_topic_reference
 - get_download_manifest
 - get_keyframe(topic): keyframe snapshot JSON for a topic (Index.json KeyFramePath)
-- get_driver_list, get_timing_state, get_lap_history
+- get_driver_list, get_driver_tracker, get_timing_state, get_lap_history
 - get_timing_app_data, get_current_tyres, get_tyre_stints, get_timing_stats
 - get_lap_series
 - get_track_status, get_lap_count, get_weather, get_weather_series, get_content_streams, get_audio_streams

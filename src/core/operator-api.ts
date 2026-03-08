@@ -172,6 +172,8 @@ function getTopicState(service: TimingService, topic: string): unknown | null {
       return service.processors.extrapolatedClock?.state ?? null;
     case 'TopThree':
       return service.processors.topThree?.state ?? null;
+    case 'DriverTracker':
+      return service.processors.driverTracker?.state ?? null;
     case 'RaceControlMessages':
       return service.processors.raceControlMessages?.state ?? null;
     case 'TeamRadio':

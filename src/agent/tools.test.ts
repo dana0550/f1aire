@@ -66,6 +66,7 @@ describe('tools', () => {
     expect(tools).toHaveProperty('get_pit_loss_estimate');
     expect(tools).toHaveProperty('get_position_changes');
     expect(tools).toHaveProperty('get_race_control_events');
+    expect(tools).toHaveProperty('get_driver_tracker');
     expect(tools).toHaveProperty('get_driver_race_info');
     expect(tools).toHaveProperty('get_team_radio_events');
     expect(tools).toHaveProperty('get_current_tyres');
@@ -673,6 +674,274 @@ describe('tools', () => {
           pitStops: 1,
         },
       ],
+    });
+  });
+
+  it('get_driver_tracker returns cursor-aware typed board rows', async () => {
+    const tools = makeTools({
+      store: {
+        ...store,
+        topic: (topic: string) => {
+          if (topic === 'DriverTracker') {
+            return {
+              latest: {
+                type: 'DriverTracker',
+                json: {
+                  Withheld: false,
+                  Lines: {
+                    '0': {
+                      Position: '1',
+                      RacingNumber: '81',
+                      ShowPosition: true,
+                      DiffToLeader: 'LEADER',
+                    },
+                    '1': {
+                      Position: '2',
+                      RacingNumber: '4',
+                      ShowPosition: true,
+                      DiffToAhead: '+0.9',
+                      DiffToLeader: '+0.9',
+                    },
+                  },
+                },
+                dateTime: new Date('2025-01-01T00:01:00Z'),
+              },
+              timeline: (_from?: Date, to?: Date) => {
+                const points = [
+                  {
+                    type: 'DriverTracker',
+                    json: {
+                      Lines: {
+                        '0': {
+                          Position: '1',
+                          RacingNumber: '81',
+                          ShowPosition: true,
+                          DiffToLeader: 'LEADER',
+                          OverallFastest: true,
+                        },
+                        '1': {
+                          Position: '2',
+                          RacingNumber: '4',
+                          ShowPosition: true,
+                          DiffToAhead: '+0.9',
+                          DiffToLeader: '+0.9',
+                          LapState: 80,
+                        },
+                      },
+                    },
+                    dateTime: new Date('2025-01-01T12:01:00Z'),
+                  },
+                  {
+                    type: 'DriverTracker',
+                    json: {
+                      SessionPart: 2,
+                      Lines: {
+                        '1': {
+                          Position: '1',
+                          DiffToAhead: '',
+                          DiffToLeader: 'LEADER',
+                          LapTime: '1:30.500',
+                          PersonalFastest: true,
+                        },
+                        '0': {
+                          Position: '2',
+                          DiffToAhead: '+0.5',
+                          DiffToLeader: '+0.5',
+                        },
+                      },
+                    },
+                    dateTime: new Date('2025-01-01T12:03:00Z'),
+                  },
+                ];
+
+                return points.filter((point) => !to || point.dateTime <= to);
+              },
+            };
+          }
+
+          return {
+            latest: null,
+            timeline: () => [],
+          };
+        },
+        raw: {
+          subscribe: {
+            DriverTracker: {
+              Withheld: false,
+            },
+          },
+          live: [],
+        },
+      } as any,
+      processors: {
+        ...processors,
+        driverList: {
+          state: {
+            '4': { FullName: 'Lando Norris' },
+            '81': { FullName: 'Oscar Piastri' },
+          },
+          getName: (driverNumber: string) =>
+            driverNumber === '4'
+              ? 'Lando Norris'
+              : driverNumber === '81'
+                ? 'Oscar Piastri'
+                : null,
+        },
+        timingData: {
+          ...processors.timingData,
+          getLapNumbers: () => [10, 11],
+          driversByLap: new Map([
+            [
+              10,
+              new Map([
+                ['4', { __dateTime: new Date('2025-01-01T12:00:00Z') }],
+              ]),
+            ],
+            [
+              11,
+              new Map([
+                ['4', { __dateTime: new Date('2025-01-01T12:02:00Z') }],
+              ]),
+            ],
+          ]),
+        },
+      } as any,
+      timeCursor: { lap: 11 },
+      onTimeCursorChange: () => {},
+    });
+
+    const result = await tools.get_driver_tracker.execute({} as any);
+
+    expect(result).toEqual({
+      asOf: {
+        source: 'lap',
+        lap: 11,
+        dateTime: new Date('2025-01-01T12:02:00Z'),
+        includeFuture: false,
+      },
+      withheld: false,
+      sessionPart: null,
+      total: 2,
+      returned: 2,
+      rows: [
+        {
+          lineIndex: 0,
+          driverNumber: '81',
+          driverName: 'Oscar Piastri',
+          position: 1,
+          showPosition: true,
+          lapTime: null,
+          lapState: null,
+          diffToAhead: null,
+          diffToAheadSeconds: null,
+          diffToLeader: 'LEADER',
+          diffToLeaderSeconds: null,
+          overallFastest: true,
+          personalFastest: null,
+          raw: {
+            Position: '1',
+            RacingNumber: '81',
+            ShowPosition: true,
+            DiffToLeader: 'LEADER',
+            OverallFastest: true,
+          },
+        },
+        {
+          lineIndex: 1,
+          driverNumber: '4',
+          driverName: 'Lando Norris',
+          position: 2,
+          showPosition: true,
+          lapTime: null,
+          lapState: 80,
+          diffToAhead: '+0.9',
+          diffToAheadSeconds: 0.9,
+          diffToLeader: '+0.9',
+          diffToLeaderSeconds: 0.9,
+          overallFastest: null,
+          personalFastest: null,
+          raw: {
+            Position: '2',
+            RacingNumber: '4',
+            ShowPosition: true,
+            DiffToAhead: '+0.9',
+            DiffToLeader: '+0.9',
+            LapState: 80,
+          },
+        },
+      ],
+    });
+
+    const latest = await tools.get_driver_tracker.execute({
+      includeFuture: true,
+      driverNumber: '4',
+    } as any);
+
+    expect(latest).toEqual({
+      asOf: {
+        source: 'lap',
+        lap: 11,
+        dateTime: new Date('2025-01-01T12:02:00Z'),
+        includeFuture: true,
+      },
+      withheld: false,
+      sessionPart: 2,
+      driverNumber: '4',
+      driverName: 'Lando Norris',
+      total: 1,
+      returned: 1,
+      rows: [
+        {
+          lineIndex: 1,
+          driverNumber: '4',
+          driverName: 'Lando Norris',
+          position: 1,
+          showPosition: true,
+          lapTime: '1:30.500',
+          lapState: 80,
+          diffToAhead: null,
+          diffToAheadSeconds: null,
+          diffToLeader: 'LEADER',
+          diffToLeaderSeconds: null,
+          overallFastest: null,
+          personalFastest: true,
+          raw: {
+            Position: '1',
+            RacingNumber: '4',
+            ShowPosition: true,
+            DiffToAhead: '',
+            DiffToLeader: 'LEADER',
+            LapState: 80,
+            LapTime: '1:30.500',
+            PersonalFastest: true,
+          },
+        },
+      ],
+      row: {
+        lineIndex: 1,
+        driverNumber: '4',
+        driverName: 'Lando Norris',
+        position: 1,
+        showPosition: true,
+        lapTime: '1:30.500',
+        lapState: 80,
+        diffToAhead: null,
+        diffToAheadSeconds: null,
+        diffToLeader: 'LEADER',
+        diffToLeaderSeconds: null,
+        overallFastest: null,
+        personalFastest: true,
+        raw: {
+          Position: '1',
+          RacingNumber: '4',
+          ShowPosition: true,
+          DiffToAhead: '',
+          DiffToLeader: 'LEADER',
+          LapState: 80,
+          LapTime: '1:30.500',
+          PersonalFastest: true,
+        },
+      },
     });
   });
 
@@ -1519,7 +1788,9 @@ describe('tools', () => {
       processors: {
         ...processors,
         driverList: {
-          state: {},
+          state: {
+            '4': { FullName: 'Lando Norris' },
+          },
           getName: (driverNumber: string) =>
             driverNumber === '4' ? 'Lando Norris' : null,
         },
@@ -1620,6 +1891,125 @@ describe('tools', () => {
             source: 'LapSeries',
           },
         ],
+      },
+    });
+  });
+
+  it('get_topic_reference shows typed DriverTracker examples', async () => {
+    const tools = makeTools({
+      store: {
+        ...store,
+        topic: (topic: string) => {
+          if (topic === 'DriverTracker') {
+            return {
+              latest: null,
+              timeline: (_from?: Date, to?: Date) => {
+                const points = [
+                  {
+                    type: 'DriverTracker',
+                    json: {
+                      Lines: {
+                        '0': {
+                          Position: '1',
+                          RacingNumber: '81',
+                          ShowPosition: true,
+                          DiffToLeader: 'LEADER',
+                        },
+                        '1': {
+                          Position: '2',
+                          RacingNumber: '4',
+                          ShowPosition: true,
+                          DiffToAhead: '+0.9',
+                          DiffToLeader: '+0.9',
+                        },
+                      },
+                    },
+                    dateTime: new Date('2025-01-01T00:01:00Z'),
+                  },
+                ];
+                return points.filter((point) => !to || point.dateTime <= to);
+              },
+            };
+          }
+
+          return {
+            latest: null,
+            timeline: () => [],
+          };
+        },
+        raw: {
+          subscribe: {
+            DriverTracker: {
+              Withheld: false,
+            },
+          },
+          live: [],
+        },
+      } as any,
+      processors: {
+        ...processors,
+        driverList: {
+          state: {},
+          getName: (driverNumber: string) =>
+            driverNumber === '4' ? 'Lando Norris' : null,
+        },
+        timingData: {
+          state: { Lines: { '4': { Line: 2 } } },
+          bestLaps: new Map(),
+          getLapHistory: () => [],
+          getLapNumbers: () => [1, 2],
+          driversByLap: new Map([
+            [
+              1,
+              new Map([
+                [
+                  '4',
+                  { __dateTime: new Date('2025-01-01T00:01:00Z'), Line: 2 },
+                ],
+              ]),
+            ],
+            [
+              2,
+              new Map([
+                [
+                  '4',
+                  { __dateTime: new Date('2025-01-01T00:02:00Z'), Line: 2 },
+                ],
+              ]),
+            ],
+          ]),
+        },
+      } as any,
+      timeCursor: { lap: 2 },
+      onTimeCursorChange: () => {},
+    });
+
+    const result = await tools.get_topic_reference.execute({
+      topic: 'DriverTracker',
+      driverNumber: '4',
+      includeExample: true,
+    } as any);
+
+    expect(result).toMatchObject({
+      canonicalTopic: 'DriverTracker',
+      found: true,
+      present: true,
+      example: {
+        asOf: {
+          source: 'lap',
+          lap: 2,
+          dateTime: new Date('2025-01-01T00:02:00Z'),
+        },
+        withheld: false,
+        sessionPart: null,
+        row: {
+          lineIndex: 1,
+          driverNumber: '4',
+          driverName: 'Lando Norris',
+          position: 2,
+          diffToAhead: '+0.9',
+          diffToLeader: '+0.9',
+        },
       },
     });
   });

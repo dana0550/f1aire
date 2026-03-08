@@ -246,6 +246,100 @@ describe('TimingService', () => {
     ]);
   });
 
+  it('routes DriverTracker through the dedicated processor with ordered board rows', () => {
+    const service = new TimingService();
+
+    service.enqueue({
+      type: 'DriverList',
+      json: {
+        '4': { FullName: 'Lando Norris' },
+        '81': { FullName: 'Oscar Piastri' },
+      },
+      dateTime: new Date('2025-01-01T00:00:01Z'),
+    });
+    service.enqueue({
+      type: 'DriverTracker',
+      json: {
+        Withheld: false,
+        Lines: [
+          {
+            Position: '1',
+            RacingNumber: '81',
+            ShowPosition: true,
+            DiffToLeader: 'LEADER',
+          },
+          {
+            Position: '2',
+            RacingNumber: '4',
+            ShowPosition: true,
+            DiffToAhead: '+0.9',
+            DiffToLeader: '+0.9',
+            LapState: 80,
+          },
+        ],
+      },
+      dateTime: new Date('2025-01-01T00:00:02Z'),
+    });
+    service.enqueue({
+      type: 'DriverTracker',
+      json: {
+        SessionPart: 2,
+        Lines: {
+          '1': {
+            LapTime: '1:31.200',
+            PersonalFastest: true,
+          },
+        },
+      },
+      dateTime: new Date('2025-01-01T00:00:03Z'),
+    });
+
+    expect(service.processors.driverTracker.state).toEqual({
+      Withheld: false,
+      SessionPart: 2,
+      Lines: {
+        '0': {
+          Position: '1',
+          RacingNumber: '81',
+          ShowPosition: true,
+          DiffToLeader: 'LEADER',
+        },
+        '1': {
+          Position: '2',
+          RacingNumber: '4',
+          ShowPosition: true,
+          DiffToAhead: '+0.9',
+          DiffToLeader: '+0.9',
+          LapState: 80,
+          LapTime: '1:31.200',
+          PersonalFastest: true,
+        },
+      },
+    });
+    expect(
+      service.processors.driverTracker.getRows({
+        driverListState: service.processors.driverList.state,
+      }),
+    ).toMatchObject([
+      {
+        lineIndex: 0,
+        driverNumber: '81',
+        driverName: 'Oscar Piastri',
+        position: 1,
+        diffToLeader: 'LEADER',
+      },
+      {
+        lineIndex: 1,
+        driverNumber: '4',
+        driverName: 'Lando Norris',
+        position: 2,
+        lapTime: '1:31.200',
+        diffToAheadSeconds: 0.9,
+        personalFastest: true,
+      },
+    ]);
+  });
+
   it('normalizes auxiliary array payloads before merging', () => {
     const service = new TimingService();
 
