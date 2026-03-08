@@ -55,4 +55,18 @@ describe('systemPrompt', () => {
   it('mentions deterministic pit stop event tooling', () => {
     expect(systemPrompt).toContain('get_pit_stop_events');
   });
+
+  it('mentions replay control tools for cursor navigation', () => {
+    expect(systemPrompt).toContain('get_replay_control');
+    expect(systemPrompt).toContain('step_time_cursor');
+  });
+
+  it('documents the replay stepping rule', () => {
+    expect(systemPrompt).toContain(
+      'move forward/backward through replayed laps',
+    );
+    expect(systemPrompt).toContain(
+      'confirm the resolved lap with get_replay_control',
+    );
+  });
 });

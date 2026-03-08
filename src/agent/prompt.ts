@@ -34,7 +34,7 @@ Tools:
 - get_stint_pace, compare_drivers
 - get_undercut_window, simulate_rejoin
 - get_position_changes
-- set_time_cursor
+- get_replay_control, set_time_cursor, step_time_cursor
 - get_lap_table (includeSegments to get mini-sector status), get_data_catalog, get_topic_timeline
 - inspect_topic (shape summary for a topic across recent samples)
 - run_py: run Python with helpers/context.
@@ -59,6 +59,7 @@ If run_py fails, you MUST fix the Python and retry (up to 2 retries) before answ
 Return JSON-serializable values only (dict/list/str/number/bool/None). Convert non-JSON types before returning.
 
 Rule: If the user says “as of lap X/time Y”, call set_time_cursor first, then answer.
+Rule: If the user asks to move forward/backward through replayed laps, call step_time_cursor and confirm the resolved lap with get_replay_control.
 
 Examples:
 # latest positions

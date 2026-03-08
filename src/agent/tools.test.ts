@@ -82,7 +82,9 @@ describe('tools', () => {
     expect(tools).toHaveProperty('get_best_laps');
     expect(tools).toHaveProperty('download_team_radio');
     expect(tools).toHaveProperty('transcribe_team_radio');
+    expect(tools).toHaveProperty('get_replay_control');
     expect(tools).toHaveProperty('set_time_cursor');
+    expect(tools).toHaveProperty('step_time_cursor');
   });
 
   it('get_topic_reference shows enriched SessionInfo circuit geometry', async () => {
@@ -2642,6 +2644,269 @@ describe('tools', () => {
       time: '1:30.100',
       timeMs: 90_100,
       lap: 12,
+    });
+  });
+
+  it('get_replay_control returns resolved cursor state and lap range', async () => {
+    const onTimeCursorChange = vi.fn();
+    const tools = makeTools({
+      store: {
+        ...store,
+        raw: {
+          subscribe: { SessionInfo: { Name: 'Replay Test' } },
+          live: [
+            {
+              type: 'TimingData',
+              json: {},
+              dateTime: new Date('2025-01-01T00:00:10Z'),
+            },
+          ],
+        },
+      } as any,
+      processors: {
+        ...processors,
+        timingData: {
+          state: {
+            Lines: {
+              '4': { Line: 1, NumberOfLaps: 11 },
+              '81': { Line: 2, NumberOfLaps: 11 },
+            },
+          },
+          bestLaps: new Map(),
+          driversByLap: new Map([
+            [
+              11,
+              new Map([
+                [
+                  '4',
+                  {
+                    Line: 1,
+                    NumberOfLaps: 11,
+                    __dateTime: new Date('2025-01-01T00:00:11Z'),
+                  },
+                ],
+                [
+                  '81',
+                  {
+                    Line: 2,
+                    NumberOfLaps: 11,
+                    __dateTime: new Date('2025-01-01T00:00:12Z'),
+                  },
+                ],
+              ]),
+            ],
+            [
+              12,
+              new Map([
+                [
+                  '4',
+                  {
+                    Line: 1,
+                    NumberOfLaps: 12,
+                    __dateTime: new Date('2025-01-01T00:00:21Z'),
+                  },
+                ],
+                [
+                  '81',
+                  {
+                    Line: 2,
+                    NumberOfLaps: 12,
+                    __dateTime: new Date('2025-01-01T00:00:22Z'),
+                  },
+                ],
+              ]),
+            ],
+          ]),
+          getLapHistory: () => [],
+          getLapNumbers: () => [11, 12],
+        },
+        driverList: {
+          state: {
+            '4': { FullName: 'Lando Norris' },
+            '81': { FullName: 'Oscar Piastri' },
+          },
+          getName: (driverNumber: string) =>
+            ({ '4': 'Lando Norris', '81': 'Oscar Piastri' })[driverNumber] ??
+            null,
+        },
+        sessionInfo: {
+          state: {
+            Name: 'Race',
+            Meeting: { Name: 'Replay GP' },
+          },
+        },
+      } as any,
+      timeCursor: { lap: 11 },
+      onTimeCursorChange,
+    });
+
+    await expect(
+      tools.get_replay_control.execute({} as any),
+    ).resolves.toMatchObject({
+      sessionLoaded: true,
+      sessionName: 'Race',
+      cursor: { lap: 11 },
+      resolved: {
+        lap: 11,
+        source: 'lap',
+        dateTime: '2025-01-01T00:00:11.000Z',
+      },
+      lapRange: {
+        firstLap: 11,
+        lastLap: 12,
+        totalLaps: 2,
+      },
+    });
+    expect(onTimeCursorChange).not.toHaveBeenCalled();
+  });
+
+  it('step_time_cursor advances and rewinds the replay cursor via control primitives', async () => {
+    const onTimeCursorChange = vi.fn();
+    const tools = makeTools({
+      store: {
+        ...store,
+        raw: {
+          subscribe: { SessionInfo: { Name: 'Replay Test' } },
+          live: [
+            {
+              type: 'TimingData',
+              json: {},
+              dateTime: new Date('2025-01-01T00:00:10Z'),
+            },
+          ],
+        },
+      } as any,
+      processors: {
+        ...processors,
+        timingData: {
+          state: {
+            Lines: {
+              '4': { Line: 1, NumberOfLaps: 11 },
+            },
+          },
+          bestLaps: new Map(),
+          driversByLap: new Map([
+            [
+              11,
+              new Map([
+                [
+                  '4',
+                  {
+                    Line: 1,
+                    NumberOfLaps: 11,
+                    __dateTime: new Date('2025-01-01T00:00:11Z'),
+                  },
+                ],
+              ]),
+            ],
+            [
+              12,
+              new Map([
+                [
+                  '4',
+                  {
+                    Line: 1,
+                    NumberOfLaps: 12,
+                    __dateTime: new Date('2025-01-01T00:00:21Z'),
+                  },
+                ],
+              ]),
+            ],
+            [
+              13,
+              new Map([
+                [
+                  '4',
+                  {
+                    Line: 1,
+                    NumberOfLaps: 13,
+                    __dateTime: new Date('2025-01-01T00:00:31Z'),
+                  },
+                ],
+              ]),
+            ],
+          ]),
+          getLapHistory: () => [],
+          getLapNumbers: () => [11, 12, 13],
+        },
+        driverList: {
+          state: { '4': { FullName: 'Lando Norris' } },
+          getName: () => 'Lando Norris',
+        },
+      } as any,
+      timeCursor: { lap: 12 },
+      onTimeCursorChange,
+    });
+
+    await expect(
+      tools.step_time_cursor.execute({ delta: 1 } as any),
+    ).resolves.toEqual({
+      ok: true,
+      value: {
+        sessionLoaded: true,
+        sessionName: null,
+        cursor: { lap: 13 },
+        resolved: {
+          lap: 13,
+          source: 'lap',
+          dateTime: '2025-01-01T00:00:31.000Z',
+        },
+        lapRange: {
+          firstLap: 11,
+          lastLap: 13,
+          totalLaps: 3,
+        },
+      },
+    });
+
+    await expect(
+      tools.step_time_cursor.execute({ delta: -5 } as any),
+    ).resolves.toEqual({
+      ok: true,
+      value: {
+        sessionLoaded: true,
+        sessionName: null,
+        cursor: { lap: 11 },
+        resolved: {
+          lap: 11,
+          source: 'lap',
+          dateTime: '2025-01-01T00:00:11.000Z',
+        },
+        lapRange: {
+          firstLap: 11,
+          lastLap: 13,
+          totalLaps: 3,
+        },
+      },
+    });
+
+    expect(onTimeCursorChange).toHaveBeenNthCalledWith(1, { lap: 13 });
+    expect(onTimeCursorChange).toHaveBeenNthCalledWith(2, { lap: 11 });
+  });
+
+  it('step_time_cursor returns a structured no-laps error when replay data is unavailable', async () => {
+    const tools = makeTools({
+      store,
+      processors: {
+        ...processors,
+        timingData: {
+          state: { Lines: {} },
+          bestLaps: new Map(),
+          driversByLap: new Map(),
+          getLapHistory: () => [],
+          getLapNumbers: () => [],
+        },
+      } as any,
+      timeCursor: { latest: true },
+      onTimeCursorChange: () => {},
+    });
+
+    await expect(tools.step_time_cursor.execute({} as any)).resolves.toEqual({
+      ok: false,
+      error: {
+        errorCode: 'no-laps',
+        errorMessage: 'No lap snapshots are available for replay control.',
+      },
     });
   });
 

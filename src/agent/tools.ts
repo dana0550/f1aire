@@ -73,6 +73,7 @@ import {
   getRaceControlEvents,
   type RaceControlEvent,
 } from '../core/processors/race-control-messages.js';
+import { createOperatorApi } from '../core/operator-api.js';
 import type { TimeCursor } from '../core/time-cursor.js';
 import { getDataBookIndex, getDataBookTopic } from './data-book/data-book.js';
 import type { LapRecord } from '../core/analysis-index.js';
@@ -312,11 +313,13 @@ export function makeTools({
   const getDriverName = (driverNumber: string) =>
     processors.driverList?.getName?.(driverNumber) ?? null;
 
-  const getTeamRadioCaptureList = (options: {
-    staticPrefix?: string | null;
-    driverNumber?: string | number;
-    limit?: number;
-  } = {}) => {
+  const getTeamRadioCaptureList = (
+    options: {
+      staticPrefix?: string | null;
+      driverNumber?: string | number;
+      limit?: number;
+    } = {},
+  ) => {
     const processor = processors.teamRadio as
       | {
           getCaptures?: (query?: {
@@ -361,6 +364,16 @@ export function makeTools({
   const analysis = createAnalysisContext({ store, processors });
   const analysisIndex = buildAnalysisIndex({ processors });
   let currentCursor: TimeCursor = { ...timeCursor };
+  const createReplayApi = () =>
+    createOperatorApi({
+      store,
+      service: { processors } as any,
+      timeCursor: currentCursor,
+      onTimeCursorChange: (cursor) => {
+        currentCursor = { ...cursor };
+        onTimeCursorChange(currentCursor);
+      },
+    });
   let toolsByName: Record<string, any> = {};
   const toolHandler = async (name: string, args: unknown) => {
     if (name === 'run_py') {
@@ -391,7 +404,10 @@ export function makeTools({
   });
 
   const getOvertakeSeriesContext = (record: OvertakeSeriesRecord) => {
-    const match = findLapRecordForDriverAt(record.driverNumber, record.dateTime);
+    const match = findLapRecordForDriverAt(
+      record.driverNumber,
+      record.dateTime,
+    );
     if (!record.dateTime || !match) {
       return null;
     }
@@ -705,7 +721,9 @@ export function makeTools({
       const cutoffMs = resolved.dateTime.getTime();
       allRecords = allRecords.filter((record) => {
         const recordMs = record.dateTime?.getTime();
-        return recordMs === undefined || recordMs === null || recordMs <= cutoffMs;
+        return (
+          recordMs === undefined || recordMs === null || recordMs <= cutoffMs
+        );
       });
     }
 
@@ -1974,8 +1992,11 @@ export function makeTools({
         });
 
         return {
-          totalDrivers: isPlainObject((state as { Lines?: unknown } | null)?.Lines)
-            ? Object.keys((state as { Lines: Record<string, unknown> }).Lines).length
+          totalDrivers: isPlainObject(
+            (state as { Lines?: unknown } | null)?.Lines,
+          )
+            ? Object.keys((state as { Lines: Record<string, unknown> }).Lines)
+                .length
             : 0,
           availableTraps: traps.map((table) => table.trap),
           traps,
@@ -2994,6 +3015,24 @@ export function makeTools({
         onTimeCursorChange(normalized);
         return resolved;
       },
+    }),
+    get_replay_control: tool({
+      description:
+        'Get the current replay/control state, including the requested cursor, resolved lap/time, and available lap range.',
+      inputSchema: z.object({}),
+      execute: async () => createReplayApi().getControlState(),
+    }),
+    step_time_cursor: tool({
+      description:
+        'Step the analysis cursor forward or backward by lap relative to the current cursor. Returns structured replay-control state or an explicit error when no lap snapshots exist.',
+      inputSchema: z.object({
+        delta: z.number().int().optional(),
+      }),
+      execute: async ({ delta }) =>
+        createReplayApi().applyControl({
+          operation: 'step-lap',
+          ...(typeof delta === 'number' ? { delta } : {}),
+        }),
     }),
     get_stint_pace: tool({
       description: 'Get stint pace summary for a driver.',
