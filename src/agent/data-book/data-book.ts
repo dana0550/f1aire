@@ -301,7 +301,7 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
       'Team radio capture metadata (timestamp, driver, asset path). Useful for linking to audio and understanding team comms timing.',
     engineerUse: [
       'List recent radio events for a driver and correlate with track events.',
-      'Download/playback is out of scope, but Paths can be used to fetch assets.',
+      'Download clips for local playback/transcription workflows when a stable file path is needed.',
     ],
     normalization: ['Captures may arrive as an array; normalized to an indexed dictionary.'],
     keyFields: [
@@ -311,7 +311,7 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
     ],
     pitfalls: ['Captures often lack transcription; treat as metadata unless you download and transcribe separately.'],
     relatedTopics: ['RaceControlMessages', 'TimingData', 'SessionInfo'],
-    bestTools: ['get_team_radio', 'inspect_topic'],
+    bestTools: ['get_team_radio', 'get_team_radio_events', 'download_team_radio', 'inspect_topic'],
   },
   {
     topic: 'CarData',

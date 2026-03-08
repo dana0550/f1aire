@@ -32,6 +32,7 @@ import {
   computeScVscDeltas,
 } from '../core/race-engineer-metrics.js';
 import {
+  downloadTeamRadioCapture,
   getSessionStaticPrefix,
   getTeamRadioCaptures,
 } from '../core/team-radio.js';
@@ -924,6 +925,31 @@ export function makeTools({
           total: captures.length,
           returned: sliced.length,
           captures: sliced,
+        };
+      },
+    }),
+    download_team_radio: tool({
+      description:
+        'Download a team radio clip to the local f1aire data directory. Useful when you want a stable local file path for playback or transcription workflows.',
+      inputSchema: z.object({
+        captureId: z.union([z.string(), z.number()]).optional(),
+        driverNumber: z.union([z.string(), z.number()]).optional(),
+        overwrite: z.boolean().optional(),
+      }),
+      execute: async ({ captureId, driverNumber, overwrite }) => {
+        const download = await downloadTeamRadioCapture({
+          source: store,
+          state: processors.teamRadio?.state,
+          captureId,
+          driverNumber,
+          overwrite,
+        });
+
+        return {
+          ...download,
+          driverName: download.driverNumber
+            ? getDriverName(download.driverNumber)
+            : null,
         };
       },
     }),
