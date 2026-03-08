@@ -195,7 +195,15 @@ export function makeTools({
         limit?: number;
       }) => RaceControlEvent[];
     };
-    teamRadio?: { state?: unknown | null };
+    teamRadio?: {
+      state?: unknown | null;
+      getCaptures?: (query?: {
+        staticPrefix?: string | null;
+        driverNumber?: string | number;
+        limit?: number;
+      }) => ReturnType<typeof getTeamRadioCaptures>;
+      getCaptureCount?: () => number;
+    };
     championshipPrediction?: { state?: unknown | null };
     driverTracker?: {
       state?: unknown | null;
@@ -298,6 +306,52 @@ export function makeTools({
   };
   const getDriverName = (driverNumber: string) =>
     processors.driverList?.getName?.(driverNumber) ?? null;
+
+  const getTeamRadioCaptureList = (options: {
+    staticPrefix?: string | null;
+    driverNumber?: string | number;
+    limit?: number;
+  } = {}) => {
+    const processor = processors.teamRadio as
+      | {
+          getCaptures?: (query?: {
+            staticPrefix?: string | null;
+            driverNumber?: string | number;
+            limit?: number;
+          }) => ReturnType<typeof getTeamRadioCaptures>;
+          state?: unknown;
+        }
+      | undefined;
+
+    if (processor?.getCaptures) {
+      return processor.getCaptures(options) ?? [];
+    }
+
+    const captures = getTeamRadioCaptures(processor?.state, {
+      staticPrefix: options.staticPrefix,
+    });
+    const filtered =
+      options.driverNumber === undefined
+        ? captures
+        : captures.filter(
+            (capture) => capture.driverNumber === String(options.driverNumber),
+          );
+
+    return typeof options.limit === 'number'
+      ? filtered.slice(0, options.limit)
+      : filtered;
+  };
+
+  const getTeamRadioCaptureCount = () => {
+    const processor = processors.teamRadio as
+      | { getCaptureCount?: () => number; state?: unknown }
+      | undefined;
+    if (processor?.getCaptureCount) {
+      return processor.getCaptureCount();
+    }
+
+    return getTeamRadioCaptures(processor?.state).length;
+  };
 
   const analysis = createAnalysisContext({ store, processors });
   const analysisIndex = buildAnalysisIndex({ processors });
@@ -1121,19 +1175,10 @@ export function makeTools({
     }
 
     if (topic === 'TeamRadio') {
-      const state = processors.teamRadio?.state as any;
-      const captures = state?.Captures;
-      const recent = pickLastIndexedValues(captures, 5);
-      if (recent && isPlainObject(recent)) {
-        for (const key of Object.keys(recent)) {
-          const value = (recent as any)[key];
-          (recent as any)[key] =
-            pickKnownKeys(value, ['Utc', 'RacingNumber', 'Path']) ?? value;
-        }
-      }
+      const recent = getTeamRadioCaptureList({ limit: 5 });
       return {
         asOf,
-        count: isPlainObject(captures) ? Object.keys(captures).length : null,
+        count: getTeamRadioCaptureCount(),
         recent,
       };
     }
@@ -2139,16 +2184,11 @@ export function makeTools({
       }),
       execute: async ({ driverNumber, limit }) => {
         const staticPrefix = getSessionStaticPrefix(store);
-        const captures = getTeamRadioCaptures(processors.teamRadio?.state, {
+        const captures = getTeamRadioCaptureList({
           staticPrefix,
+          driverNumber,
         });
-        const filtered =
-          driverNumber === undefined
-            ? captures
-            : captures.filter(
-                (capture) => capture.driverNumber === String(driverNumber),
-              );
-        const sliced = filtered.slice(0, limit ?? 20).map((capture) => ({
+        const sliced = captures.slice(0, limit ?? 20).map((capture) => ({
           ...capture,
           driverName: capture.driverNumber
             ? getDriverName(capture.driverNumber)

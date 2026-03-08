@@ -420,6 +420,42 @@ describe('TimingService', () => {
       },
     });
   });
+  it('routes TeamRadio through the dedicated processor helpers', () => {
+    const service = new TimingService();
+
+    service.enqueue({
+      type: 'TeamRadio',
+      json: {
+        Captures: [
+          {
+            Utc: '2025-01-01T00:00:01Z',
+            RacingNumber: '81',
+            Path: 'TeamRadio/OSCPIA01_81_20250101_000001.mp3',
+          },
+          {
+            Utc: '2025-01-01T00:00:02Z',
+            RacingNumber: '4',
+            Path: 'TeamRadio/LANNOR01_4_20250101_000002.mp3',
+          },
+        ],
+      },
+      dateTime: new Date('2025-01-01T00:00:02Z'),
+    });
+
+    expect(service.processors.teamRadio.getCaptureCount()).toBe(2);
+    expect(
+      service.processors.teamRadio.getLatestCapture({
+        staticPrefix:
+          'https://livetiming.formula1.com/static/2025/Test_Weekend/Race/',
+      }),
+    ).toMatchObject({
+      captureId: '1',
+      driverNumber: '4',
+      assetUrl:
+        'https://livetiming.formula1.com/static/2025/Test_Weekend/Race/TeamRadio/LANNOR01_4_20250101_000002.mp3',
+    });
+  });
+
   it('routes ExtrapolatedClock through the dedicated clock processor', () => {
     const service = new TimingService();
 

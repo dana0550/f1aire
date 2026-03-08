@@ -11,6 +11,7 @@ import { PositionDataProcessor } from './processors/position-data.js';
 import { SessionInfoProcessor } from './processors/session-info.js';
 import { RaceControlMessagesProcessor } from './processors/race-control-messages.js';
 import { ReplaceProcessor } from './processors/replace-processor.js';
+import { TeamRadioProcessor } from './processors/team-radio.js';
 import { TimingDataProcessor } from './processors/timing-data.js';
 import { TrackStatusProcessor } from './processors/track-status.js';
 import { TOPIC_REGISTRY } from './topic-registry.js';
@@ -73,7 +74,7 @@ export class TimingService {
     topThree: new MergeProcessor('TopThree'),
     driverTracker: new DriverTrackerProcessor(),
     raceControlMessages: new RaceControlMessagesProcessor(),
-    teamRadio: new MergeProcessor('TeamRadio'),
+    teamRadio: new TeamRadioProcessor(),
     championshipPrediction: new MergeProcessor('ChampionshipPrediction'),
     driverRaceInfo: new DriverRaceInfoProcessor(),
     pitStopSeries: new MergeProcessor('PitStopSeries'),
