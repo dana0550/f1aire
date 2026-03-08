@@ -20,4 +20,8 @@ describe('systemPrompt', () => {
     expect(systemPrompt).toContain('asyncio.run');
     expect(systemPrompt).toContain('run_until_complete');
   });
+
+  it('mentions the team radio transcription tool', () => {
+    expect(systemPrompt).toContain('transcribe_team_radio');
+  });
 });

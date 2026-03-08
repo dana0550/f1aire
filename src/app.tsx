@@ -401,6 +401,7 @@ export function App(): React.JSX.Element {
       timeCursor: initialTimeCursor,
       onTimeCursorChange: setTimeCursor,
       logger: engineerLoggerRef.current?.logger ?? undefined,
+      resolveOpenAIApiKey: resolveApiKeyForUse,
     });
     const modelId = process.env.OPENAI_API_MODEL ?? 'gpt-5.2-codex';
     const keyToUse = await resolveApiKeyForUse();

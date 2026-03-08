@@ -8,6 +8,7 @@ import {
   getSessionStaticPrefix,
   getTeamRadioCaptures,
   resolveStaticAssetUrl,
+  transcribeTeamRadioCapture,
 } from './team-radio.js';
 
 describe('team radio helpers', () => {
@@ -15,7 +16,8 @@ describe('team radio helpers', () => {
     const staticPrefix = getSessionStaticPrefix({
       raw: {
         download: {
-          prefix: 'https://livetiming.formula1.com/static/2024/Test_Weekend/Race/',
+          prefix:
+            'https://livetiming.formula1.com/static/2024/Test_Weekend/Race/',
         },
         subscribe: {},
         keyframes: null,
@@ -127,7 +129,9 @@ describe('team radio helpers', () => {
   });
 
   it('downloads a radio clip and reuses the local file on subsequent calls', async () => {
-    const destinationDir = mkdtempSync(path.join(tmpdir(), 'f1aire-team-radio-'));
+    const destinationDir = mkdtempSync(
+      path.join(tmpdir(), 'f1aire-team-radio-'),
+    );
     const fetchImpl = vi
       .fn<typeof fetch>()
       .mockResolvedValue(new Response('radio-bytes', { status: 200 }));
@@ -194,6 +198,112 @@ describe('team radio helpers', () => {
         bytes: 11,
       });
       expect(fetchImpl).toHaveBeenCalledTimes(1);
+    } finally {
+      rmSync(destinationDir, { recursive: true, force: true });
+    }
+  });
+
+  it('transcribes a radio clip and reuses the cached transcript on subsequent calls', async () => {
+    const destinationDir = mkdtempSync(
+      path.join(tmpdir(), 'f1aire-team-radio-transcribe-'),
+    );
+    const downloadFetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response('radio-bytes', { status: 200 }));
+    const transcriptionFetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({ text: 'Box now, box now.' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    try {
+      const source = {
+        raw: {
+          download: {
+            prefix:
+              'https://livetiming.formula1.com/static/2024/2024-05-26_Test_Weekend/2024-05-26_Race/',
+            session: {
+              path: '2024/2024-05-26_Test_Weekend/2024-05-26_Race/',
+            },
+          },
+          subscribe: {},
+          keyframes: null,
+        },
+      };
+      const state = {
+        Captures: {
+          '1': {
+            Utc: '2024-05-26T12:16:25.710Z',
+            RacingNumber: '4',
+            Path: 'TeamRadio/LANNOR01_4_20240526_121625.mp3',
+          },
+        },
+      };
+
+      const first = await transcribeTeamRadioCapture({
+        source,
+        state,
+        captureId: '1',
+        destinationDir,
+        apiKey: 'sk-test',
+        downloadFetchImpl,
+        transcriptionFetchImpl,
+      });
+
+      expect(first).toMatchObject({
+        captureId: '1',
+        driverNumber: '4',
+        reused: false,
+        transcriptionReused: false,
+        model: 'gpt-4o-transcribe',
+        transcription: 'Box now, box now.',
+        filePath: path.join(destinationDir, 'LANNOR01_4_20240526_121625.mp3'),
+        transcriptionFilePath: `${path.join(destinationDir, 'LANNOR01_4_20240526_121625.mp3')}.transcription.json`,
+      });
+      expect(readFileSync(first.filePath, 'utf-8')).toBe('radio-bytes');
+      expect(readFileSync(first.transcriptionFilePath, 'utf-8')).toContain(
+        'Box now, box now.',
+      );
+      expect((state as any).Captures['1']).toMatchObject({
+        DownloadedFilePath: first.filePath,
+        Transcription: 'Box now, box now.',
+      });
+      expect(downloadFetchImpl).toHaveBeenCalledTimes(1);
+      expect(transcriptionFetchImpl).toHaveBeenCalledTimes(1);
+
+      const second = await transcribeTeamRadioCapture({
+        source,
+        state,
+        captureId: '1',
+        destinationDir,
+        apiKey: 'sk-test',
+        downloadFetchImpl,
+        transcriptionFetchImpl,
+      });
+
+      expect(second).toMatchObject({
+        captureId: '1',
+        reused: true,
+        transcriptionReused: true,
+        transcription: 'Box now, box now.',
+        filePath: first.filePath,
+        transcriptionFilePath: first.transcriptionFilePath,
+      });
+      expect(downloadFetchImpl).toHaveBeenCalledTimes(1);
+      expect(transcriptionFetchImpl).toHaveBeenCalledTimes(1);
+
+      const captures = getTeamRadioCaptures(state, {
+        staticPrefix:
+          'https://livetiming.formula1.com/static/2024/2024-05-26_Test_Weekend/2024-05-26_Race/',
+      });
+      expect(captures).toMatchObject([
+        {
+          captureId: '1',
+          downloadedFilePath: first.filePath,
+          hasTranscription: true,
+        },
+      ]);
     } finally {
       rmSync(destinationDir, { recursive: true, force: true });
     }

@@ -35,6 +35,7 @@ import {
   downloadTeamRadioCapture,
   getSessionStaticPrefix,
   getTeamRadioCaptures,
+  transcribeTeamRadioCapture,
 } from '../core/team-radio.js';
 import {
   getRaceControlEvents,
@@ -104,6 +105,7 @@ export function makeTools({
   timeCursor,
   onTimeCursorChange,
   logger,
+  resolveOpenAIApiKey,
 }: {
   store: SessionStore;
   processors: {
@@ -181,6 +183,7 @@ export function makeTools({
   timeCursor: TimeCursor;
   onTimeCursorChange: (cursor: TimeCursor) => void;
   logger?: (event: Record<string, unknown>) => void | Promise<void>;
+  resolveOpenAIApiKey?: () => Promise<string | null>;
 }) {
   const getRawLatest = (topic: string) => {
     const direct = store.topic(topic).latest as RawPoint | null;
@@ -1280,6 +1283,43 @@ export function makeTools({
           ...download,
           driverName: download.driverNumber
             ? getDriverName(download.driverNumber)
+            : null,
+        };
+      },
+    }),
+    transcribe_team_radio: tool({
+      description:
+        'Download and transcribe a team radio clip, caching both the audio file and transcript for later playback/analysis workflows.',
+      inputSchema: z.object({
+        captureId: z.union([z.string(), z.number()]).optional(),
+        driverNumber: z.union([z.string(), z.number()]).optional(),
+        model: z.string().optional(),
+        forceTranscription: z.boolean().optional(),
+        overwriteDownload: z.boolean().optional(),
+      }),
+      execute: async ({
+        captureId,
+        driverNumber,
+        model,
+        forceTranscription,
+        overwriteDownload,
+      }) => {
+        const apiKey = resolveOpenAIApiKey ? await resolveOpenAIApiKey() : null;
+        const result = await transcribeTeamRadioCapture({
+          source: store,
+          state: processors.teamRadio?.state,
+          captureId,
+          driverNumber,
+          model,
+          forceTranscription,
+          overwriteDownload,
+          apiKey,
+        });
+
+        return {
+          ...result,
+          driverName: result.driverNumber
+            ? getDriverName(result.driverNumber)
             : null,
         };
       },

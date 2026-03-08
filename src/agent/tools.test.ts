@@ -70,6 +70,7 @@ describe('tools', () => {
     expect(tools).toHaveProperty('get_lap_snapshot');
     expect(tools).toHaveProperty('get_best_laps');
     expect(tools).toHaveProperty('download_team_radio');
+    expect(tools).toHaveProperty('transcribe_team_radio');
     expect(tools).toHaveProperty('set_time_cursor');
   });
 
@@ -413,6 +414,128 @@ describe('tools', () => {
         delete process.env.XDG_DATA_HOME;
       } else {
         process.env.XDG_DATA_HOME = previousXdgDataHome;
+      }
+    }
+  });
+
+  it('transcribe_team_radio downloads, transcribes, and reuses cached transcript metadata', async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(async (input, init) => {
+        const url = String(input);
+        if (url.includes('/audio/transcriptions')) {
+          expect(
+            (init?.headers as Record<string, string> | undefined)
+              ?.Authorization,
+          ).toBe('Bearer sk-test');
+          return new Response(JSON.stringify({ text: 'Box now, box now.' }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+        return new Response('team-radio-audio', { status: 200 });
+      });
+
+    const previousXdgDataHome = process.env.XDG_DATA_HOME;
+    const previousOpenAiKey = process.env.OPENAI_API_KEY;
+    const xdgDataHome = mkdtempSync(
+      path.join(tmpdir(), 'f1aire-tools-team-radio-transcribe-'),
+    );
+    delete process.env.OPENAI_API_KEY;
+    process.env.XDG_DATA_HOME = xdgDataHome;
+
+    try {
+      const teamRadioState = {
+        Captures: {
+          '1': {
+            Utc: '2024-05-26T12:16:25.710Z',
+            RacingNumber: '4',
+            Path: 'TeamRadio/LANNOR01_4_20240526_121625.mp3',
+          },
+        },
+      };
+      const tools = makeTools({
+        store: {
+          ...store,
+          raw: {
+            subscribe: {
+              SessionInfo: {
+                Path: '2024/2024-05-26_Test_Weekend/2024-05-26_Race/',
+              },
+            },
+            live: [],
+            download: {
+              prefix:
+                'https://livetiming.formula1.com/static/2024/2024-05-26_Test_Weekend/2024-05-26_Race/',
+              session: {
+                path: '2024/2024-05-26_Test_Weekend/2024-05-26_Race/',
+              },
+            },
+          },
+        } as any,
+        processors: {
+          ...processors,
+          driverList: {
+            state: {},
+            getName: (driverNumber: string) =>
+              driverNumber === '4' ? 'Lando Norris' : null,
+          },
+          teamRadio: {
+            state: teamRadioState,
+          },
+        } as any,
+        timeCursor: { latest: true },
+        onTimeCursorChange: () => {},
+        resolveOpenAIApiKey: async () => 'sk-test',
+      });
+
+      const first = await tools.transcribe_team_radio.execute({
+        captureId: '1',
+      } as any);
+
+      expect(first).toMatchObject({
+        captureId: '1',
+        driverNumber: '4',
+        driverName: 'Lando Norris',
+        reused: false,
+        transcriptionReused: false,
+        transcription: 'Box now, box now.',
+        hasTranscription: true,
+      });
+
+      const second = await tools.transcribe_team_radio.execute({
+        captureId: '1',
+      } as any);
+
+      expect(second).toMatchObject({
+        captureId: '1',
+        reused: true,
+        transcriptionReused: true,
+        transcription: 'Box now, box now.',
+        hasTranscription: true,
+      });
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+
+      const events = await tools.get_team_radio_events.execute({
+        limit: 1,
+      } as any);
+      expect(events.captures[0]).toMatchObject({
+        captureId: '1',
+        downloadedFilePath: first.filePath,
+        hasTranscription: true,
+      });
+    } finally {
+      fetchMock.mockRestore();
+      rmSync(xdgDataHome, { recursive: true, force: true });
+      if (previousXdgDataHome === undefined) {
+        delete process.env.XDG_DATA_HOME;
+      } else {
+        process.env.XDG_DATA_HOME = previousXdgDataHome;
+      }
+      if (previousOpenAiKey === undefined) {
+        delete process.env.OPENAI_API_KEY;
+      } else {
+        process.env.OPENAI_API_KEY = previousOpenAiKey;
       }
     }
   });

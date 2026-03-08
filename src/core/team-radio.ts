@@ -4,14 +4,21 @@ import type { SessionStore } from './session-store.js';
 import { getDataDir } from './xdg.js';
 
 const STATIC_BASE_URL = 'https://livetiming.formula1.com/static/';
+const DEFAULT_OPENAI_API_BASE = 'https://api.openai.com/v1';
 const USER_AGENT = 'f1aire/0.1.0';
 const FETCH_TIMEOUT_MS = 10_000;
+const TRANSCRIPTION_TIMEOUT_MS = 60_000;
 const DEFAULT_APP_NAME = 'f1aire';
 const TEAM_RADIO_CACHE_DIR = 'team-radio';
+const TEAM_RADIO_TRANSCRIPTION_CACHE_SUFFIX = '.transcription.json';
+const DEFAULT_TEAM_RADIO_TRANSCRIPTION_MODEL = 'gpt-4o-transcribe';
 
 type ObjectRecord = Record<string, unknown>;
 
-type SessionRawLike = Pick<SessionStore['raw'], 'download' | 'subscribe' | 'keyframes'>;
+type SessionRawLike = Pick<
+  SessionStore['raw'],
+  'download' | 'subscribe' | 'keyframes'
+>;
 
 export type TeamRadioCapture = {
   Utc?: string;
@@ -31,6 +38,8 @@ export type TeamRadioCaptureSummary = {
   driverNumber: string | null;
   path: string | null;
   assetUrl: string | null;
+  downloadedFilePath: string | null;
+  hasTranscription: boolean;
 };
 
 export type TeamRadioDownloadResult = TeamRadioCaptureSummary & {
@@ -39,6 +48,19 @@ export type TeamRadioDownloadResult = TeamRadioCaptureSummary & {
   reused: boolean;
   sessionPrefix: string | null;
   destinationDir: string;
+};
+
+export type TeamRadioTranscriptionResult = TeamRadioDownloadResult & {
+  transcription: string;
+  transcriptionFilePath: string;
+  transcriptionReused: boolean;
+  model: string;
+};
+
+type TeamRadioTranscriptionCache = {
+  text: string;
+  model: string;
+  createdAt: string;
 };
 
 function isPlainObject(value: unknown): value is ObjectRecord {
@@ -150,8 +172,7 @@ function toSafePathSegments(relativePath: string | null): string[] {
     .split('/')
     .map((segment) => segment.trim())
     .filter(
-      (segment) =>
-        segment.length > 0 && segment !== '.' && segment !== '..',
+      (segment) => segment.length > 0 && segment !== '.' && segment !== '..',
     );
 }
 
@@ -195,6 +216,47 @@ function pickCapture(
   return captures[0] ?? null;
 }
 
+function getCaptureRecord(
+  state: unknown,
+  captureId: string,
+): TeamRadioCapture | null {
+  const root = asObject(state);
+  if (!root) {
+    return null;
+  }
+
+  const capturesValue = root.Captures;
+  if (Array.isArray(capturesValue)) {
+    const index = Number(captureId);
+    if (
+      !Number.isInteger(index) ||
+      index < 0 ||
+      index >= capturesValue.length
+    ) {
+      return null;
+    }
+    return asObject(capturesValue[index]) as TeamRadioCapture | null;
+  }
+
+  if (!isPlainObject(capturesValue)) {
+    return null;
+  }
+
+  return asObject(capturesValue[captureId]) as TeamRadioCapture | null;
+}
+
+function updateCaptureRecord(
+  state: unknown,
+  captureId: string,
+  patch: Partial<TeamRadioCapture>,
+) {
+  const record = getCaptureRecord(state, captureId);
+  if (!record) {
+    return;
+  }
+  Object.assign(record, patch);
+}
+
 export function getDefaultTeamRadioDownloadDir(
   source: unknown,
   options: { appName?: string } = {},
@@ -223,6 +285,163 @@ function compareCaptureIds(a: string, b: string): number {
     return right - left;
   }
   return b.localeCompare(a);
+}
+
+function truncateErrorText(value: string, max = 400): string {
+  const trimmed = value.trim();
+  if (trimmed.length <= max) {
+    return trimmed;
+  }
+  return `${trimmed.slice(0, max)}…`;
+}
+
+function guessAudioContentType(filePath: string): string {
+  const ext = path.extname(filePath).toLowerCase();
+  switch (ext) {
+    case '.mp3':
+    case '.mpeg':
+    case '.mpga':
+      return 'audio/mpeg';
+    case '.m4a':
+    case '.mp4':
+      return 'audio/mp4';
+    case '.wav':
+      return 'audio/wav';
+    case '.webm':
+      return 'audio/webm';
+    default:
+      return 'application/octet-stream';
+  }
+}
+
+function getTranscriptionCachePath(filePath: string): string {
+  return `${filePath}${TEAM_RADIO_TRANSCRIPTION_CACHE_SUFFIX}`;
+}
+
+async function readTranscriptionCache(
+  filePath: string,
+): Promise<TeamRadioTranscriptionCache | null> {
+  try {
+    const raw = await fs.readFile(getTranscriptionCachePath(filePath), 'utf-8');
+    const parsed = JSON.parse(raw) as unknown;
+    const text = asNonEmptyString((parsed as any)?.text);
+    const model = asNonEmptyString((parsed as any)?.model);
+    const createdAt = asNonEmptyString((parsed as any)?.createdAt);
+    if (!text || !model || !createdAt) {
+      return null;
+    }
+    return { text, model, createdAt };
+  } catch {
+    return null;
+  }
+}
+
+async function writeTranscriptionCache(
+  filePath: string,
+  cache: TeamRadioTranscriptionCache,
+): Promise<string> {
+  const transcriptionFilePath = getTranscriptionCachePath(filePath);
+  await fs.writeFile(
+    transcriptionFilePath,
+    `${JSON.stringify(cache, null, 2)}\n`,
+    'utf-8',
+  );
+  return transcriptionFilePath;
+}
+
+function extractTranscriptionText(bodyText: string): string | null {
+  const trimmed = bodyText.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed) as unknown;
+    const direct =
+      asNonEmptyString((parsed as any)?.text) ??
+      asNonEmptyString((parsed as any)?.output_text);
+    if (direct) {
+      return direct;
+    }
+    const segments = Array.isArray((parsed as any)?.segments)
+      ? ((parsed as any).segments as unknown[])
+          .map((segment) => asNonEmptyString((segment as any)?.text))
+          .filter((segment): segment is string => Boolean(segment))
+      : [];
+    if (segments.length > 0) {
+      return segments.join(' ').trim();
+    }
+  } catch {
+    // Fall back to raw text when the response body is not JSON.
+  }
+
+  return trimmed;
+}
+
+async function transcribeAudioFile(opts: {
+  filePath: string;
+  apiKey: string;
+  model: string;
+  apiBase?: string;
+  fetchImpl?: typeof fetch;
+}): Promise<string> {
+  const fetchImpl = opts.fetchImpl ?? fetch;
+  const apiBase = (
+    opts.apiBase ??
+    process.env.OPENAI_API_BASE ??
+    DEFAULT_OPENAI_API_BASE
+  ).replace(/\/+$/, '');
+  const controller = new AbortController();
+  const timeoutId = setTimeout(
+    () => controller.abort(),
+    TRANSCRIPTION_TIMEOUT_MS,
+  );
+
+  try {
+    const buffer = await fs.readFile(opts.filePath);
+    const form = new FormData();
+    form.set('model', opts.model);
+    form.set(
+      'file',
+      new Blob([buffer], { type: guessAudioContentType(opts.filePath) }),
+      path.basename(opts.filePath),
+    );
+
+    const response = await fetchImpl(`${apiBase}/audio/transcriptions`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${opts.apiKey}`,
+      },
+      body: form,
+      signal: controller.signal,
+    });
+    const bodyText = await response.text();
+    if (!response.ok) {
+      const detail = truncateErrorText(bodyText);
+      throw new Error(
+        detail.length > 0
+          ? `Failed to transcribe ${path.basename(opts.filePath)}: HTTP ${response.status} ${detail}`
+          : `Failed to transcribe ${path.basename(opts.filePath)}: HTTP ${response.status}`,
+      );
+    }
+
+    const transcription = extractTranscriptionText(bodyText);
+    if (!transcription) {
+      throw new Error(
+        `OpenAI returned an empty transcription for ${path.basename(opts.filePath)}.`,
+      );
+    }
+    return transcription;
+  } catch (error) {
+    if (isAbortError(error)) {
+      throw new Error(
+        `Timed out transcribing ${path.basename(opts.filePath)} after ${TRANSCRIPTION_TIMEOUT_MS}ms`,
+      );
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 export function getSessionStaticPrefix(source: unknown): string | null {
@@ -292,7 +511,12 @@ export function getTeamRadioCaptures(
         utc,
         driverNumber: asNonEmptyString(record.RacingNumber),
         path: asNonEmptyString(record.Path),
-        assetUrl: resolveStaticAssetUrl(options.staticPrefix ?? null, record.Path),
+        assetUrl: resolveStaticAssetUrl(
+          options.staticPrefix ?? null,
+          record.Path,
+        ),
+        downloadedFilePath: asNonEmptyString(record.DownloadedFilePath),
+        hasTranscription: asNonEmptyString(record.Transcription) !== null,
         sortTime: parseCaptureTime(utc),
       };
     })
@@ -319,6 +543,8 @@ export function getTeamRadioCaptures(
     driverNumber: capture.driverNumber,
     path: capture.path,
     assetUrl: capture.assetUrl,
+    downloadedFilePath: capture.downloadedFilePath,
+    hasTranscription: capture.hasTranscription,
   }));
 }
 
@@ -345,12 +571,14 @@ export async function downloadTeamRadioCapture(opts: {
     throw new Error('No matching team radio capture was found.');
   }
   if (!capture.assetUrl) {
-    throw new Error('Unable to resolve a static asset URL for the selected team radio capture.');
+    throw new Error(
+      'Unable to resolve a static asset URL for the selected team radio capture.',
+    );
   }
 
   const destinationDir =
-    opts.destinationDir
-    ?? getDefaultTeamRadioDownloadDir(opts.source, { appName: opts.appName });
+    opts.destinationDir ??
+    getDefaultTeamRadioDownloadDir(opts.source, { appName: opts.appName });
   await fs.mkdir(destinationDir, { recursive: true });
 
   const filePath = path.join(destinationDir, getCaptureFilename(capture));
@@ -358,11 +586,15 @@ export async function downloadTeamRadioCapture(opts: {
     try {
       const stats = await fs.stat(filePath);
       if (stats.size > 0) {
+        updateCaptureRecord(opts.state, capture.captureId, {
+          DownloadedFilePath: filePath,
+        });
         return {
           ...capture,
           filePath,
           bytes: stats.size,
           reused: true,
+          downloadedFilePath: filePath,
           sessionPrefix,
           destinationDir,
         };
@@ -382,15 +614,21 @@ export async function downloadTeamRadioCapture(opts: {
       signal: controller.signal,
     });
     if (!response.ok) {
-      throw new Error(`Failed to download ${capture.assetUrl}: HTTP ${response.status}`);
+      throw new Error(
+        `Failed to download ${capture.assetUrl}: HTTP ${response.status}`,
+      );
     }
     const buffer = Buffer.from(await response.arrayBuffer());
     await fs.writeFile(filePath, buffer);
+    updateCaptureRecord(opts.state, capture.captureId, {
+      DownloadedFilePath: filePath,
+    });
     return {
       ...capture,
       filePath,
       bytes: buffer.byteLength,
       reused: false,
+      downloadedFilePath: filePath,
       sessionPrefix,
       destinationDir,
     };
@@ -404,4 +642,93 @@ export async function downloadTeamRadioCapture(opts: {
   } finally {
     clearTimeout(timeoutId);
   }
+}
+
+export async function transcribeTeamRadioCapture(opts: {
+  source: unknown;
+  state: unknown;
+  captureId?: string | number;
+  driverNumber?: string | number;
+  destinationDir?: string;
+  appName?: string;
+  overwriteDownload?: boolean;
+  forceTranscription?: boolean;
+  apiKey?: string | null;
+  model?: string;
+  apiBase?: string;
+  downloadFetchImpl?: typeof fetch;
+  transcriptionFetchImpl?: typeof fetch;
+}): Promise<TeamRadioTranscriptionResult> {
+  const requestedModel =
+    asNonEmptyString(opts.model) ??
+    asNonEmptyString(process.env.OPENAI_AUDIO_TRANSCRIPTION_MODEL) ??
+    DEFAULT_TEAM_RADIO_TRANSCRIPTION_MODEL;
+  const download = await downloadTeamRadioCapture({
+    source: opts.source,
+    state: opts.state,
+    captureId: opts.captureId,
+    driverNumber: opts.driverNumber,
+    destinationDir: opts.destinationDir,
+    appName: opts.appName,
+    overwrite: opts.overwriteDownload,
+    fetchImpl: opts.downloadFetchImpl,
+  });
+
+  const cached = opts.forceTranscription
+    ? null
+    : await readTranscriptionCache(download.filePath);
+  if (cached && (opts.model === undefined || cached.model === requestedModel)) {
+    updateCaptureRecord(opts.state, download.captureId, {
+      DownloadedFilePath: download.filePath,
+      Transcription: cached.text,
+    });
+    return {
+      ...download,
+      hasTranscription: true,
+      downloadedFilePath: download.filePath,
+      transcription: cached.text,
+      transcriptionFilePath: getTranscriptionCachePath(download.filePath),
+      transcriptionReused: true,
+      model: cached.model,
+    };
+  }
+
+  const apiKey =
+    asNonEmptyString(opts.apiKey) ??
+    asNonEmptyString(process.env.OPENAI_API_KEY);
+  if (!apiKey) {
+    throw new Error(
+      'OpenAI API key is required to transcribe team radio clips. Set OPENAI_API_KEY or save a key in f1aire settings.',
+    );
+  }
+
+  const transcription = await transcribeAudioFile({
+    filePath: download.filePath,
+    apiKey,
+    model: requestedModel,
+    apiBase: opts.apiBase,
+    fetchImpl: opts.transcriptionFetchImpl,
+  });
+  const transcriptionFilePath = await writeTranscriptionCache(
+    download.filePath,
+    {
+      text: transcription,
+      model: requestedModel,
+      createdAt: new Date().toISOString(),
+    },
+  );
+  updateCaptureRecord(opts.state, download.captureId, {
+    DownloadedFilePath: download.filePath,
+    Transcription: transcription,
+  });
+
+  return {
+    ...download,
+    hasTranscription: true,
+    downloadedFilePath: download.filePath,
+    transcription,
+    transcriptionFilePath,
+    transcriptionReused: false,
+    model: requestedModel,
+  };
 }
