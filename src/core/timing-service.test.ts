@@ -232,6 +232,83 @@ describe('TimingService', () => {
     });
   });
 
+  it('replaces generic replace-style topic snapshots instead of retaining stale keys', () => {
+    const service = new TimingService();
+
+    service.enqueue({
+      type: 'WeatherData',
+      json: {
+        AirTemp: '21',
+        TrackTemp: '33',
+        Rainfall: '0',
+      },
+      dateTime: new Date('2025-01-01T00:00:01Z'),
+    });
+    service.enqueue({
+      type: 'WeatherData',
+      json: {
+        AirTemp: '22',
+      },
+      dateTime: new Date('2025-01-01T00:00:02Z'),
+    });
+
+    service.enqueue({
+      type: 'LapCount',
+      json: {
+        CurrentLap: 11,
+        TotalLaps: 57,
+      },
+      dateTime: new Date('2025-01-01T00:00:03Z'),
+    });
+    service.enqueue({
+      type: 'LapCount',
+      json: {
+        CurrentLap: 12,
+      },
+      dateTime: new Date('2025-01-01T00:00:04Z'),
+    });
+
+    service.enqueue({
+      type: 'PitStop',
+      json: {
+        PitStops: {
+          '4': {
+            Lap: 10,
+            Duration: '23.4',
+          },
+        },
+      },
+      dateTime: new Date('2025-01-01T00:00:05Z'),
+    });
+    service.enqueue({
+      type: 'PitStop',
+      json: {
+        PitStops: {
+          '81': {
+            Lap: 11,
+            Duration: '22.9',
+          },
+        },
+      },
+      dateTime: new Date('2025-01-01T00:00:06Z'),
+    });
+
+    expect(service.processors.weatherData.state).toEqual({
+      AirTemp: '22',
+    });
+    expect(service.processors.lapCount.state).toEqual({
+      CurrentLap: 12,
+    });
+    expect(service.processors.pitStop.state).toEqual({
+      PitStops: {
+        '81': {
+          Lap: 11,
+          Duration: '22.9',
+        },
+      },
+    });
+  });
+
   it('routes DriverRaceInfo through the dedicated processor with ordered rows', () => {
     const service = new TimingService();
 
