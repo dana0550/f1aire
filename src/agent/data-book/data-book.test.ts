@@ -43,6 +43,13 @@ describe('data-book', () => {
     expect(getDataBookTopic('ChampionshipPrediction')?.semantics).toBe('patch');
   });
 
+  it('documents session data as a patch feed with normalized series keys', () => {
+    expect(getDataBookTopic('SessionData')?.semantics).toBe('patch');
+    expect(getDataBookTopic('SessionData')?.normalization).toContain(
+      'Series and StatusSeries arrays are normalized to indexed dictionaries before patches are merged.',
+    );
+  });
+
   it('documents deterministic lap-series tooling', () => {
     expect(getDataBookTopic('LapSeries')?.bestTools).toContain(
       'get_lap_series',

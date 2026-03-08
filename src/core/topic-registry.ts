@@ -43,7 +43,7 @@ export const TOPIC_REGISTRY: TopicDefinition[] = [
     topic: 'SessionData',
     streamName: 'SessionData',
     availability: 'all-sessions',
-    semantics: 'replace',
+    semantics: 'patch',
   },
   {
     topic: 'ExtrapolatedClock',

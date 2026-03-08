@@ -39,5 +39,6 @@ describe('topic-registry', () => {
     expect(getTopicDefinition('ChampionshipPrediction')?.semantics).toBe(
       'patch',
     );
+    expect(getTopicDefinition('SessionData')?.semantics).toBe('patch');
   });
 });

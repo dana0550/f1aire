@@ -157,6 +157,54 @@ describe('TimingService', () => {
     expect(service.processors.timingData.getLapNumbers()).toEqual([12]);
   });
 
+  it('merges SessionData patches after normalizing array keyframes', () => {
+    const service = new TimingService();
+
+    service.enqueue({
+      type: 'SessionData',
+      json: {
+        Series: [
+          { Utc: '2026-03-07T04:47:25.938Z', QualifyingPart: 0 },
+          { Utc: '2026-03-07T04:47:26.891Z', QualifyingPart: 1 },
+        ],
+        StatusSeries: [
+          { Utc: '2026-03-07T05:00:00.195Z', SessionStatus: 'Started' },
+        ],
+      },
+      dateTime: new Date('2026-03-07T05:00:00Z'),
+    });
+    service.enqueue({
+      type: 'SessionData',
+      json: {
+        StatusSeries: {
+          '1': { Utc: '2026-03-07T05:10:31.433Z', SessionStatus: 'Aborted' },
+        },
+      },
+      dateTime: new Date('2026-03-07T05:10:31Z'),
+    });
+    service.enqueue({
+      type: 'SessionData',
+      json: {
+        Series: {
+          '2': { Utc: '2026-03-07T05:33:00.090Z', QualifyingPart: 2 },
+        },
+      },
+      dateTime: new Date('2026-03-07T05:33:00Z'),
+    });
+
+    expect(service.processors.sessionData.state).toEqual({
+      Series: {
+        '0': { Utc: '2026-03-07T04:47:25.938Z', QualifyingPart: 0 },
+        '1': { Utc: '2026-03-07T04:47:26.891Z', QualifyingPart: 1 },
+        '2': { Utc: '2026-03-07T05:33:00.090Z', QualifyingPart: 2 },
+      },
+      StatusSeries: {
+        '0': { Utc: '2026-03-07T05:00:00.195Z', SessionStatus: 'Started' },
+        '1': { Utc: '2026-03-07T05:10:31.433Z', SessionStatus: 'Aborted' },
+      },
+    });
+  });
+
   it('stores deterministic best-lap snapshots for replay tooling', () => {
     const service = new TimingService();
 

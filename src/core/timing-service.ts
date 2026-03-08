@@ -70,7 +70,7 @@ export class TimingService {
     lapCount: new ReplaceProcessor('LapCount'),
     weatherData: new ReplaceProcessor('WeatherData'),
     sessionInfo: new SessionInfoProcessor(),
-    sessionData: new ReplaceProcessor('SessionData'),
+    sessionData: new MergeProcessor('SessionData'),
     extrapolatedClock: new ExtrapolatedClockProcessor(),
     topThree: new ReplaceProcessor('TopThree'),
     driverTracker: new DriverTrackerProcessor(),

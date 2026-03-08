@@ -368,23 +368,30 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
     topic: 'SessionData',
     aliases: ['SessionData'],
     availability: 'all-sessions',
-    semantics: 'replace',
+    semantics: 'patch',
     purpose:
       'Session-series timeline (lap series and status series). Useful for coarse session phase changes and correlating with other events.',
     engineerUse: [
-      'Correlate lap number changes over time.',
-      'Cross-check track status changes (StatusSeries).',
+      'Correlate lap number or qualifying-part changes over time.',
+      'Cross-check track status and session phase changes (StatusSeries).',
     ],
-    normalization: ['_kf is stripped during normalization when present.'],
+    normalization: [
+      '_kf is stripped during normalization when present.',
+      'Series and StatusSeries arrays are normalized to indexed dictionaries before patches are merged.',
+    ],
     keyFields: [
-      { path: 'Series[].(Utc|Lap)', description: 'Timestamped lap series.' },
       {
-        path: 'StatusSeries[].(Utc|TrackStatus)',
-        description: 'Timestamped status markers.',
+        path: 'Series.<id>.(Utc|Lap|QualifyingPart)',
+        description: 'Timestamped lap or qualifying-part markers.',
+      },
+      {
+        path: 'StatusSeries.<id>.(Utc|TrackStatus|SessionStatus)',
+        description: 'Timestamped track/session status markers.',
       },
     ],
     pitfalls: [
-      'Series arrays can be short at subscription time; rely on timelines when available.',
+      'SessionData is incremental; later updates usually append keyed entries instead of resending the whole history.',
+      'Initial keyframes may arrive as arrays while live patches use keyed objects, so normalization is required before merging.',
     ],
     relatedTopics: ['TrackStatus', 'TimingData', 'Heartbeat'],
     bestTools: ['get_session_data', 'get_topic_timeline', 'inspect_topic'],

@@ -61,6 +61,15 @@ function normalizeWeatherDataSeries(obj: Record<string, unknown>) {
   }
 }
 
+function normalizeSessionData(obj: Record<string, unknown>) {
+  if (Array.isArray(obj.Series)) {
+    obj.Series = arrayToIndexedObject(obj.Series);
+  }
+  if (Array.isArray(obj.StatusSeries)) {
+    obj.StatusSeries = arrayToIndexedObject(obj.StatusSeries);
+  }
+}
+
 function normalizeStreamCollection(obj: Record<string, unknown>) {
   if (Array.isArray(obj.Streams)) {
     obj.Streams = arrayToIndexedObject(obj.Streams);
@@ -135,6 +144,9 @@ export function normalizePoint(point: RawPoint): RawPoint {
     }
     if (type === 'WeatherDataSeries') {
       normalizeWeatherDataSeries(obj);
+    }
+    if (type === 'SessionData') {
+      normalizeSessionData(obj);
     }
     if (type === 'AudioStreams' || type === 'ContentStreams') {
       normalizeStreamCollection(obj);
