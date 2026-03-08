@@ -38,6 +38,7 @@ import {
 } from '../core/team-radio.js';
 import type { TimeCursor } from '../core/time-cursor.js';
 import { getDataBookIndex, getDataBookTopic } from './data-book/data-book.js';
+import type { LapRecord } from '../core/analysis-index.js';
 
 const MAX_PYTHON_VARS_BYTES = 8 * 1024;
 const ASYNCIO_RUN_PATTERNS = [
@@ -315,6 +316,82 @@ export function makeTools({
       out[key] = (value as any)[key];
     }
     return out;
+  };
+
+  const parseIsoDate = (value: unknown) => {
+    if (typeof value !== 'string') {
+      return null;
+    }
+    const date = new Date(value);
+    return Number.isFinite(date.getTime()) ? date : null;
+  };
+
+  const findLapRecordForDriverAt = (
+    driverNumber: string | null,
+    captureTime: Date | null,
+  ): { record: LapRecord; matchMode: 'at-or-before' | 'nearest' } | null => {
+    if (!driverNumber || !captureTime) {
+      return null;
+    }
+
+    const records = analysisIndex.byDriver.get(driverNumber) ?? [];
+    if (!records.length) {
+      return null;
+    }
+
+    let atOrBefore: LapRecord | null = null;
+    let nearest: LapRecord | null = null;
+    let nearestDiff = Infinity;
+
+    for (const record of records) {
+      if (!record.dateTime) {
+        continue;
+      }
+
+      const diff = Math.abs(record.dateTime.getTime() - captureTime.getTime());
+      if (diff < nearestDiff) {
+        nearest = record;
+        nearestDiff = diff;
+      }
+
+      if (record.dateTime.getTime() <= captureTime.getTime()) {
+        atOrBefore = record;
+      }
+    }
+
+    if (atOrBefore) {
+      return { record: atOrBefore, matchMode: 'at-or-before' };
+    }
+    if (nearest) {
+      return { record: nearest, matchMode: 'nearest' };
+    }
+    return null;
+  };
+
+  const getTeamRadioCaptureContext = (capture: {
+    utc: string | null;
+    driverNumber: string | null;
+  }) => {
+    const captureTime = parseIsoDate(capture.utc);
+    const match = findLapRecordForDriverAt(capture.driverNumber, captureTime);
+    if (!captureTime || !match) {
+      return null;
+    }
+
+    const { record, matchMode } = match;
+    return {
+      captureTime: captureTime.toISOString(),
+      matchedTimingTime: record.dateTime ? record.dateTime.toISOString() : null,
+      matchMode,
+      lap: record.lap,
+      position: record.position,
+      gapToLeaderSec: record.gapToLeaderSec,
+      intervalToAheadSec: record.intervalToAheadSec,
+      traffic: record.traffic,
+      trackStatus: record.trackStatus,
+      flags: record.flags,
+      stint: record.stint,
+    };
   };
 
   const pickTimingLine = (snapshot: unknown) => {
@@ -897,7 +974,7 @@ export function makeTools({
     }),
     get_team_radio_events: tool({
       description:
-        'List team radio captures newest-first with resolved static clip URLs. Useful for playback/download workflows and for correlating radio with track events.',
+        'List team radio captures newest-first with resolved static clip URLs and lap/track context when timing history is available. Useful for playback/download workflows and for correlating radio with track events.',
       inputSchema: z.object({
         driverNumber: z.union([z.string(), z.number()]).optional(),
         limit: z.number().int().positive().max(100).optional(),
@@ -918,6 +995,7 @@ export function makeTools({
           driverName: capture.driverNumber
             ? getDriverName(capture.driverNumber)
             : null,
+          context: getTeamRadioCaptureContext(capture),
         }));
 
         return {

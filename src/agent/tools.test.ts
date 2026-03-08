@@ -70,7 +70,7 @@ describe('tools', () => {
     expect(tools).toHaveProperty('set_time_cursor');
   });
 
-  it('get_team_radio_events resolves newest clips with absolute asset URLs', async () => {
+  it('get_team_radio_events resolves newest clips with absolute asset URLs and lap context', async () => {
     const tools = makeTools({
       store: {
         ...store,
@@ -85,6 +85,71 @@ describe('tools', () => {
       } as any,
       processors: {
         ...processors,
+        timingData: {
+          state: {
+            Lines: {
+              '4': { Position: '1' },
+              '81': { Position: '2' },
+            },
+          },
+          bestLaps: new Map(),
+          getLapHistory: () => [],
+          getLapNumbers: () => [14, 15],
+          driversByLap: new Map([
+            [
+              14,
+              new Map([
+                [
+                  '4',
+                  {
+                    __dateTime: new Date('2024-05-26T12:15:00Z'),
+                    NumberOfLaps: 14,
+                    Position: '1',
+                    GapToLeader: '0',
+                    LastLapTime: { Value: '1:33.000' },
+                  },
+                ],
+                [
+                  '81',
+                  {
+                    __dateTime: new Date('2024-05-26T12:15:00Z'),
+                    NumberOfLaps: 14,
+                    Position: '2',
+                    GapToLeader: '+1.200',
+                    IntervalToPositionAhead: { Value: '+1.200' },
+                    LastLapTime: { Value: '1:33.500' },
+                  },
+                ],
+              ]),
+            ],
+            [
+              15,
+              new Map([
+                [
+                  '4',
+                  {
+                    __dateTime: new Date('2024-05-26T12:16:00Z'),
+                    NumberOfLaps: 15,
+                    Position: '1',
+                    GapToLeader: '0',
+                    LastLapTime: { Value: '1:32.800' },
+                  },
+                ],
+                [
+                  '81',
+                  {
+                    __dateTime: new Date('2024-05-26T12:16:00Z'),
+                    NumberOfLaps: 15,
+                    Position: '2',
+                    GapToLeader: '+1.000',
+                    IntervalToPositionAhead: { Value: '+1.000' },
+                    LastLapTime: { Value: '1:33.100' },
+                  },
+                ],
+              ]),
+            ],
+          ]),
+        },
         driverList: {
           state: {},
           getName: (driverNumber: string) =>
@@ -93,6 +158,10 @@ describe('tools', () => {
               : driverNumber === '81'
                 ? 'Oscar Piastri'
                 : null,
+        },
+        trackStatus: {
+          state: { Status: '1', Message: 'AllClear' },
+          getAt: () => ({ Status: '1', Message: 'AllClear' }),
         },
         teamRadio: {
           state: {
@@ -131,6 +200,25 @@ describe('tools', () => {
           driverName: 'Lando Norris',
           assetUrl:
             'https://livetiming.formula1.com/static/2024/2024-05-26_Test_Weekend/2024-05-26_Race/TeamRadio/LANNOR01_4_20240526_121625.mp3',
+          context: {
+            captureTime: '2024-05-26T12:16:25.710Z',
+            matchedTimingTime: '2024-05-26T12:16:00.000Z',
+            matchMode: 'at-or-before',
+            lap: 15,
+            position: 1,
+            gapToLeaderSec: 0,
+            trackStatus: {
+              status: '1',
+              message: 'AllClear',
+              isGreen: true,
+            },
+            flags: {
+              pit: false,
+              pitIn: false,
+              pitOut: false,
+              inPit: false,
+            },
+          },
         },
       ],
     });
