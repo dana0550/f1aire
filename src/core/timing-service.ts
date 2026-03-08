@@ -13,6 +13,7 @@ import { RaceControlMessagesProcessor } from './processors/race-control-messages
 import { ReplaceProcessor } from './processors/replace-processor.js';
 import { TeamRadioProcessor } from './processors/team-radio.js';
 import { TimingDataProcessor } from './processors/timing-data.js';
+import { TimingStatsProcessor } from './processors/timing-stats.js';
 import { TrackStatusProcessor } from './processors/track-status.js';
 import { TOPIC_REGISTRY } from './topic-registry.js';
 
@@ -64,7 +65,7 @@ export class TimingService {
     driverList: new DriverListProcessor(),
     timingData: new TimingDataProcessor(),
     timingAppData: new MergeProcessor('TimingAppData'),
-    timingStats: new MergeProcessor('TimingStats'),
+    timingStats: new TimingStatsProcessor(),
     trackStatus: new TrackStatusProcessor(),
     lapCount: new MergeProcessor('LapCount'),
     weatherData: new MergeProcessor('WeatherData'),

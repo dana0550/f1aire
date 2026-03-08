@@ -1379,6 +1379,74 @@ describe('tools', () => {
     });
   });
 
+  it('get_timing_stats returns deterministic trap tables and per-driver best speeds', async () => {
+    const tools = makeTools({
+      store,
+      processors: {
+        ...processors,
+        driverList: {
+          state: {
+            '4': { FullName: 'Lando Norris' },
+            '81': { FullName: 'Oscar Piastri' },
+          },
+          getName: (driverNumber: string) =>
+            driverNumber === '4'
+              ? 'Lando Norris'
+              : driverNumber === '81'
+                ? 'Oscar Piastri'
+                : null,
+        },
+        timingStats: {
+          state: {
+            Lines: {
+              '4': {
+                BestSpeeds: {
+                  FL: { Value: '338.5', Position: 2 },
+                  ST: { Value: '319.0', Position: 2 },
+                },
+              },
+              '81': {
+                BestSpeeds: {
+                  FL: { Value: '340.0', Position: 1 },
+                  ST: { Value: '320.1', Position: 1 },
+                },
+              },
+            },
+          },
+        },
+      } as any,
+      timeCursor: { latest: true },
+      onTimeCursorChange: () => {},
+    });
+
+    await expect(
+      tools.get_timing_stats.execute({ trap: 'fl' } as any),
+    ).resolves.toMatchObject({
+      trap: 'FL',
+      totalDrivers: 2,
+      fastest: {
+        driverNumber: '81',
+        driverName: 'Oscar Piastri',
+        speedKph: 340,
+      },
+      records: [
+        { driverNumber: '81', position: 1 },
+        { driverNumber: '4', position: 2 },
+      ],
+    });
+
+    await expect(
+      tools.get_timing_stats.execute({ driverNumber: '4' } as any),
+    ).resolves.toMatchObject({
+      driverNumber: '4',
+      driverName: 'Lando Norris',
+      bestSpeeds: [
+        { trap: 'FL', position: 2, speedKph: 338.5 },
+        { trap: 'ST', position: 2, speedKph: 319 },
+      ],
+    });
+  });
+
   it('get_latest returns merged state for auxiliary patch topics', async () => {
     const tools = makeTools({
       store: {

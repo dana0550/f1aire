@@ -65,6 +65,11 @@ import {
   type OvertakeSeriesRecord,
 } from '../core/overtake-series.js';
 import {
+  getTimingStatsDriver,
+  getTimingStatsTrapTable,
+  getTimingStatsTrapTables,
+} from '../core/timing-stats.js';
+import {
   getRaceControlEvents,
   type RaceControlEvent,
 } from '../core/processors/race-control-messages.js';
@@ -1406,20 +1411,36 @@ export function makeTools({
     }
 
     if (topic === 'TimingStats') {
-      const state = processors.timingStats?.state as any;
+      const state = processors.timingStats?.state ?? null;
       if (!state) return null;
-      const lines = state?.Lines ?? null;
-      if (resolvedDriver && isPlainObject(lines) && resolvedDriver in lines) {
+
+      if (resolvedDriver) {
+        const driver = getTimingStatsDriver({
+          state,
+          driverListState: processors.driverList?.state,
+          driverNumber: resolvedDriver,
+        });
+        if (!driver) {
+          return null;
+        }
         return {
           asOf,
-          driverNumber: resolvedDriver,
-          driverName: getDriverName(resolvedDriver),
-          stats: lines[resolvedDriver],
+          driverNumber: driver.driverNumber,
+          driverName: driver.driverName,
+          bestSpeeds: driver.bestSpeeds,
         };
       }
+
+      const traps = getTimingStatsTrapTables({
+        state,
+        driverListState: processors.driverList?.state,
+        limit: 3,
+      });
+
       return {
         asOf,
-        keys: isPlainObject(lines) ? Object.keys(lines).slice(0, 10) : null,
+        availableTraps: traps.map((table) => table.trap),
+        traps,
       };
     }
 
@@ -1912,9 +1933,54 @@ export function makeTools({
       },
     }),
     get_timing_stats: tool({
-      description: 'Get merged TimingStats state (best speeds, sectors)',
-      inputSchema: z.object({}),
-      execute: async () => processors.timingStats?.state ?? null,
+      description:
+        'Get deterministic TimingStats speed-trap rankings or per-driver best-speed records.',
+      inputSchema: z.object({
+        trap: z.string().optional(),
+        driverNumber: z.union([z.string(), z.number()]).optional(),
+        limit: z.number().int().positive().max(100).optional(),
+      }),
+      execute: async ({ trap, driverNumber, limit }) => {
+        const state = processors.timingStats?.state ?? null;
+        if (!state) {
+          return null;
+        }
+
+        if (driverNumber !== undefined) {
+          return (
+            getTimingStatsDriver({
+              state,
+              driverListState: processors.driverList?.state,
+              driverNumber,
+            }) ?? null
+          );
+        }
+
+        if (trap) {
+          return (
+            getTimingStatsTrapTable({
+              state,
+              driverListState: processors.driverList?.state,
+              trap,
+              limit,
+            }) ?? null
+          );
+        }
+
+        const traps = getTimingStatsTrapTables({
+          state,
+          driverListState: processors.driverList?.state,
+          limit,
+        });
+
+        return {
+          totalDrivers: isPlainObject((state as { Lines?: unknown } | null)?.Lines)
+            ? Object.keys((state as { Lines: Record<string, unknown> }).Lines).length
+            : 0,
+          availableTraps: traps.map((table) => table.trap),
+          traps,
+        };
+      },
     }),
     get_track_status: tool({
       description: 'Get merged TrackStatus',

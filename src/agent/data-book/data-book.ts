@@ -325,15 +325,20 @@ export const DATA_BOOK_TOPICS: DataBookTopic[] = [
     normalization: ['_kf is stripped during normalization when present.'],
     keyFields: [
       {
-        path: 'Lines.<driver>.*',
-        description: 'Per-driver stats (structure varies; inspect if needed).',
+        path: 'Lines.<driver>.BestSpeeds.(FL|I1|I2|ST).Value',
+        description: 'Best speed trap value for that driver/trap.',
+      },
+      {
+        path: 'Lines.<driver>.BestSpeeds.(FL|I1|I2|ST).Position',
+        description: 'Classified rank for that speed trap when present.',
       },
     ],
     pitfalls: [
-      'Structure can vary; if unsure, call inspect_topic(TimingStats).',
+      'Trap keys can be sparse; not every driver has every speed trap at every moment.',
+      'Use get_timing_stats for deterministic trap rankings instead of relying on raw object order.',
     ],
     relatedTopics: ['TimingData'],
-    bestTools: ['get_timing_stats', 'inspect_topic'],
+    bestTools: ['get_timing_stats', 'get_topic_reference', 'inspect_topic'],
   },
   {
     topic: 'TopThree',

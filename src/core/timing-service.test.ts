@@ -26,6 +26,60 @@ describe('TimingService', () => {
     );
   });
 
+  it('routes TimingStats through the dedicated processor with ordered trap tables', () => {
+    const service = new TimingService();
+
+    service.enqueue({
+      type: 'TimingStats',
+      json: {
+        Lines: {
+          '4': {
+            BestSpeeds: {
+              FL: { Value: '338.5', Position: 2 },
+            },
+          },
+        },
+      },
+      dateTime: new Date('2025-01-01T00:00:01Z'),
+    });
+    service.enqueue({
+      type: 'TimingStats',
+      json: {
+        Lines: {
+          '81': {
+            BestSpeeds: {
+              FL: { Value: '340.0', Position: 1 },
+              ST: { Value: '320.1', Position: 1 },
+            },
+          },
+        },
+      },
+      dateTime: new Date('2025-01-01T00:00:02Z'),
+    });
+
+    expect(
+      service.processors.timingStats.getTrapTable({ trap: 'FL' }),
+    ).toMatchObject({
+      trap: 'FL',
+      totalDrivers: 2,
+      records: [
+        {
+          driverNumber: '81',
+          position: 1,
+          speedKph: 340,
+        },
+        {
+          driverNumber: '4',
+          position: 2,
+          speedKph: 338.5,
+        },
+      ],
+    });
+    expect(
+      service.processors.timingStats.getTrapTables().map((table) => table.trap),
+    ).toEqual(['FL', 'ST']);
+  });
+
   it('routes SessionInfo through the circuit-enriching processor', async () => {
     const originalFetch = globalThis.fetch;
     const fetchMock = vi.fn().mockResolvedValue(
