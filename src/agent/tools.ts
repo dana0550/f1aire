@@ -43,9 +43,7 @@ const ASYNCIO_RUN_PATTERNS = [
   /\basyncio\.run\s*\(/,
   /\brun_until_complete\s*\(/,
 ];
-const MICROPIP_PATTERNS = [
-  /\bmicropip\.install\s*\(/,
-];
+const MICROPIP_PATTERNS = [/\bmicropip\.install\s*\(/];
 
 function assertPythonCodeAllowed(code: string) {
   for (const pattern of ASYNCIO_RUN_PATTERNS) {
@@ -89,8 +87,7 @@ function classifyPythonFailure(message: string): string | undefined {
 function estimateJsonBytes(value: unknown): number | null {
   try {
     return Buffer.byteLength(JSON.stringify(value), 'utf-8');
-  }
-  catch {
+  } catch {
     return null;
   }
 }
@@ -114,7 +111,9 @@ export function makeTools({
       state?: unknown | null;
       bestLaps?: Map<string, unknown>;
       driversByLap?: Map<number, Map<string, unknown>>;
-      getLapHistory?: (driverNumber: string) => Array<{ lap: number; snapshot: unknown }>;
+      getLapHistory?: (
+        driverNumber: string,
+      ) => Array<{ lap: number; snapshot: unknown }>;
       getLapSnapshot?: (driverNumber: string, lap: number) => unknown | null;
       getLapNumbers?: () => number[];
     };
@@ -144,15 +143,78 @@ export function makeTools({
     pitLaneTimeCollection?: { state?: unknown | null };
     carData?: { state?: unknown | null };
     position?: { state?: unknown | null };
+    extraTopics?: Record<
+      string,
+      { state?: unknown | null; latest?: unknown | null }
+    >;
   };
   timeCursor: TimeCursor;
   onTimeCursorChange: (cursor: TimeCursor) => void;
   logger?: (event: Record<string, unknown>) => void | Promise<void>;
 }) {
-  const getNormalizedLatest = (topic: string) => {
+  const getRawLatest = (topic: string) => {
     const direct = store.topic(topic).latest as RawPoint | null;
-    const fallback =
-      direct ?? (store.topic(`${topic}.z`).latest as RawPoint | null);
+    return direct ?? (store.topic(`${topic}.z`).latest as RawPoint | null);
+  };
+
+  const getTopicState = (topic: string): unknown | null => {
+    switch (topic) {
+      case 'SessionInfo':
+        return processors.sessionInfo?.state ?? null;
+      case 'Heartbeat':
+        return processors.heartbeat?.state ?? null;
+      case 'DriverList':
+        return processors.driverList?.state ?? null;
+      case 'TimingData':
+        return processors.timingData?.state ?? null;
+      case 'TimingAppData':
+        return processors.timingAppData?.state ?? null;
+      case 'TimingStats':
+        return processors.timingStats?.state ?? null;
+      case 'TrackStatus':
+        return processors.trackStatus?.state ?? null;
+      case 'LapCount':
+        return processors.lapCount?.state ?? null;
+      case 'WeatherData':
+        return processors.weatherData?.state ?? null;
+      case 'SessionData':
+        return processors.sessionData?.state ?? null;
+      case 'ExtrapolatedClock':
+        return processors.extrapolatedClock?.state ?? null;
+      case 'TopThree':
+        return processors.topThree?.state ?? null;
+      case 'RaceControlMessages':
+        return processors.raceControlMessages?.state ?? null;
+      case 'TeamRadio':
+        return processors.teamRadio?.state ?? null;
+      case 'ChampionshipPrediction':
+        return processors.championshipPrediction?.state ?? null;
+      case 'PitStopSeries':
+        return processors.pitStopSeries?.state ?? null;
+      case 'PitStop':
+        return processors.pitStop?.state ?? null;
+      case 'PitLaneTimeCollection':
+        return processors.pitLaneTimeCollection?.state ?? null;
+      case 'CarData':
+        return processors.carData?.state ?? null;
+      case 'Position':
+        return processors.position?.state ?? null;
+      default:
+        return processors.extraTopics?.[topic]?.state ?? null;
+    }
+  };
+
+  const getNormalizedLatest = (topic: string) => {
+    const canonicalTopic = canonicalizeTopicName(topic);
+    const mergedState = getTopicState(canonicalTopic);
+    const fallback = getRawLatest(canonicalTopic);
+    if (mergedState !== null) {
+      return {
+        type: canonicalTopic,
+        json: structuredClone(mergedState),
+        dateTime: fallback?.dateTime ?? null,
+      };
+    }
     if (!fallback) return null;
     return normalizePoint(fallback);
   };
@@ -192,7 +254,9 @@ export function makeTools({
 
   const getLatestCarEntry = () => {
     const state = processors.carData?.state as any;
-    const entries = Array.isArray(state?.Entries) ? (state.Entries as any[]) : [];
+    const entries = Array.isArray(state?.Entries)
+      ? (state.Entries as any[])
+      : [];
     if (!entries.length) return null;
     return entries[entries.length - 1];
   };
@@ -269,7 +333,10 @@ export function makeTools({
     return null;
   };
 
-  const buildTopicExample = (canonicalTopic: string, driverNumber?: string | number) => {
+  const buildTopicExample = (
+    canonicalTopic: string,
+    driverNumber?: string | number,
+  ) => {
     const topic = canonicalizeTopicName(canonicalTopic);
     const resolvedDriver = resolveExampleDriverNumber(driverNumber);
     const resolved = resolveCurrentCursor();
@@ -295,15 +362,24 @@ export function makeTools({
         }
       }
       const leaderSnap = leader ? lines[leader] : null;
-      const driver = resolvedDriver && resolvedDriver in lines ? resolvedDriver : leader;
+      const driver =
+        resolvedDriver && resolvedDriver in lines ? resolvedDriver : leader;
       const driverSnap = driver ? lines[driver] : null;
       return {
         asOf,
         leader: leader
-          ? { driverNumber: leader, driverName: getDriverName(leader), snapshot: pickTimingLine(leaderSnap) }
+          ? {
+              driverNumber: leader,
+              driverName: getDriverName(leader),
+              snapshot: pickTimingLine(leaderSnap),
+            }
           : null,
         driver: driver
-          ? { driverNumber: driver, driverName: getDriverName(driver), snapshot: pickTimingLine(driverSnap) }
+          ? {
+              driverNumber: driver,
+              driverName: getDriverName(driver),
+              snapshot: pickTimingLine(driverSnap),
+            }
           : null,
       };
     }
@@ -313,7 +389,9 @@ export function makeTools({
       const history = processors.trackStatus?.history ?? [];
       return {
         asOf,
-        current: current ? pickKnownKeys(current, ['Status', 'Message']) ?? current : null,
+        current: current
+          ? (pickKnownKeys(current, ['Status', 'Message']) ?? current)
+          : null,
         recent: history.slice(-6).map((entry) => ({
           at: entry.at,
           status: entry.status,
@@ -339,10 +417,15 @@ export function makeTools({
       if (recent && isPlainObject(recent)) {
         for (const key of Object.keys(recent)) {
           const value = (recent as any)[key];
-          (recent as any)[key] = pickKnownKeys(value, ['Utc', 'RacingNumber', 'Path']) ?? value;
+          (recent as any)[key] =
+            pickKnownKeys(value, ['Utc', 'RacingNumber', 'Path']) ?? value;
         }
       }
-      return { asOf, count: isPlainObject(captures) ? Object.keys(captures).length : null, recent };
+      return {
+        asOf,
+        count: isPlainObject(captures) ? Object.keys(captures).length : null,
+        recent,
+      };
     }
 
     if (topic === 'CarData') {
@@ -362,7 +445,8 @@ export function makeTools({
         };
       }
       const first = Object.keys(cars)[0];
-      if (!first) return { asOf, utc: (entry as any)?.Utc ?? null, sample: null };
+      if (!first)
+        return { asOf, utc: (entry as any)?.Utc ?? null, sample: null };
       const car = (cars as any)[first];
       return {
         asOf,
@@ -375,19 +459,26 @@ export function makeTools({
 
     if (topic === 'Position') {
       const state = processors.position?.state as any;
-      const batches = Array.isArray(state?.Position) ? (state.Position as any[]) : [];
+      const batches = Array.isArray(state?.Position)
+        ? (state.Position as any[])
+        : [];
       if (!batches.length) return null;
       const latest = batches[batches.length - 1];
       const entries = latest?.Entries ?? {};
       if (!isPlainObject(entries)) return null;
-      const key = resolvedDriver && resolvedDriver in entries ? resolvedDriver : Object.keys(entries)[0];
+      const key =
+        resolvedDriver && resolvedDriver in entries
+          ? resolvedDriver
+          : Object.keys(entries)[0];
       const sample = key ? entries[key] : null;
       return {
         asOf,
         timestamp: latest?.Timestamp ?? null,
         driverNumber: key ?? null,
         driverName: key ? getDriverName(key) : null,
-        entry: sample ? pickKnownKeys(sample, ['Status', 'X', 'Y', 'Z']) ?? sample : null,
+        entry: sample
+          ? (pickKnownKeys(sample, ['Status', 'X', 'Y', 'Z']) ?? sample)
+          : null,
       };
     }
 
@@ -395,7 +486,10 @@ export function makeTools({
       const state = processors.timingAppData?.state as any;
       const lines = state?.Lines ?? {};
       if (!isPlainObject(lines)) return null;
-      const key = resolvedDriver && resolvedDriver in lines ? resolvedDriver : Object.keys(lines)[0];
+      const key =
+        resolvedDriver && resolvedDriver in lines
+          ? resolvedDriver
+          : Object.keys(lines)[0];
       if (!key) return null;
       const line = lines[key];
       return {
@@ -425,13 +519,27 @@ export function makeTools({
     if (topic === 'ExtrapolatedClock') {
       const state = processors.extrapolatedClock?.state ?? null;
       if (!state) return null;
-      return { asOf, clock: pickKnownKeys(state, ['Utc', 'Remaining', 'Extrapolating']) ?? state };
+      return {
+        asOf,
+        clock:
+          pickKnownKeys(state, ['Utc', 'Remaining', 'Extrapolating']) ?? state,
+      };
     }
 
     if (topic === 'SessionInfo') {
       const state = processors.sessionInfo?.state ?? null;
       if (!state) return null;
-      return { asOf, sessionInfo: pickKnownKeys(state, ['Name', 'Type', 'Path', 'Meeting', 'Circuit']) ?? state };
+      return {
+        asOf,
+        sessionInfo:
+          pickKnownKeys(state, [
+            'Name',
+            'Type',
+            'Path',
+            'Meeting',
+            'Circuit',
+          ]) ?? state,
+      };
     }
 
     if (topic === 'SessionData') {
@@ -446,7 +554,9 @@ export function makeTools({
     if (topic === 'TopThree') {
       const state = processors.topThree?.state as any;
       if (!state) return null;
-      const lines = Array.isArray(state?.Lines) ? state.Lines.slice(0, 3) : state?.Lines ?? null;
+      const lines = Array.isArray(state?.Lines)
+        ? state.Lines.slice(0, 3)
+        : (state?.Lines ?? null);
       return { asOf, withheld: state?.Withheld ?? null, lines };
     }
 
@@ -455,15 +565,26 @@ export function makeTools({
       if (!state) return null;
       const lines = state?.Lines ?? null;
       if (resolvedDriver && isPlainObject(lines) && resolvedDriver in lines) {
-        return { asOf, driverNumber: resolvedDriver, driverName: getDriverName(resolvedDriver), stats: lines[resolvedDriver] };
+        return {
+          asOf,
+          driverNumber: resolvedDriver,
+          driverName: getDriverName(resolvedDriver),
+          stats: lines[resolvedDriver],
+        };
       }
-      return { asOf, keys: isPlainObject(lines) ? Object.keys(lines).slice(0, 10) : null };
+      return {
+        asOf,
+        keys: isPlainObject(lines) ? Object.keys(lines).slice(0, 10) : null,
+      };
     }
 
     if (topic === 'LapCount') {
       const state = processors.lapCount?.state ?? null;
       if (!state) return null;
-      return { asOf, lapCount: pickKnownKeys(state, ['CurrentLap', 'TotalLaps']) ?? state };
+      return {
+        asOf,
+        lapCount: pickKnownKeys(state, ['CurrentLap', 'TotalLaps']) ?? state,
+      };
     }
 
     if (topic === 'ChampionshipPrediction') {
@@ -474,12 +595,32 @@ export function makeTools({
         const list = Object.values(drivers)
           .filter((x) => isPlainObject(x))
           .map((x) => x as any)
-          .sort((a, b) => Number(a?.PredictedPosition ?? 999) - Number(b?.PredictedPosition ?? 999))
+          .sort(
+            (a, b) =>
+              Number(a?.PredictedPosition ?? 999) -
+              Number(b?.PredictedPosition ?? 999),
+          )
           .slice(0, 6)
-          .map((d) => pickKnownKeys(d, ['RacingNumber', 'CurrentPosition', 'PredictedPosition', 'CurrentPoints', 'PredictedPoints']) ?? d);
+          .map(
+            (d) =>
+              pickKnownKeys(d, [
+                'RacingNumber',
+                'CurrentPosition',
+                'PredictedPosition',
+                'CurrentPoints',
+                'PredictedPoints',
+              ]) ?? d,
+          );
         return { asOf, drivers: list };
       }
-      return { asOf, keys: state ? Object.keys(state).filter((k) => k !== '_kf').slice(0, 10) : null };
+      return {
+        asOf,
+        keys: state
+          ? Object.keys(state)
+              .filter((k) => k !== '_kf')
+              .slice(0, 10)
+          : null,
+      };
     }
 
     if (topic === 'PitLaneTimeCollection') {
@@ -487,9 +628,17 @@ export function makeTools({
       if (!state) return null;
       const pitTimes = state?.PitTimes;
       if (!isPlainObject(pitTimes)) return { asOf, pitTimes: null };
-      const key = resolvedDriver && resolvedDriver in pitTimes ? resolvedDriver : Object.keys(pitTimes)[0];
+      const key =
+        resolvedDriver && resolvedDriver in pitTimes
+          ? resolvedDriver
+          : Object.keys(pitTimes)[0];
       const entry = key ? pitTimes[key] : null;
-      return { asOf, driverNumber: key ?? null, driverName: key ? getDriverName(key) : null, pitTime: entry };
+      return {
+        asOf,
+        driverNumber: key ?? null,
+        driverName: key ? getDriverName(key) : null,
+        pitTime: entry,
+      };
     }
 
     if (topic === 'PitStopSeries') {
@@ -497,9 +646,17 @@ export function makeTools({
       if (!state) return null;
       const pitTimes = state?.PitTimes;
       if (!isPlainObject(pitTimes)) return { asOf, pitTimes: null };
-      const key = resolvedDriver && resolvedDriver in pitTimes ? resolvedDriver : Object.keys(pitTimes)[0];
+      const key =
+        resolvedDriver && resolvedDriver in pitTimes
+          ? resolvedDriver
+          : Object.keys(pitTimes)[0];
       const driverStops = key ? pitTimes[key] : null;
-      return { asOf, driverNumber: key ?? null, driverName: key ? getDriverName(key) : null, stops: pickLastIndexedValues(driverStops, 3) ?? driverStops };
+      return {
+        asOf,
+        driverNumber: key ?? null,
+        driverName: key ? getDriverName(key) : null,
+        stops: pickLastIndexedValues(driverStops, 3) ?? driverStops,
+      };
     }
 
     if (topic === 'PitStop') {
@@ -513,7 +670,16 @@ export function makeTools({
     if (!latest) return null;
     const json = latest.json;
     if (!isPlainObject(json)) return { asOf, value: json };
-    return { asOf, value: pickKnownKeys(json, Object.keys(json).filter((k) => k !== '_kf').slice(0, 12)) ?? json };
+    return {
+      asOf,
+      value:
+        pickKnownKeys(
+          json,
+          Object.keys(json)
+            .filter((k) => k !== '_kf')
+            .slice(0, 12),
+        ) ?? json,
+    };
   };
 
   const tools = {
@@ -542,57 +708,10 @@ export function makeTools({
         const canonical = entry ? entry.topic : canonicalizeTopicName(topic);
 
         // Determine whether we have data loaded for this topic.
-        const presentByProcessor = (() => {
-          switch (canonical) {
-            case 'SessionInfo':
-              return processors.sessionInfo?.state != null;
-            case 'Heartbeat':
-              return processors.heartbeat?.state != null;
-            case 'DriverList':
-              return processors.driverList?.state != null;
-            case 'TimingData':
-              return processors.timingData?.state != null;
-            case 'TimingAppData':
-              return processors.timingAppData?.state != null;
-            case 'TimingStats':
-              return processors.timingStats?.state != null;
-            case 'TrackStatus':
-              return processors.trackStatus?.state != null;
-            case 'LapCount':
-              return processors.lapCount?.state != null;
-            case 'WeatherData':
-              return processors.weatherData?.state != null;
-            case 'SessionData':
-              return processors.sessionData?.state != null;
-            case 'ExtrapolatedClock':
-              return processors.extrapolatedClock?.state != null;
-            case 'TopThree':
-              return processors.topThree?.state != null;
-            case 'RaceControlMessages':
-              return processors.raceControlMessages?.state != null;
-            case 'TeamRadio':
-              return processors.teamRadio?.state != null;
-            case 'ChampionshipPrediction':
-              return processors.championshipPrediction?.state != null;
-            case 'PitStopSeries':
-              return processors.pitStopSeries?.state != null;
-            case 'PitStop':
-              return processors.pitStop?.state != null;
-            case 'PitLaneTimeCollection':
-              return processors.pitLaneTimeCollection?.state != null;
-            case 'CarData':
-              return processors.carData?.state != null;
-            case 'Position':
-              return processors.position?.state != null;
-            default:
-              return null;
-          }
-        })();
+        const presentByProcessor = getTopicState(canonical) !== null;
 
         const present =
-          presentByProcessor === null
-            ? getNormalizedLatest(canonical) !== null
-            : presentByProcessor;
+          presentByProcessor || getNormalizedLatest(canonical) !== null;
 
         return {
           requested: topic,
@@ -601,7 +720,9 @@ export function makeTools({
           present,
           reference: entry,
           example:
-            includeExample === false ? null : buildTopicExample(canonical, driverNumber),
+            includeExample === false
+              ? null
+              : buildTopicExample(canonical, driverNumber),
         };
       },
     }),
@@ -724,10 +845,14 @@ export function makeTools({
         const filtered =
           driverNumber === undefined
             ? captures
-            : captures.filter((capture) => capture.driverNumber === String(driverNumber));
+            : captures.filter(
+                (capture) => capture.driverNumber === String(driverNumber),
+              );
         const sliced = filtered.slice(0, limit ?? 20).map((capture) => ({
           ...capture,
-          driverName: capture.driverNumber ? getDriverName(capture.driverNumber) : null,
+          driverName: capture.driverNumber
+            ? getDriverName(capture.driverNumber)
+            : null,
         }));
 
         return {
@@ -766,7 +891,9 @@ export function makeTools({
     get_car_telemetry: tool({
       description:
         'Get latest car telemetry channels (rpm/speed/gear/throttle/brake/drs). If driverNumber omitted, returns all drivers.',
-      inputSchema: z.object({ driverNumber: z.union([z.string(), z.number()]).optional() }),
+      inputSchema: z.object({
+        driverNumber: z.union([z.string(), z.number()]).optional(),
+      }),
       execute: async ({ driverNumber }) => {
         const entry = getLatestCarEntry();
         if (!entry) return null;
@@ -793,7 +920,9 @@ export function makeTools({
     get_drs_state: tool({
       description:
         'Get latest per-driver DRS state from CarData channel 45. Returns a conservative classification (off/eligible/on/unknown).',
-      inputSchema: z.object({ driverNumber: z.union([z.string(), z.number()]).optional() }),
+      inputSchema: z.object({
+        driverNumber: z.union([z.string(), z.number()]).optional(),
+      }),
       execute: async ({ driverNumber }) => {
         const entry = getLatestCarEntry();
         if (!entry) return null;
@@ -824,7 +953,12 @@ export function makeTools({
         }
 
         const drivers: Record<string, unknown> = {};
-        const counts: Record<string, number> = { off: 0, eligible: 0, on: 0, unknown: 0 };
+        const counts: Record<string, number> = {
+          off: 0,
+          eligible: 0,
+          on: 0,
+          unknown: 0,
+        };
         for (const [num, car] of Object.entries(cars)) {
           const channels = (car as any)?.Channels ?? null;
           const drs = classify(channels);
@@ -865,19 +999,22 @@ export function makeTools({
         };
 
         const startDt =
-          parseDate(fromIso)
-          ?? (typeof startLap === 'number'
+          parseDate(fromIso) ??
+          (typeof startLap === 'number'
             ? analysisIndex.resolveAsOf({ lap: startLap }).dateTime
             : null);
         const endDt =
-          parseDate(toIso)
-          ?? (typeof endLap === 'number'
+          parseDate(toIso) ??
+          (typeof endLap === 'number'
             ? analysisIndex.resolveAsOf({ lap: endLap }).dateTime
             : resolved.dateTime);
 
-        const resolvedLimit = typeof limit === 'number' && limit > 0 ? Math.floor(limit) : 800;
+        const resolvedLimit =
+          typeof limit === 'number' && limit > 0 ? Math.floor(limit) : 800;
         const resolvedSampleEvery =
-          typeof sampleEvery === 'number' && sampleEvery > 1 ? Math.floor(sampleEvery) : 1;
+          typeof sampleEvery === 'number' && sampleEvery > 1
+            ? Math.floor(sampleEvery)
+            : 1;
 
         const timeline = analysis.getTopicTimeline('CarData', {
           from: startDt ?? undefined,
@@ -892,14 +1029,25 @@ export function makeTools({
           raw: number | null;
           state: string;
         }> = [];
-        const counts: Record<string, number> = { off: 0, eligible: 0, on: 0, unknown: 0 };
+        const counts: Record<string, number> = {
+          off: 0,
+          eligible: 0,
+          on: 0,
+          unknown: 0,
+        };
         let samples = 0;
-        let last: { utc: string | null; raw: number | null; state: string } | null = null;
+        let last: {
+          utc: string | null;
+          raw: number | null;
+          state: string;
+        } | null = null;
 
         for (let i = 0; i < timeline.length; i += resolvedSampleEvery) {
           const point = timeline[i];
           const json = (point as any)?.json;
-          const entries = Array.isArray(json?.Entries) ? (json.Entries as any[]) : [];
+          const entries = Array.isArray(json?.Entries)
+            ? (json.Entries as any[])
+            : [];
           for (const entry of entries) {
             const cars = entry?.Cars ?? null;
             const car = cars && typeof cars === 'object' ? cars[driver] : null;
@@ -910,7 +1058,8 @@ export function makeTools({
             last = { utc: entry?.Utc ?? null, raw: drs.raw, state: drs.state };
             if (prev === drs.state) continue;
             prev = drs.state;
-            const iso = entry?.Utc ?? (point as any)?.dateTime?.toISOString?.() ?? null;
+            const iso =
+              entry?.Utc ?? (point as any)?.dateTime?.toISOString?.() ?? null;
             const lap =
               typeof iso === 'string'
                 ? analysisIndex.resolveAsOf({ iso }).lap
@@ -932,8 +1081,7 @@ export function makeTools({
           counts,
           transitions,
           last,
-          note:
-            'CarData channel 45 codes are not formally documented. This tool uses a conservative mapping: 0/1=off, 8=eligible, 10/12/14=on; others=unknown.',
+          note: 'CarData channel 45 codes are not formally documented. This tool uses a conservative mapping: 0/1=off, 8=eligible, 10/12/14=on; others=unknown.',
         };
       },
     }),
@@ -974,22 +1122,37 @@ export function makeTools({
         minCars: z.number().optional(),
         requireGreen: z.boolean().optional(),
       }),
-      execute: async ({ lap, startLap, endLap, thresholdSec, minCars, requireGreen }) => {
-        const defaultEndLap = getDefaultEndLap() ?? analysisIndex.lapNumbers.at(-1);
-        const resolvedThreshold = typeof thresholdSec === 'number' && thresholdSec > 0 ? thresholdSec : 1.0;
-        const resolvedMinCars = typeof minCars === 'number' && minCars >= 2 ? Math.floor(minCars) : 3;
+      execute: async ({
+        lap,
+        startLap,
+        endLap,
+        thresholdSec,
+        minCars,
+        requireGreen,
+      }) => {
+        const defaultEndLap =
+          getDefaultEndLap() ?? analysisIndex.lapNumbers.at(-1);
+        const resolvedThreshold =
+          typeof thresholdSec === 'number' && thresholdSec > 0
+            ? thresholdSec
+            : 1.0;
+        const resolvedMinCars =
+          typeof minCars === 'number' && minCars >= 2 ? Math.floor(minCars) : 3;
         const resolvedRequireGreen = requireGreen !== false;
 
         const lapList: number[] = [];
         if (typeof lap === 'number') {
           lapList.push(lap);
         } else {
-          const resolvedEnd = typeof endLap === 'number' ? endLap : defaultEndLap;
+          const resolvedEnd =
+            typeof endLap === 'number' ? endLap : defaultEndLap;
           if (typeof resolvedEnd === 'number') {
-            const resolvedStart = typeof startLap === 'number' ? startLap : resolvedEnd;
+            const resolvedStart =
+              typeof startLap === 'number' ? startLap : resolvedEnd;
             const from = Math.min(resolvedStart, resolvedEnd);
             const to = Math.max(resolvedStart, resolvedEnd);
-            for (let current = from; current <= to; current += 1) lapList.push(current);
+            for (let current = from; current <= to; current += 1)
+              lapList.push(current);
           }
         }
 
@@ -1035,7 +1198,8 @@ export function makeTools({
         includePitLaps: z.boolean().optional(),
       }),
       execute: async ({ driverNumber, startLap, endLap, includePitLaps }) => {
-        const defaultEndLap = getDefaultEndLap() ?? analysisIndex.lapNumbers.at(-1);
+        const defaultEndLap =
+          getDefaultEndLap() ?? analysisIndex.lapNumbers.at(-1);
         const resolvedEndLap =
           typeof endLap === 'number'
             ? endLap
@@ -1083,7 +1247,8 @@ export function makeTools({
         computePitLaneTimeStats({
           state: processors.pitLaneTimeCollection?.state ?? null,
           method,
-          driverNumber: driverNumber === undefined ? null : String(driverNumber),
+          driverNumber:
+            driverNumber === undefined ? null : String(driverNumber),
           startLap,
           endLap,
           getDriverName,
@@ -1142,11 +1307,11 @@ export function makeTools({
         );
         const sampled = timeline.slice(-sampleCount);
         const options = { maxDepth, maxKeys, maxArray };
-        const shape = shapeOfMany(sampled.map((point) => point.json), options);
-        const latestShape = shapeOf(
-          sampled[sampled.length - 1]?.json,
+        const shape = shapeOfMany(
+          sampled.map((point) => point.json),
           options,
         );
+        const latestShape = shapeOf(sampled[sampled.length - 1]?.json, options);
         return {
           topic: resolved,
           requested: topic,
@@ -1194,7 +1359,11 @@ export function makeTools({
       execute: async ({ code, vars }) => {
         const fail = (err: unknown) => {
           const message = err instanceof Error ? err.message : String(err);
-          return { ok: false, error: message, hint: classifyPythonFailure(message) };
+          return {
+            ok: false,
+            error: message,
+            hint: classifyPythonFailure(message),
+          };
         };
 
         try {
@@ -1202,7 +1371,9 @@ export function makeTools({
           if (vars !== undefined) {
             const byteCount = estimateJsonBytes(vars);
             if (byteCount === null) {
-              return fail('run_py vars must be JSON-serializable; use call_tool for data instead');
+              return fail(
+                'run_py vars must be JSON-serializable; use call_tool for data instead',
+              );
             }
             if (byteCount > MAX_PYTHON_VARS_BYTES) {
               return fail(
@@ -1312,7 +1483,11 @@ export function makeTools({
         });
         const avgDelta = comparison.summary?.avgDeltaMs ?? null;
         if (avgDelta == null || pitLossMs == null) {
-          return { avgDeltaMs: avgDelta, lapsToCover: null, pitLossMs: pitLossMs ?? null };
+          return {
+            avgDeltaMs: avgDelta,
+            lapsToCover: null,
+            pitLossMs: pitLossMs ?? null,
+          };
         }
         if (avgDelta >= 0) {
           return { avgDeltaMs: avgDelta, lapsToCover: null, pitLossMs };
@@ -1368,11 +1543,14 @@ export function makeTools({
         const a = String(driverA);
         const b = String(driverB);
         const defaultEndLap = getDefaultEndLap();
-        const resolvedEndLap = typeof endLap === 'number' ? endLap : defaultEndLap;
+        const resolvedEndLap =
+          typeof endLap === 'number' ? endLap : defaultEndLap;
         const lapNumbers = timing.getLapNumbers?.() ?? [];
-        if (!lapNumbers.length) return { laps: [], excluded: {}, summary: null };
+        if (!lapNumbers.length)
+          return { laps: [], excluded: {}, summary: null };
         let laps = lapNumbers;
-        if (typeof startLap === 'number') laps = laps.filter((lap) => lap >= startLap);
+        if (typeof startLap === 'number')
+          laps = laps.filter((lap) => lap >= startLap);
         if (typeof resolvedEndLap === 'number') {
           laps = laps.filter((lap) => lap <= resolvedEndLap);
         }
@@ -1413,9 +1591,11 @@ export function makeTools({
             continue;
           }
           const dt =
-            ((aSnap as any)?.__dateTime as Date | undefined)
-            ?? ((bSnap as any)?.__dateTime as Date | undefined);
-          const track = dt ? processors.trackStatus?.getAt?.(dt) : processors.trackStatus?.state;
+            ((aSnap as any)?.__dateTime as Date | undefined) ??
+            ((bSnap as any)?.__dateTime as Date | undefined);
+          const track = dt
+            ? processors.trackStatus?.getAt?.(dt)
+            : processors.trackStatus?.state;
           if (requireGreenFlag && track) {
             const status = (track as any)?.Status;
             const message = (track as any)?.Message;
@@ -1431,8 +1611,12 @@ export function makeTools({
             deltaMs: aMs - bMs,
             trackStatus: track
               ? {
-                  status: (track as any)?.Status ? String((track as any).Status) : null,
-                  message: (track as any)?.Message ? String((track as any).Message) : null,
+                  status: (track as any)?.Status
+                    ? String((track as any).Status)
+                    : null,
+                  message: (track as any)?.Message
+                    ? String((track as any).Message)
+                    : null,
                 }
               : null,
           });
@@ -1440,7 +1624,8 @@ export function makeTools({
 
         const avgDeltaMs =
           lapResults.length > 0
-            ? lapResults.reduce((acc, value) => acc + value.deltaMs, 0) / lapResults.length
+            ? lapResults.reduce((acc, value) => acc + value.deltaMs, 0) /
+              lapResults.length
             : null;
         const summary = {
           driverA: { number: a, name: getDriverName(a) },

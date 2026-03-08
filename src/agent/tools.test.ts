@@ -1,17 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { makeTools } from './tools.js';
 
-let capturedToolHandler: ((name: string, args: unknown) => Promise<unknown>) | undefined;
+let capturedToolHandler:
+  | ((name: string, args: unknown) => Promise<unknown>)
+  | undefined;
 let runMock: ReturnType<typeof vi.fn>;
 let initMock: ReturnType<typeof vi.fn>;
 
 vi.mock('./pyodide/client.js', () => ({
-  createPythonClient: (opts?: { toolHandler?: (name: string, args: unknown) => Promise<unknown> }) => {
+  createPythonClient: (opts?: {
+    toolHandler?: (name: string, args: unknown) => Promise<unknown>;
+  }) => {
     capturedToolHandler = opts?.toolHandler;
     initMock = vi.fn().mockResolvedValue(undefined);
     return {
       init: initMock,
-      run: (...args: Parameters<NonNullable<typeof runMock>>) => runMock(...args),
+      run: (...args: Parameters<NonNullable<typeof runMock>>) =>
+        runMock(...args),
       shutdown: vi.fn(),
     };
   },
@@ -106,7 +111,9 @@ describe('tools', () => {
       onTimeCursorChange: () => {},
     });
 
-    const result = await tools.get_team_radio_events.execute({ limit: 1 } as any);
+    const result = await tools.get_team_radio_events.execute({
+      limit: 1,
+    } as any);
 
     expect(result).toMatchObject({
       sessionPrefix:
@@ -122,6 +129,57 @@ describe('tools', () => {
             'https://livetiming.formula1.com/static/2024/2024-05-26_Test_Weekend/2024-05-26_Race/TeamRadio/LANNOR01_4_20240526_121625.mp3',
         },
       ],
+    });
+  });
+
+  it('get_latest returns merged state for auxiliary patch topics', async () => {
+    const tools = makeTools({
+      store: {
+        ...store,
+        topic: (name: string) => {
+          if (name === 'CurrentTyres') {
+            return {
+              latest: {
+                type: 'CurrentTyres',
+                json: { Tyres: { '4': { Compound: 'MEDIUM', New: false } } },
+                dateTime: new Date('2025-01-01T00:00:02Z'),
+              },
+              timeline: () => [],
+            };
+          }
+          return { latest: null, timeline: () => [] };
+        },
+      } as any,
+      processors: {
+        ...processors,
+        extraTopics: {
+          CurrentTyres: {
+            state: {
+              Tyres: {
+                '1': { Compound: 'SOFT', New: true },
+                '4': { Compound: 'MEDIUM', New: false },
+              },
+            },
+          },
+        },
+      } as any,
+      timeCursor: { latest: true },
+      onTimeCursorChange: () => {},
+    });
+
+    const result = await tools.get_latest.execute({
+      topic: 'CurrentTyres',
+    } as any);
+
+    expect(result).toMatchObject({
+      type: 'CurrentTyres',
+      json: {
+        Tyres: {
+          '1': { Compound: 'SOFT', New: true },
+          '4': { Compound: 'MEDIUM', New: false },
+        },
+      },
+      dateTime: new Date('2025-01-01T00:00:02Z'),
     });
   });
 
@@ -146,7 +204,9 @@ describe('tools', () => {
       onTimeCursorChange: () => {},
     });
 
-    const result = await tools.get_topic_reference.execute({ topic: 'TimingData' } as any);
+    const result = await tools.get_topic_reference.execute({
+      topic: 'TimingData',
+    } as any);
     expect(result).toMatchObject({
       found: true,
       canonicalTopic: 'TimingData',
@@ -179,7 +239,9 @@ describe('tools', () => {
       error: 'run_py is not callable from Python',
     });
 
-    const result = await tools.run_py.execute({ code: 'call_tool("run_py")' } as any);
+    const result = await tools.run_py.execute({
+      code: 'call_tool("run_py")',
+    } as any);
     expect(result).toMatchObject({
       ok: false,
       error: expect.stringMatching(/run_py is not callable from Python/i),
@@ -215,7 +277,9 @@ describe('tools', () => {
     });
 
     expect(capturedToolHandler).toBeTypeOf('function');
-    await expect(capturedToolHandler?.('run_py', {})).rejects.toThrow(/run_py/i);
+    await expect(capturedToolHandler?.('run_py', {})).rejects.toThrow(
+      /run_py/i,
+    );
     await expect(
       capturedToolHandler?.('get_latest', { topic: 123 }),
     ).rejects.toThrow(/expected string/i);
@@ -231,7 +295,10 @@ describe('tools', () => {
 
     const bigVars = { payload: 'x'.repeat(9000) };
 
-    const result = await tools.run_py.execute({ code: '1+1', vars: bigVars } as any);
+    const result = await tools.run_py.execute({
+      code: '1+1',
+      vars: bigVars,
+    } as any);
     expect(result).toMatchObject({
       ok: false,
       error: expect.stringMatching(/vars payload too large/i),
@@ -246,7 +313,9 @@ describe('tools', () => {
       onTimeCursorChange: () => {},
     });
 
-    const result = await tools.run_py.execute({ code: 'import asyncio\nasyncio.run(main())' } as any);
+    const result = await tools.run_py.execute({
+      code: 'import asyncio\nasyncio.run(main())',
+    } as any);
     expect(result).toMatchObject({
       ok: false,
       error: expect.stringMatching(/asyncio\.run/i),
@@ -262,7 +331,9 @@ describe('tools', () => {
       onTimeCursorChange: () => {},
     });
 
-    const result = await tools.run_py.execute({ code: 'import micropip\nawait micropip.install(\"numpy\")' } as any);
+    const result = await tools.run_py.execute({
+      code: 'import micropip\nawait micropip.install(\"numpy\")',
+    } as any);
     expect(result).toMatchObject({
       ok: false,
       error: expect.stringMatching(/micropip\.install/i),

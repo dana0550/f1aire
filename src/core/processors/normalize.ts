@@ -55,6 +55,46 @@ function normalizePitStopSeries(obj: Record<string, unknown>) {
   }
 }
 
+function normalizeWeatherDataSeries(obj: Record<string, unknown>) {
+  if (Array.isArray(obj.Series)) {
+    obj.Series = arrayToIndexedObject(obj.Series);
+  }
+}
+
+function normalizeTyreStintSeries(obj: Record<string, unknown>) {
+  const stints = obj.Stints;
+  if (!isPlainObject(stints)) return;
+  for (const [driver, value] of Object.entries(stints)) {
+    (stints as Record<string, unknown>)[driver] = arrayToIndexedObject(value);
+  }
+}
+
+function normalizeDriverTracker(obj: Record<string, unknown>) {
+  if (Array.isArray(obj.Lines)) {
+    obj.Lines = arrayToIndexedObject(obj.Lines);
+  }
+}
+
+function normalizeLapSeries(obj: Record<string, unknown>) {
+  for (const value of Object.values(obj)) {
+    if (!isPlainObject(value)) continue;
+    const lapPosition = (value as Record<string, unknown>).LapPosition;
+    if (Array.isArray(lapPosition)) {
+      (value as Record<string, unknown>).LapPosition =
+        arrayToIndexedObject(lapPosition);
+    }
+  }
+}
+
+function normalizeOvertakeSeries(obj: Record<string, unknown>) {
+  const overtakes = obj.Overtakes;
+  if (!isPlainObject(overtakes)) return;
+  for (const [driver, value] of Object.entries(overtakes)) {
+    (overtakes as Record<string, unknown>)[driver] =
+      arrayToIndexedObject(value);
+  }
+}
+
 export function normalizePoint(point: RawPoint): RawPoint {
   let { type } = point;
   let json: unknown = point.json;
@@ -81,11 +121,29 @@ export function normalizePoint(point: RawPoint): RawPoint {
     if (type === 'TimingData') {
       normalizeTimingData(obj);
     }
+    if (type === 'TimingDataF1') {
+      normalizeTimingData(obj);
+    }
     if (type === 'TimingAppData') {
       normalizeTimingAppData(obj);
     }
+    if (type === 'WeatherDataSeries') {
+      normalizeWeatherDataSeries(obj);
+    }
+    if (type === 'TyreStintSeries') {
+      normalizeTyreStintSeries(obj);
+    }
+    if (type === 'DriverTracker') {
+      normalizeDriverTracker(obj);
+    }
+    if (type === 'LapSeries') {
+      normalizeLapSeries(obj);
+    }
     if (type === 'TeamRadio' && Array.isArray(obj.Captures)) {
       obj.Captures = arrayToIndexedObject(obj.Captures);
+    }
+    if (type === 'OvertakeSeries') {
+      normalizeOvertakeSeries(obj);
     }
     if (type === 'PitStopSeries') {
       normalizePitStopSeries(obj);
