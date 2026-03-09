@@ -205,6 +205,17 @@ function classifyTeamRadioError(error: unknown): TeamRadioErrorResponse {
     };
   }
 
+  if (
+    /Local transcription command .* was not found\./i.test(errorMessage) ||
+    /Local transcription failed/i.test(errorMessage)
+  ) {
+    return {
+      statusCode: 400,
+      errorCode: 'invalid-request',
+      errorMessage,
+    };
+  }
+
   return {
     statusCode: 500,
     errorCode: 'internal-error',

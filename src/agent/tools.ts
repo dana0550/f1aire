@@ -39,7 +39,9 @@ import {
   playTeamRadioCapture,
   getSessionStaticPrefix,
   getTeamRadioCaptures,
+  type TeamRadioExecFileImpl,
   TEAM_RADIO_PLAYERS,
+  TEAM_RADIO_TRANSCRIPTION_BACKENDS,
   transcribeTeamRadioCapture,
 } from '../core/team-radio.js';
 import {
@@ -169,6 +171,7 @@ export function makeTools({
   onTimeCursorChange,
   logger,
   resolveOpenAIApiKey,
+  teamRadioExecFileImpl,
 }: {
   store: SessionStore;
   processors: {
@@ -269,6 +272,7 @@ export function makeTools({
   onTimeCursorChange: (cursor: TimeCursor) => void;
   logger?: (event: Record<string, unknown>) => void | Promise<void>;
   resolveOpenAIApiKey?: () => Promise<string | null>;
+  teamRadioExecFileImpl?: TeamRadioExecFileImpl;
 }) {
   const getRawLatest = (topic: string) => {
     const direct = store.topic(topic).latest as RawPoint | null;
@@ -2807,6 +2811,7 @@ export function makeTools({
       inputSchema: z.object({
         captureId: z.union([z.string(), z.number()]).optional(),
         driverNumber: z.union([z.string(), z.number()]).optional(),
+        backend: z.enum(TEAM_RADIO_TRANSCRIPTION_BACKENDS).optional(),
         model: z.string().optional(),
         forceTranscription: z.boolean().optional(),
         overwriteDownload: z.boolean().optional(),
@@ -2814,6 +2819,7 @@ export function makeTools({
       execute: async ({
         captureId,
         driverNumber,
+        backend,
         model,
         forceTranscription,
         overwriteDownload,
@@ -2824,10 +2830,12 @@ export function makeTools({
           state: processors.teamRadio?.state,
           captureId,
           driverNumber,
+          backend,
           model,
           forceTranscription,
           overwriteDownload,
           apiKey,
+          execFileImpl: teamRadioExecFileImpl,
         });
 
         return {

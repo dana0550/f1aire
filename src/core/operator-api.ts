@@ -23,7 +23,9 @@ import {
   transcribeTeamRadioCapture as transcribeTeamRadioClip,
   type TeamRadioCaptureSummary,
   type TeamRadioDownloadResult,
+  type TeamRadioExecFileImpl,
   type TeamRadioPlaybackResult,
+  type TeamRadioTranscriptionBackend,
   type TeamRadioPlayer,
   type TeamRadioTranscriptionResult,
 } from './team-radio.js';
@@ -248,6 +250,7 @@ export type TeamRadioTranscriptionRequest = {
   overwriteDownload?: boolean;
   appName?: string;
   forceTranscription?: boolean;
+  backend?: TeamRadioTranscriptionBackend;
   model?: string;
   apiKey?: string | null;
   apiBase?: string;
@@ -858,6 +861,7 @@ export function createOperatorApi({
   onTimeCursorChange,
   teamRadioFetchImpl,
   teamRadioSpawnImpl,
+  teamRadioExecFileImpl,
 }: {
   store: SessionStore;
   service: TimingService;
@@ -880,6 +884,7 @@ export function createOperatorApi({
     ) => unknown;
     unref?: () => void;
   };
+  teamRadioExecFileImpl?: TeamRadioExecFileImpl;
 }): OperatorApi {
   let currentCursor: TimeCursor = { ...timeCursor };
 
@@ -1291,11 +1296,13 @@ export function createOperatorApi({
         appName: options.appName,
         overwriteDownload: options.overwriteDownload,
         forceTranscription: options.forceTranscription,
+        backend: options.backend,
         model: options.model,
         apiKey: options.apiKey,
         apiBase: options.apiBase,
         downloadFetchImpl: teamRadioFetchImpl,
         transcriptionFetchImpl: teamRadioFetchImpl,
+        execFileImpl: teamRadioExecFileImpl,
       });
 
   const getSessionLifecycle: OperatorApi['getSessionLifecycle'] = (

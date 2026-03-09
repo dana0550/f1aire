@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { describe, expect, it, vi } from 'vitest';
 import {
@@ -257,6 +257,7 @@ describe('team radio helpers', () => {
         captureId: '1',
         driverNumber: '4',
         reused: false,
+        backend: 'openai',
         transcriptionReused: false,
         model: 'gpt-4o-transcribe',
         transcription: 'Box now, box now.',
@@ -287,6 +288,7 @@ describe('team radio helpers', () => {
       expect(second).toMatchObject({
         captureId: '1',
         reused: true,
+        backend: 'openai',
         transcriptionReused: true,
         transcription: 'Box now, box now.',
         filePath: first.filePath,
@@ -306,6 +308,94 @@ describe('team radio helpers', () => {
           hasTranscription: true,
         },
       ]);
+    } finally {
+      rmSync(destinationDir, { recursive: true, force: true });
+    }
+  });
+
+  it('transcribes a radio clip locally when the local backend is selected', async () => {
+    const destinationDir = mkdtempSync(
+      path.join(tmpdir(), 'f1aire-team-radio-local-transcribe-'),
+    );
+    const downloadFetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response('radio-bytes', { status: 200 }));
+    const execFileImpl = vi.fn((file, args, _options, callback) => {
+      expect(file).toBe('whisper');
+      const inputPath = String(args[0]);
+      const outputDir = String(args[args.indexOf('--output_dir') + 1]);
+      writeFileSync(
+        path.join(outputDir, `${path.parse(inputPath).name}.json`),
+        JSON.stringify({ text: 'Local copy, box now.' }),
+      );
+      callback(null, '', '');
+    });
+
+    try {
+      const source = {
+        raw: {
+          download: {
+            prefix:
+              'https://livetiming.formula1.com/static/2024/2024-05-26_Test_Weekend/2024-05-26_Race/',
+            session: {
+              path: '2024/2024-05-26_Test_Weekend/2024-05-26_Race/',
+            },
+          },
+          subscribe: {},
+          keyframes: null,
+        },
+      };
+      const state = {
+        Captures: {
+          '1': {
+            Utc: '2024-05-26T12:16:25.710Z',
+            RacingNumber: '4',
+            Path: 'TeamRadio/LANNOR01_4_20240526_121625.mp3',
+          },
+        },
+      };
+
+      const first = await transcribeTeamRadioCapture({
+        source,
+        state,
+        captureId: '1',
+        destinationDir,
+        backend: 'local',
+        downloadFetchImpl,
+        execFileImpl,
+      });
+
+      expect(first).toMatchObject({
+        captureId: '1',
+        driverNumber: '4',
+        reused: false,
+        backend: 'local',
+        transcriptionReused: false,
+        model: 'base',
+        transcription: 'Local copy, box now.',
+      });
+      expect(downloadFetchImpl).toHaveBeenCalledTimes(1);
+      expect(execFileImpl).toHaveBeenCalledTimes(1);
+
+      const second = await transcribeTeamRadioCapture({
+        source,
+        state,
+        captureId: '1',
+        destinationDir,
+        backend: 'local',
+        downloadFetchImpl,
+        execFileImpl,
+      });
+
+      expect(second).toMatchObject({
+        captureId: '1',
+        reused: true,
+        backend: 'local',
+        transcriptionReused: true,
+        transcription: 'Local copy, box now.',
+      });
+      expect(downloadFetchImpl).toHaveBeenCalledTimes(1);
+      expect(execFileImpl).toHaveBeenCalledTimes(1);
     } finally {
       rmSync(destinationDir, { recursive: true, force: true });
     }

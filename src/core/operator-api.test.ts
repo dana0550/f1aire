@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
@@ -777,6 +777,7 @@ describe('createOperatorApi', () => {
         captureId: '1',
         driverNumber: '4',
         reused: false,
+        backend: 'openai',
         transcription: 'Box this lap.',
         transcriptionReused: false,
         model: 'gpt-4o-transcribe',
@@ -809,11 +810,75 @@ describe('createOperatorApi', () => {
       expect(second).toMatchObject({
         captureId: '1',
         reused: true,
+        backend: 'openai',
         transcription: 'Box this lap.',
         transcriptionReused: true,
         transcriptionFilePath: first.transcriptionFilePath,
       });
       expect(fetchImpl).toHaveBeenCalledTimes(2);
+    } finally {
+      rmSync(destinationDir, { recursive: true, force: true });
+    }
+  });
+
+  it('supports local team radio transcription through operator workflows', async () => {
+    const service = new TimingService();
+    points.forEach((point) => service.enqueue(point));
+    const destinationDir = mkdtempSync(
+      path.join(tmpdir(), 'f1aire-operator-team-radio-local-'),
+    );
+    const fetchImpl = vi.fn(async () => new Response('radio-bytes'));
+    const execFileImpl = vi.fn((file, args, _options, callback) => {
+      expect(file).toBe('whisper');
+      const inputPath = String(args[0]);
+      const outputDir = String(args[args.indexOf('--output_dir') + 1]);
+      writeFileSync(
+        path.join(outputDir, `${path.parse(inputPath).name}.json`),
+        JSON.stringify({ text: 'Local box this lap.' }),
+      );
+      callback(null, '', '');
+    });
+
+    try {
+      const api = createOperatorApi({
+        store: buildStore(points),
+        service,
+        teamRadioFetchImpl: fetchImpl as typeof fetch,
+        teamRadioExecFileImpl: execFileImpl,
+      });
+
+      const first = await api.transcribeTeamRadioCapture({
+        captureId: '1',
+        destinationDir,
+        backend: 'local',
+      });
+
+      expect(first).toMatchObject({
+        captureId: '1',
+        driverNumber: '4',
+        reused: false,
+        backend: 'local',
+        transcription: 'Local box this lap.',
+        transcriptionReused: false,
+        model: 'base',
+      });
+
+      const second = await api.transcribeTeamRadioCapture({
+        captureId: '1',
+        destinationDir,
+        backend: 'local',
+      });
+
+      expect(second).toMatchObject({
+        captureId: '1',
+        reused: true,
+        backend: 'local',
+        transcription: 'Local box this lap.',
+        transcriptionReused: true,
+        transcriptionFilePath: first.transcriptionFilePath,
+      });
+      expect(fetchImpl).toHaveBeenCalledTimes(1);
+      expect(execFileImpl).toHaveBeenCalledTimes(1);
     } finally {
       rmSync(destinationDir, { recursive: true, force: true });
     }

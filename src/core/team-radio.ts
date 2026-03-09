@@ -1,6 +1,12 @@
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
-import { spawn } from 'node:child_process';
+import {
+  execFile,
+  spawn,
+  type ExecFileException,
+  type ExecFileOptions,
+} from 'node:child_process';
+import { tmpdir } from 'node:os';
 import type { SessionStore } from './session-store.js';
 import { getDataDir } from './xdg.js';
 
@@ -13,6 +19,13 @@ const DEFAULT_APP_NAME = 'f1aire';
 const TEAM_RADIO_CACHE_DIR = 'team-radio';
 const TEAM_RADIO_TRANSCRIPTION_CACHE_SUFFIX = '.transcription.json';
 const DEFAULT_TEAM_RADIO_TRANSCRIPTION_MODEL = 'gpt-4o-transcribe';
+const DEFAULT_LOCAL_TEAM_RADIO_TRANSCRIPTION_COMMAND = 'whisper';
+const DEFAULT_LOCAL_TEAM_RADIO_TRANSCRIPTION_MODEL = 'base';
+
+export const TEAM_RADIO_TRANSCRIPTION_BACKENDS = ['openai', 'local'] as const;
+
+export type TeamRadioTranscriptionBackend =
+  (typeof TEAM_RADIO_TRANSCRIPTION_BACKENDS)[number];
 
 export const TEAM_RADIO_PLAYERS = [
   'system',
@@ -62,6 +75,7 @@ export type TeamRadioDownloadResult = TeamRadioCaptureSummary & {
 };
 
 export type TeamRadioTranscriptionResult = TeamRadioDownloadResult & {
+  backend: TeamRadioTranscriptionBackend;
   transcription: string;
   transcriptionFilePath: string;
   transcriptionReused: boolean;
@@ -87,6 +101,7 @@ type TeamRadioTranscriptionCache = {
   text: string;
   model: string;
   createdAt: string;
+  backend: TeamRadioTranscriptionBackend;
 };
 
 type TeamRadioSpawnOptions = {
@@ -100,6 +115,21 @@ type TeamRadioSpawnedProcess = {
   once?: (event: string, listener: (...args: unknown[]) => void) => unknown;
   unref?: () => void;
 };
+
+type TeamRadioExecFileOptions = Pick<ExecFileOptions, 'timeout' | 'maxBuffer'>;
+
+type TeamRadioExecFileCallback = (
+  error: ExecFileException | null,
+  stdout: string,
+  stderr: string,
+) => void;
+
+export type TeamRadioExecFileImpl = (
+  file: string,
+  args: string[],
+  options: TeamRadioExecFileOptions,
+  callback: TeamRadioExecFileCallback,
+) => unknown;
 
 type TeamRadioSpawnImpl = (
   command: string,
@@ -125,6 +155,47 @@ function asNonEmptyString(value: unknown): string | null {
   }
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+function normalizeTranscriptionBackend(
+  value: unknown,
+): TeamRadioTranscriptionBackend | null {
+  const normalized = asNonEmptyString(value)?.toLowerCase();
+  return normalized === 'openai' || normalized === 'local' ? normalized : null;
+}
+
+function resolveTranscriptionBackend(opts: {
+  backend?: TeamRadioTranscriptionBackend;
+}): TeamRadioTranscriptionBackend {
+  if (opts.backend) {
+    return opts.backend;
+  }
+
+  const envBackend = normalizeTranscriptionBackend(
+    process.env.F1AIRE_TEAM_RADIO_TRANSCRIPTION_BACKEND,
+  );
+  if (envBackend) {
+    return envBackend;
+  }
+
+  return 'openai';
+}
+
+function getDefaultTranscriptionModel(
+  backend: TeamRadioTranscriptionBackend,
+): string {
+  if (backend === 'local') {
+    return (
+      asNonEmptyString(
+        process.env.F1AIRE_TEAM_RADIO_LOCAL_TRANSCRIPTION_MODEL,
+      ) ?? DEFAULT_LOCAL_TEAM_RADIO_TRANSCRIPTION_MODEL
+    );
+  }
+
+  return (
+    asNonEmptyString(process.env.OPENAI_AUDIO_TRANSCRIPTION_MODEL) ??
+    DEFAULT_TEAM_RADIO_TRANSCRIPTION_MODEL
+  );
 }
 
 function normalizeStaticPrefix(value: unknown): string | null {
@@ -488,10 +559,12 @@ async function readTranscriptionCache(
     const text = asNonEmptyString((parsed as any)?.text);
     const model = asNonEmptyString((parsed as any)?.model);
     const createdAt = asNonEmptyString((parsed as any)?.createdAt);
+    const backend =
+      normalizeTranscriptionBackend((parsed as any)?.backend) ?? 'openai';
     if (!text || !model || !createdAt) {
       return null;
     }
-    return { text, model, createdAt };
+    return { text, model, createdAt, backend };
   } catch {
     return null;
   }
@@ -537,6 +610,135 @@ function extractTranscriptionText(bodyText: string): string | null {
   }
 
   return trimmed;
+}
+
+function getLocalTranscriptionCommand(): string {
+  return (
+    asNonEmptyString(
+      process.env.F1AIRE_TEAM_RADIO_LOCAL_TRANSCRIPTION_COMMAND,
+    ) ?? DEFAULT_LOCAL_TEAM_RADIO_TRANSCRIPTION_COMMAND
+  );
+}
+
+function getLocalTranscriptionOutputPath(
+  filePath: string,
+  outputDir: string,
+): string {
+  return path.join(outputDir, `${path.parse(filePath).name}.json`);
+}
+
+async function runExecFile(
+  command: string,
+  args: string[],
+  options: TeamRadioExecFileOptions,
+  execFileImpl: TeamRadioExecFileImpl,
+): Promise<{ stdout: string; stderr: string }> {
+  return new Promise((resolve, reject) => {
+    execFileImpl(command, args, options, (error, stdout, stderr) => {
+      if (error) {
+        reject(
+          Object.assign(error, {
+            stdout,
+            stderr,
+          }),
+        );
+        return;
+      }
+      resolve({ stdout, stderr });
+    });
+  });
+}
+
+async function transcribeAudioFileLocally(opts: {
+  filePath: string;
+  model: string;
+  command?: string;
+  execFileImpl?: TeamRadioExecFileImpl;
+}): Promise<string> {
+  const command =
+    asNonEmptyString(opts.command) ?? getLocalTranscriptionCommand();
+  const outputDir = await fs.mkdtemp(
+    path.join(tmpdir(), 'f1aire-team-radio-transcription-'),
+  );
+  const outputPath = getLocalTranscriptionOutputPath(opts.filePath, outputDir);
+  const execImpl: TeamRadioExecFileImpl =
+    opts.execFileImpl ??
+    ((file, args, options, callback) =>
+      execFile(
+        file,
+        args,
+        { ...options, encoding: 'utf8' },
+        (error, stdout, stderr) =>
+          callback(error, String(stdout), String(stderr)),
+      ));
+
+  try {
+    const { stdout, stderr } = await runExecFile(
+      command,
+      [
+        opts.filePath,
+        '--model',
+        opts.model,
+        '--output_format',
+        'json',
+        '--output_dir',
+        outputDir,
+        '--verbose',
+        'False',
+      ],
+      {
+        timeout: TRANSCRIPTION_TIMEOUT_MS,
+        maxBuffer: 10 * 1024 * 1024,
+      },
+      execImpl,
+    );
+
+    try {
+      const bodyText = await fs.readFile(outputPath, 'utf-8');
+      const transcription = extractTranscriptionText(bodyText);
+      if (transcription) {
+        return transcription;
+      }
+    } catch {
+      // Fall through to stdout/stderr parsing.
+    }
+
+    const fallback =
+      extractTranscriptionText(stdout) ?? extractTranscriptionText(stderr);
+    if (fallback) {
+      return fallback;
+    }
+
+    throw new Error(
+      `Local transcription command ${command} produced no readable transcript for ${path.basename(opts.filePath)}.`,
+    );
+  } catch (error) {
+    const commandText = `${command}`;
+    if ((error as NodeJS.ErrnoException | null)?.code === 'ENOENT') {
+      throw new Error(
+        `Local transcription command ${commandText} was not found. Install whisper/ffmpeg or configure F1AIRE_TEAM_RADIO_LOCAL_TRANSCRIPTION_COMMAND.`,
+      );
+    }
+
+    if ((error as { killed?: boolean } | null)?.killed || isAbortError(error)) {
+      throw new Error(
+        `Timed out transcribing ${path.basename(opts.filePath)} after ${TRANSCRIPTION_TIMEOUT_MS}ms`,
+      );
+    }
+
+    const stderr = asNonEmptyString((error as { stderr?: unknown })?.stderr);
+    if (error instanceof Error) {
+      throw new Error(
+        stderr
+          ? `Local transcription failed for ${path.basename(opts.filePath)}: ${truncateErrorText(stderr)}`
+          : error.message,
+      );
+    }
+
+    throw error;
+  } finally {
+    await fs.rm(outputDir, { recursive: true, force: true });
+  }
 }
 
 async function transcribeAudioFile(opts: {
@@ -814,16 +1016,20 @@ export async function transcribeTeamRadioCapture(opts: {
   appName?: string;
   overwriteDownload?: boolean;
   forceTranscription?: boolean;
+  backend?: TeamRadioTranscriptionBackend;
   apiKey?: string | null;
   model?: string;
   apiBase?: string;
+  localCommand?: string;
   downloadFetchImpl?: typeof fetch;
   transcriptionFetchImpl?: typeof fetch;
+  execFileImpl?: TeamRadioExecFileImpl;
 }): Promise<TeamRadioTranscriptionResult> {
+  const backend = resolveTranscriptionBackend({
+    backend: opts.backend,
+  });
   const requestedModel =
-    asNonEmptyString(opts.model) ??
-    asNonEmptyString(process.env.OPENAI_AUDIO_TRANSCRIPTION_MODEL) ??
-    DEFAULT_TEAM_RADIO_TRANSCRIPTION_MODEL;
+    asNonEmptyString(opts.model) ?? getDefaultTranscriptionModel(backend);
   const download = await downloadTeamRadioCapture({
     source: opts.source,
     state: opts.state,
@@ -838,7 +1044,11 @@ export async function transcribeTeamRadioCapture(opts: {
   const cached = opts.forceTranscription
     ? null
     : await readTranscriptionCache(download.filePath);
-  if (cached && (opts.model === undefined || cached.model === requestedModel)) {
+  if (
+    cached &&
+    cached.backend === backend &&
+    (opts.model === undefined || cached.model === requestedModel)
+  ) {
     updateCaptureRecord(opts.state, download.captureId, {
       DownloadedFilePath: download.filePath,
       Transcription: cached.text,
@@ -847,6 +1057,7 @@ export async function transcribeTeamRadioCapture(opts: {
       ...download,
       hasTranscription: true,
       downloadedFilePath: download.filePath,
+      backend: cached.backend,
       transcription: cached.text,
       transcriptionFilePath: getTranscriptionCachePath(download.filePath),
       transcriptionReused: true,
@@ -854,28 +1065,39 @@ export async function transcribeTeamRadioCapture(opts: {
     };
   }
 
-  const apiKey =
-    asNonEmptyString(opts.apiKey) ??
-    asNonEmptyString(process.env.OPENAI_API_KEY);
-  if (!apiKey) {
-    throw new Error(
-      'OpenAI API key is required to transcribe team radio clips. Set OPENAI_API_KEY or save a key in f1aire settings.',
-    );
-  }
+  let transcription: string;
+  if (backend === 'local') {
+    transcription = await transcribeAudioFileLocally({
+      filePath: download.filePath,
+      model: requestedModel,
+      command: opts.localCommand,
+      execFileImpl: opts.execFileImpl,
+    });
+  } else {
+    const apiKey =
+      asNonEmptyString(opts.apiKey) ??
+      asNonEmptyString(process.env.OPENAI_API_KEY);
+    if (!apiKey) {
+      throw new Error(
+        'OpenAI API key is required to transcribe team radio clips. Set OPENAI_API_KEY or save a key in f1aire settings.',
+      );
+    }
 
-  const transcription = await transcribeAudioFile({
-    filePath: download.filePath,
-    apiKey,
-    model: requestedModel,
-    apiBase: opts.apiBase,
-    fetchImpl: opts.transcriptionFetchImpl,
-  });
+    transcription = await transcribeAudioFile({
+      filePath: download.filePath,
+      apiKey,
+      model: requestedModel,
+      apiBase: opts.apiBase,
+      fetchImpl: opts.transcriptionFetchImpl,
+    });
+  }
   const transcriptionFilePath = await writeTranscriptionCache(
     download.filePath,
     {
       text: transcription,
       model: requestedModel,
       createdAt: new Date().toISOString(),
+      backend,
     },
   );
   updateCaptureRecord(opts.state, download.captureId, {
@@ -887,6 +1109,7 @@ export async function transcribeTeamRadioCapture(opts: {
     ...download,
     hasTranscription: true,
     downloadedFilePath: download.filePath,
+    backend,
     transcription,
     transcriptionFilePath,
     transcriptionReused: false,

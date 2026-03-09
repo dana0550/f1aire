@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -18,6 +18,9 @@ type StartTestServerOptions = BuildStoreOptions & {
   teamRadioSpawnImpl?: Parameters<
     typeof createOperatorApi
   >[0]['teamRadioSpawnImpl'];
+  teamRadioExecFileImpl?: Parameters<
+    typeof createOperatorApi
+  >[0]['teamRadioExecFileImpl'];
 };
 
 function buildStore(
@@ -521,6 +524,7 @@ async function startTestServer(
     service,
     teamRadioFetchImpl: options.teamRadioFetchImpl,
     teamRadioSpawnImpl: options.teamRadioSpawnImpl,
+    teamRadioExecFileImpl: options.teamRadioExecFileImpl,
   });
   const server = await startOperatorApiServer({ api });
   activeServers.add(server);
@@ -1162,6 +1166,7 @@ describe('operator-server', () => {
         captureId: '1',
         driverNumber: '4',
         reused: false,
+        backend: 'openai',
         transcription: 'Copy, box this lap.',
         transcriptionReused: false,
         filePath: path.join(destinationDir, 'LANNOR01_4_20250101_000011.mp3'),
@@ -1184,6 +1189,7 @@ describe('operator-server', () => {
       await expect(cachedResponse.json()).resolves.toMatchObject({
         captureId: '1',
         reused: true,
+        backend: 'openai',
         transcription: 'Copy, box this lap.',
         transcriptionReused: true,
         transcriptionFilePath: first.transcriptionFilePath,
@@ -1217,6 +1223,54 @@ describe('operator-server', () => {
           process.env.OPENAI_API_KEY = previousOpenAiApiKey;
         }
       }
+    } finally {
+      rmSync(destinationDir, { recursive: true, force: true });
+    }
+  });
+
+  it('serves local team radio transcription workflows over HTTP', async () => {
+    const destinationDir = mkdtempSync(
+      path.join(tmpdir(), 'f1aire-team-radio-http-local-'),
+    );
+    const fetchImpl = async () => new Response('radio-bytes');
+    const execFileImpl = (file, args, _options, callback) => {
+      expect(file).toBe('whisper');
+      const inputPath = String(args[0]);
+      const outputDir = String(args[args.indexOf('--output_dir') + 1]);
+      writeFileSync(
+        path.join(outputDir, `${path.parse(inputPath).name}.json`),
+        JSON.stringify({ text: 'Local HTTP copy.' }),
+      );
+      callback(null, '', '');
+    };
+
+    try {
+      const server = await startTestServer(points, {
+        teamRadioFetchImpl: fetchImpl as typeof fetch,
+        teamRadioExecFileImpl: execFileImpl,
+      });
+
+      const response = await fetch(
+        `${server.origin}/data/TeamRadio/transcribe`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            captureId: '1',
+            destinationDir,
+            backend: 'local',
+          }),
+        },
+      );
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toMatchObject({
+        captureId: '1',
+        backend: 'local',
+        transcription: 'Local HTTP copy.',
+        transcriptionReused: false,
+        model: 'base',
+      });
     } finally {
       rmSync(destinationDir, { recursive: true, force: true });
     }

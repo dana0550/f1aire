@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { makeTools } from './tools.js';
@@ -1912,6 +1912,7 @@ describe('tools', () => {
         driverNumber: '4',
         driverName: 'Lando Norris',
         reused: false,
+        backend: 'openai',
         transcriptionReused: false,
         transcription: 'Box now, box now.',
         hasTranscription: true,
@@ -1924,6 +1925,7 @@ describe('tools', () => {
       expect(second).toMatchObject({
         captureId: '1',
         reused: true,
+        backend: 'openai',
         transcriptionReused: true,
         transcription: 'Box now, box now.',
         hasTranscription: true,
@@ -1950,6 +1952,97 @@ describe('tools', () => {
         delete process.env.OPENAI_API_KEY;
       } else {
         process.env.OPENAI_API_KEY = previousOpenAiKey;
+      }
+    }
+  });
+
+  it('transcribe_team_radio supports the local backend', async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('team-radio-audio', { status: 200 }));
+    const previousXdgDataHome = process.env.XDG_DATA_HOME;
+    const xdgDataHome = mkdtempSync(
+      path.join(tmpdir(), 'f1aire-tools-team-radio-local-'),
+    );
+    process.env.XDG_DATA_HOME = xdgDataHome;
+    const execFileImpl = (file, args, _options, callback) => {
+      expect(file).toBe('whisper');
+      const inputPath = String(args[0]);
+      const outputDir = String(args[args.indexOf('--output_dir') + 1]);
+      writeFileSync(
+        path.join(outputDir, `${path.parse(inputPath).name}.json`),
+        JSON.stringify({ text: 'Local engineer copy.' }),
+      );
+      callback?.(null, '', '');
+      return {} as any;
+    };
+
+    try {
+      const teamRadioState = {
+        Captures: {
+          '1': {
+            Utc: '2024-05-26T12:16:25.710Z',
+            RacingNumber: '4',
+            Path: 'TeamRadio/LANNOR01_4_20240526_121625.mp3',
+          },
+        },
+      };
+      const tools = makeTools({
+        store: {
+          ...store,
+          raw: {
+            subscribe: {
+              SessionInfo: {
+                Path: '2024/2024-05-26_Test_Weekend/2024-05-26_Race/',
+              },
+            },
+            live: [],
+            download: {
+              prefix:
+                'https://livetiming.formula1.com/static/2024/2024-05-26_Test_Weekend/2024-05-26_Race/',
+              session: {
+                path: '2024/2024-05-26_Test_Weekend/2024-05-26_Race/',
+              },
+            },
+          },
+        } as any,
+        processors: {
+          ...processors,
+          driverList: {
+            state: {},
+            getName: (driverNumber: string) =>
+              driverNumber === '4' ? 'Lando Norris' : null,
+          },
+          teamRadio: {
+            state: teamRadioState,
+          },
+        } as any,
+        timeCursor: { latest: true },
+        onTimeCursorChange: () => {},
+        resolveOpenAIApiKey: async () => null,
+        teamRadioExecFileImpl: execFileImpl,
+      });
+
+      const result = await tools.transcribe_team_radio.execute({
+        captureId: '1',
+        backend: 'local',
+      } as any);
+
+      expect(result).toMatchObject({
+        captureId: '1',
+        driverName: 'Lando Norris',
+        backend: 'local',
+        transcription: 'Local engineer copy.',
+        transcriptionReused: false,
+        model: 'base',
+      });
+    } finally {
+      fetchMock.mockRestore();
+      rmSync(xdgDataHome, { recursive: true, force: true });
+      if (previousXdgDataHome === undefined) {
+        delete process.env.XDG_DATA_HOME;
+      } else {
+        process.env.XDG_DATA_HOME = previousXdgDataHome;
       }
     }
   });
