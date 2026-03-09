@@ -40,6 +40,10 @@ import {
   type TyreStintRecord,
 } from './tyre-state.js';
 import {
+  getPitStopEventRecords,
+  type PitStopEventRecord,
+} from './pit-stop-state.js';
+import {
   getTopicDefinition,
   type TopicAvailability,
   type TopicUpdateSemantics,
@@ -159,6 +163,23 @@ export type TyreStintsResponse = {
   records: TyreStintViewRecord[];
 };
 
+export type PitStopEventViewRecord = Omit<PitStopEventRecord, 'dateTime'> & {
+  driverName: string | null;
+  dateTime: string | null;
+};
+
+export type PitStopEventsResponse = {
+  asOf: {
+    source: SerializedResolvedCursor['source'];
+    lap: number | null;
+    dateTime: string | null;
+    includeFuture: boolean;
+  };
+  total: number;
+  returned: number;
+  events: PitStopEventViewRecord[];
+};
+
 export type TeamRadioMatchMode = 'at-or-before' | 'nearest';
 
 export type TeamRadioEventContext = {
@@ -267,6 +288,14 @@ export type OperatorApi = {
   getTyreStints: (options?: {
     driverNumber?: string | number;
   }) => TyreStintsResponse;
+  getPitStopEvents: (options?: {
+    driverNumber?: string | number;
+    startLap?: number;
+    endLap?: number;
+    includeFuture?: boolean;
+    limit?: number;
+    order?: 'asc' | 'desc';
+  }) => PitStopEventsResponse;
   getPositionSnapshot: (options?: {
     driverNumber?: string | number;
   }) => PositionSnapshotResponse | null;
@@ -418,6 +447,17 @@ function serializeRaceControlEvent(
 ): RaceControlEventRecord {
   return {
     ...event,
+    dateTime: event.dateTime?.toISOString() ?? null,
+  };
+}
+
+function serializePitStopEvent(
+  service: TimingService,
+  event: PitStopEventRecord,
+): PitStopEventViewRecord {
+  return {
+    ...event,
+    driverName: getDriverName(service, event.driverNumber),
     dateTime: event.dateTime?.toISOString() ?? null,
   };
 }
@@ -971,6 +1011,62 @@ export function createOperatorApi({
     };
   };
 
+  const getPitStopEvents: OperatorApi['getPitStopEvents'] = (options = {}) => {
+    const analysisIndex = buildAnalysisIndex({
+      processors: service.processors,
+    });
+    const resolved = analysisIndex.resolveAsOf(currentCursor);
+    let events = getPitStopEventRecords({
+      pitStopSeriesState: service.processors.pitStopSeries?.state,
+      tyreStintSeriesState:
+        service.processors.extraTopics?.TyreStintSeries?.state,
+      timingAppDataState: service.processors.timingAppData?.state,
+      timingDataState: service.processors.timingData?.state,
+      driverNumber: options.driverNumber,
+      startLap: options.startLap,
+      endLap: options.endLap,
+    });
+
+    if (!options.includeFuture) {
+      events = events.filter((event) => {
+        if (resolved.source === 'time' && event.dateTime && resolved.dateTime) {
+          return event.dateTime.getTime() <= resolved.dateTime.getTime();
+        }
+        if (event.lap !== null && resolved.lap !== null) {
+          return event.lap <= resolved.lap;
+        }
+        if (event.dateTime && resolved.dateTime) {
+          return event.dateTime.getTime() <= resolved.dateTime.getTime();
+        }
+        return true;
+      });
+    }
+
+    if (options.order === 'desc') {
+      events = [...events].reverse();
+    }
+
+    const limited =
+      typeof options.limit === 'number' && options.limit >= 0
+        ? events.slice(0, options.limit)
+        : events;
+
+    return {
+      asOf: {
+        lap: resolved.lap,
+        dateTime:
+          resolved.source === 'time'
+            ? (currentCursor.iso ?? null)
+            : (resolved.dateTime?.toISOString() ?? null),
+        source: resolved.source,
+        includeFuture: Boolean(options.includeFuture),
+      },
+      total: events.length,
+      returned: limited.length,
+      events: limited.map((event) => serializePitStopEvent(service, event)),
+    };
+  };
+
   const getPositionSnapshotView: OperatorApi['getPositionSnapshot'] = (
     options = {},
   ) => {
@@ -1414,6 +1510,7 @@ export function createOperatorApi({
     getTimingLap,
     getCurrentTyres,
     getTyreStints,
+    getPitStopEvents,
     getPositionSnapshot: getPositionSnapshotView,
     getBestLaps,
     getRaceControlEvents,

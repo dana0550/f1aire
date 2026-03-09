@@ -304,6 +304,107 @@ describe('createOperatorApi', () => {
     },
   ];
 
+  const pitStopPoints: RawPoint[] = [
+    {
+      type: 'DriverList',
+      json: {
+        '4': { FullName: 'Lando Norris' },
+        '81': { FullName: 'Oscar Piastri' },
+      },
+      dateTime: new Date('2025-01-01T00:00:01Z'),
+    },
+    {
+      type: 'TimingData',
+      json: {
+        Lines: {
+          '4': { Line: 1, NumberOfLaps: 12 },
+          '81': { Line: 2, NumberOfLaps: 12 },
+        },
+      },
+      dateTime: new Date('2025-01-01T00:00:12Z'),
+    },
+    {
+      type: 'TimingData',
+      json: {
+        Lines: {
+          '4': { Line: 2, NumberOfLaps: 13 },
+          '81': { Line: 1, NumberOfLaps: 13 },
+        },
+      },
+      dateTime: new Date('2025-01-01T00:00:13Z'),
+    },
+    {
+      type: 'TyreStintSeries',
+      json: {
+        Stints: {
+          '4': {
+            '1': {
+              Compound: 'MEDIUM',
+              New: 'true',
+              StartLaps: 1,
+              TotalLaps: 12,
+              LapNumber: 12,
+            },
+            '2': {
+              Compound: 'HARD',
+              New: 'false',
+              StartLaps: 12,
+              TotalLaps: 20,
+              LapNumber: 13,
+            },
+          },
+          '81': {
+            '1': {
+              Compound: 'HARD',
+              New: 'false',
+              StartLaps: 1,
+              TotalLaps: 13,
+              LapNumber: 13,
+            },
+            '2': {
+              Compound: 'SOFT',
+              New: 'true',
+              StartLaps: 13,
+              TotalLaps: 20,
+              LapNumber: 14,
+            },
+          },
+        },
+      },
+      dateTime: new Date('2025-01-01T00:00:13.100Z'),
+    },
+    {
+      type: 'PitStopSeries',
+      json: {
+        PitTimes: {
+          '4': {
+            '0': {
+              Timestamp: '2025-01-01T00:00:12.500Z',
+              PitStop: {
+                RacingNumber: '4',
+                Lap: '12',
+                PitStopTime: '2.45',
+                PitLaneTime: '22.10',
+              },
+            },
+          },
+          '81': {
+            '0': {
+              Timestamp: '2025-01-01T00:00:13.500Z',
+              PitStop: {
+                RacingNumber: '81',
+                Lap: '13',
+                PitStopTime: '3.10',
+                PitLaneTime: '23.50',
+              },
+            },
+          },
+        },
+      },
+      dateTime: new Date('2025-01-01T00:00:13.500Z'),
+    },
+  ];
+
   it('returns stable topic snapshots backed by processor state', () => {
     const service = new TimingService();
     points.forEach((point) => service.enqueue(point));
@@ -1127,6 +1228,119 @@ describe('createOperatorApi', () => {
           lapTime: null,
           lapNumber: 12,
           source: 'TyreStintSeries',
+        },
+      ],
+    });
+  });
+
+  it('returns replay-aware pit stop events with tyre context', () => {
+    const service = new TimingService();
+    pitStopPoints.forEach((point) => service.enqueue(point));
+
+    const historicalApi = createOperatorApi({
+      store: buildStore(pitStopPoints),
+      service,
+      timeCursor: { lap: 12 },
+    });
+
+    expect(historicalApi.getPitStopEvents()).toEqual({
+      asOf: {
+        lap: 12,
+        dateTime: '2025-01-01T00:00:12.000Z',
+        source: 'lap',
+        includeFuture: false,
+      },
+      total: 1,
+      returned: 1,
+      events: [
+        {
+          driverNumber: '4',
+          driverName: 'Lando Norris',
+          stopNumber: 0,
+          lap: 12,
+          timestamp: '2025-01-01T00:00:12.500Z',
+          dateTime: '2025-01-01T00:00:12.500Z',
+          pitStopTime: '2.45',
+          pitStopTimeMs: 2450,
+          pitLaneTime: '22.10',
+          pitLaneTimeMs: 22100,
+          tyreBefore: {
+            stint: 1,
+            compound: 'MEDIUM',
+            isNew: true,
+            tyresNotChanged: null,
+            startLaps: 1,
+            totalLaps: 12,
+            lapsOnTyre: 11,
+            lapNumber: 12,
+            source: 'TyreStintSeries',
+          },
+          tyreAfter: {
+            stint: 2,
+            compound: 'HARD',
+            isNew: false,
+            tyresNotChanged: null,
+            startLaps: 12,
+            totalLaps: 20,
+            lapsOnTyre: 8,
+            lapNumber: 13,
+            source: 'TyreStintSeries',
+          },
+          source: 'PitStopSeries',
+        },
+      ],
+    });
+
+    expect(
+      historicalApi.getPitStopEvents({
+        includeFuture: true,
+        order: 'desc',
+        limit: 1,
+      }),
+    ).toEqual({
+      asOf: {
+        lap: 12,
+        dateTime: '2025-01-01T00:00:12.000Z',
+        source: 'lap',
+        includeFuture: true,
+      },
+      total: 2,
+      returned: 1,
+      events: [
+        {
+          driverNumber: '81',
+          driverName: 'Oscar Piastri',
+          stopNumber: 0,
+          lap: 13,
+          timestamp: '2025-01-01T00:00:13.500Z',
+          dateTime: '2025-01-01T00:00:13.500Z',
+          pitStopTime: '3.10',
+          pitStopTimeMs: 3100,
+          pitLaneTime: '23.50',
+          pitLaneTimeMs: 23500,
+          tyreBefore: {
+            stint: 1,
+            compound: 'HARD',
+            isNew: false,
+            tyresNotChanged: null,
+            startLaps: 1,
+            totalLaps: 13,
+            lapsOnTyre: 12,
+            lapNumber: 13,
+            source: 'TyreStintSeries',
+          },
+          tyreAfter: {
+            stint: 2,
+            compound: 'SOFT',
+            isNew: true,
+            tyresNotChanged: null,
+            startLaps: 13,
+            totalLaps: 20,
+            lapsOnTyre: 7,
+            lapNumber: 14,
+            source: 'TyreStintSeries',
+          },
+          source: 'PitStopSeries',
         },
       ],
     });

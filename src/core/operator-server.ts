@@ -9,6 +9,7 @@ import type {
   BestLapsResponse,
   CurrentTyresResponse,
   OperatorApi,
+  PitStopEventsResponse,
   PositionSnapshotResponse,
   RaceControlEventsResponse,
   ReplayControlRequest,
@@ -66,6 +67,15 @@ type TeamRadioErrorResponse = {
 
 type TyreQuery = {
   driverNumber?: string;
+};
+
+type PitStopEventsQuery = {
+  driverNumber?: string;
+  startLap?: number;
+  endLap?: number;
+  limit?: number;
+  includeFuture?: boolean;
+  order?: SessionLifecycleOrder;
 };
 
 type PositionSnapshotQuery = {
@@ -310,6 +320,40 @@ function handleTyreStints(api: OperatorApi, url: URL): TyreStintsResponse {
   return api.getTyreStints(options);
 }
 
+function handlePitStopEvents(
+  api: OperatorApi,
+  url: URL,
+): PitStopEventsResponse {
+  const options: PitStopEventsQuery = {};
+  const driverNumber = url.searchParams.get('driverNumber');
+  if (driverNumber) {
+    options.driverNumber = driverNumber;
+  }
+  const startLap = parseOptionalInt(url.searchParams.get('startLap'));
+  if (typeof startLap === 'number') {
+    options.startLap = startLap;
+  }
+  const endLap = parseOptionalInt(url.searchParams.get('endLap'));
+  if (typeof endLap === 'number') {
+    options.endLap = endLap;
+  }
+  const limit = parseOptionalInt(url.searchParams.get('limit'));
+  if (typeof limit === 'number') {
+    options.limit = limit;
+  }
+  const includeFuture = parseOptionalBoolean(
+    url.searchParams.get('includeFuture'),
+  );
+  if (typeof includeFuture === 'boolean') {
+    options.includeFuture = includeFuture;
+  }
+  const order = parseOptionalOrder(url.searchParams.get('order'));
+  if (order) {
+    options.order = order;
+  }
+  return api.getPitStopEvents(options);
+}
+
 function handlePositionSnapshot(
   api: OperatorApi,
   url: URL,
@@ -478,6 +522,10 @@ export function createOperatorApiRequestHandler(opts: {
         }
         if (topic === 'TyreStintSeries' && segments[2] === 'stints') {
           sendJson(res, 200, handleTyreStints(api, url));
+          return;
+        }
+        if (topic === 'PitStopSeries' && segments[2] === 'events') {
+          sendJson(res, 200, handlePitStopEvents(api, url));
           return;
         }
         if (topic === 'Position' && segments[2] === 'snapshot') {
