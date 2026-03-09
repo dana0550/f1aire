@@ -8,6 +8,7 @@ import type { AddressInfo } from 'node:net';
 import type {
   BestLapsResponse,
   CurrentTyresResponse,
+  DriverTrackerResponse,
   OperatorApi,
   PitStopEventsResponse,
   PositionSnapshotResponse,
@@ -74,6 +75,12 @@ type TeamRadioErrorResponse = {
 
 type TyreQuery = {
   driverNumber?: string;
+};
+
+type DriverTrackerQuery = {
+  driverNumber?: string;
+  includeFuture?: boolean;
+  limit?: number;
 };
 
 type PitStopEventsQuery = {
@@ -350,6 +357,28 @@ function handleCurrentTyres(api: OperatorApi, url: URL): CurrentTyresResponse {
   return api.getCurrentTyres(options);
 }
 
+function handleDriverTracker(
+  api: OperatorApi,
+  url: URL,
+): DriverTrackerResponse {
+  const options: DriverTrackerQuery = {};
+  const driverNumber = url.searchParams.get('driverNumber');
+  if (driverNumber) {
+    options.driverNumber = driverNumber;
+  }
+  const includeFuture = parseOptionalBoolean(
+    url.searchParams.get('includeFuture'),
+  );
+  if (typeof includeFuture === 'boolean') {
+    options.includeFuture = includeFuture;
+  }
+  const limit = parseOptionalInt(url.searchParams.get('limit'));
+  if (typeof limit === 'number') {
+    options.limit = limit;
+  }
+  return api.getDriverTracker(options);
+}
+
 function handleTyreStints(api: OperatorApi, url: URL): TyreStintsResponse {
   const options: TyreQuery = {};
   const driverNumber = url.searchParams.get('driverNumber');
@@ -564,6 +593,10 @@ export function createOperatorApiRequestHandler(opts: {
         }
         if (topic === 'CurrentTyres' && segments[2] === 'current') {
           sendJson(res, 200, handleCurrentTyres(api, url));
+          return;
+        }
+        if (topic === 'DriverTracker' && segments[2] === 'rows') {
+          sendJson(res, 200, handleDriverTracker(api, url));
           return;
         }
         if (topic === 'TyreStintSeries' && segments[2] === 'stints') {

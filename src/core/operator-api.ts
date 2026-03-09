@@ -53,6 +53,12 @@ import {
   type StreamMetadataTopic,
 } from './stream-metadata.js';
 import {
+  getDriverTrackerMeta,
+  getDriverTrackerRows,
+  type DriverTrackerMeta,
+  type DriverTrackerRow,
+} from './driver-tracker.js';
+import {
   getTopicDefinition,
   type TopicAvailability,
   type TopicUpdateSemantics,
@@ -160,6 +166,27 @@ export type CurrentTyresResponse = {
   asOf: SerializedResolvedCursor;
   totalDrivers: number;
   records: CurrentTyreViewRecord[];
+};
+
+export type DriverTrackerRowRecord = Omit<DriverTrackerRow, 'raw'> & {
+  raw: DriverTrackerRow['raw'];
+};
+
+export type DriverTrackerResponse = {
+  asOf: {
+    source: SerializedResolvedCursor['source'];
+    lap: number | null;
+    dateTime: string | null;
+    includeFuture: boolean;
+  };
+  withheld: DriverTrackerMeta['withheld'];
+  sessionPart: DriverTrackerMeta['sessionPart'];
+  driverNumber: string | null;
+  driverName: string | null;
+  total: number;
+  returned: number;
+  rows: DriverTrackerRowRecord[];
+  row: DriverTrackerRowRecord | null;
 };
 
 export type TyreStintViewRecord = TyreStintRecord & {
@@ -306,6 +333,11 @@ export type OperatorApi = {
   getCurrentTyres: (options?: {
     driverNumber?: string | number;
   }) => CurrentTyresResponse;
+  getDriverTracker: (options?: {
+    driverNumber?: string | number;
+    includeFuture?: boolean;
+    limit?: number;
+  }) => DriverTrackerResponse;
   getTyreStints: (options?: {
     driverNumber?: string | number;
   }) => TyreStintsResponse;
@@ -544,6 +576,15 @@ function serializePitStopEvent(
     driverName: getDriverName(service, event.driverNumber),
     dateTime: event.dateTime?.toISOString() ?? null,
   };
+}
+
+function serializeDriverTrackerRow(
+  row: DriverTrackerRow,
+): DriverTrackerRowRecord {
+  return serializeValue({
+    ...row,
+    raw: structuredClone(row.raw),
+  }) as DriverTrackerRowRecord;
 }
 
 function getDriverName(
@@ -1069,6 +1110,61 @@ export function createOperatorApi({
       asOf: serializeResolvedCursor(resolved),
       totalDrivers: records.length,
       records,
+    };
+  };
+
+  const getDriverTracker: OperatorApi['getDriverTracker'] = (options = {}) => {
+    const analysisIndex = buildAnalysisIndex({
+      processors: service.processors,
+    });
+    const resolved = analysisIndex.resolveAsOf(currentCursor);
+    const includeFuture = options.includeFuture === true;
+    const requestedDriver =
+      options.driverNumber === undefined ? null : String(options.driverNumber);
+    const cutoff =
+      includeFuture || currentCursor.latest
+        ? undefined
+        : (resolved.dateTime ?? undefined);
+
+    const state = getTopicStateAsOf({
+      store,
+      service,
+      topic: 'DriverTracker',
+      to: cutoff,
+    });
+
+    const rows = getDriverTrackerRows({
+      state,
+      driverListState: service.processors.driverList?.state ?? null,
+      driverNumber: requestedDriver ?? undefined,
+    });
+
+    const meta = getDriverTrackerMeta(state);
+    const returnedRows =
+      typeof options.limit === 'number' && options.limit >= 0
+        ? rows.slice(0, Math.floor(options.limit))
+        : rows;
+
+    return {
+      asOf: {
+        source: resolved.source,
+        lap: resolved.lap,
+        dateTime: resolved.dateTime?.toISOString() ?? null,
+        includeFuture,
+      },
+      withheld: meta.withheld,
+      sessionPart: meta.sessionPart,
+      driverNumber: requestedDriver,
+      driverName: requestedDriver
+        ? getDriverName(service, requestedDriver)
+        : null,
+      total: rows.length,
+      returned: returnedRows.length,
+      rows: returnedRows.map(serializeDriverTrackerRow),
+      row:
+        requestedDriver && returnedRows.length > 0
+          ? serializeDriverTrackerRow(returnedRows[0]!)
+          : null,
     };
   };
 
@@ -1654,6 +1750,7 @@ export function createOperatorApi({
     getLatest,
     getTimingLap,
     getCurrentTyres,
+    getDriverTracker,
     getTyreStints,
     getPitStopEvents,
     getPositionSnapshot: getPositionSnapshotView,

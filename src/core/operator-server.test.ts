@@ -986,6 +986,196 @@ describe('operator-server', () => {
     });
   });
 
+  it('serves replay-aware driver tracker rows over HTTP', async () => {
+    const trackerPoints: RawPoint[] = [
+      {
+        type: 'DriverList',
+        json: {
+          '4': { FullName: 'Lando Norris' },
+          '81': { FullName: 'Oscar Piastri' },
+        },
+        dateTime: new Date('2025-01-01T00:00:01Z'),
+      },
+      {
+        type: 'DriverTracker',
+        json: {
+          Withheld: false,
+          SessionPart: 1,
+          Lines: {
+            '0': {
+              Position: '1',
+              RacingNumber: '81',
+              ShowPosition: true,
+              DiffToLeader: 'LEADER',
+              OverallFastest: true,
+            },
+            '1': {
+              Position: '2',
+              RacingNumber: '4',
+              ShowPosition: true,
+              DiffToAhead: '+0.900',
+              DiffToLeader: '+0.900',
+            },
+          },
+        },
+        dateTime: new Date('2025-01-01T00:00:10Z'),
+      },
+      {
+        type: 'TimingData',
+        json: {
+          Lines: {
+            '4': { Line: 2, NumberOfLaps: 11 },
+            '81': { Line: 1, NumberOfLaps: 11 },
+          },
+        },
+        dateTime: new Date('2025-01-01T00:00:11Z'),
+      },
+      {
+        type: 'DriverTracker',
+        json: {
+          SessionPart: 2,
+          Lines: {
+            '0': {
+              Position: '2',
+              RacingNumber: '81',
+              DiffToAhead: '+1.100',
+              DiffToLeader: '+1.100',
+              OverallFastest: false,
+            },
+            '1': {
+              Position: '1',
+              RacingNumber: '4',
+              DiffToAhead: 'LEADER',
+              DiffToLeader: 'LEADER',
+              PersonalFastest: true,
+            },
+          },
+        },
+        dateTime: new Date('2025-01-01T00:00:12Z'),
+      },
+    ];
+
+    const service = new TimingService();
+    trackerPoints.forEach((point) => service.enqueue(point));
+    const api = createOperatorApi({
+      store: buildStore(trackerPoints),
+      service,
+      timeCursor: { lap: 11 },
+    });
+    const server = await startOperatorApiServer({ api });
+    activeServers.add(server);
+
+    const filteredResponse = await fetch(
+      `${server.origin}/data/DriverTracker/rows?driverNumber=4&limit=1`,
+    );
+    expect(filteredResponse.status).toBe(200);
+    await expect(filteredResponse.json()).resolves.toEqual({
+      asOf: {
+        source: 'lap',
+        lap: 11,
+        dateTime: '2025-01-01T00:00:11.000Z',
+        includeFuture: false,
+      },
+      withheld: false,
+      sessionPart: 1,
+      driverNumber: '4',
+      driverName: 'Lando Norris',
+      total: 1,
+      returned: 1,
+      rows: [
+        {
+          lineIndex: 1,
+          driverNumber: '4',
+          driverName: 'Lando Norris',
+          position: 2,
+          showPosition: true,
+          lapTime: null,
+          lapState: null,
+          diffToAhead: '+0.900',
+          diffToAheadSeconds: 0.9,
+          diffToLeader: '+0.900',
+          diffToLeaderSeconds: 0.9,
+          overallFastest: null,
+          personalFastest: null,
+          raw: {
+            Position: '2',
+            RacingNumber: '4',
+            ShowPosition: true,
+            DiffToAhead: '+0.900',
+            DiffToLeader: '+0.900',
+          },
+        },
+      ],
+      row: {
+        lineIndex: 1,
+        driverNumber: '4',
+        driverName: 'Lando Norris',
+        position: 2,
+        showPosition: true,
+        lapTime: null,
+        lapState: null,
+        diffToAhead: '+0.900',
+        diffToAheadSeconds: 0.9,
+        diffToLeader: '+0.900',
+        diffToLeaderSeconds: 0.9,
+        overallFastest: null,
+        personalFastest: null,
+        raw: {
+          Position: '2',
+          RacingNumber: '4',
+          ShowPosition: true,
+          DiffToAhead: '+0.900',
+          DiffToLeader: '+0.900',
+        },
+      },
+    });
+
+    const futureResponse = await fetch(
+      `${server.origin}/data/DriverTracker/rows?includeFuture=true&limit=1`,
+    );
+    expect(futureResponse.status).toBe(200);
+    await expect(futureResponse.json()).resolves.toEqual({
+      asOf: {
+        source: 'lap',
+        lap: 11,
+        dateTime: '2025-01-01T00:00:11.000Z',
+        includeFuture: true,
+      },
+      withheld: false,
+      sessionPart: 2,
+      driverNumber: null,
+      driverName: null,
+      total: 2,
+      returned: 1,
+      rows: [
+        {
+          lineIndex: 0,
+          driverNumber: '81',
+          driverName: 'Oscar Piastri',
+          position: 2,
+          showPosition: true,
+          lapTime: null,
+          lapState: null,
+          diffToAhead: '+1.100',
+          diffToAheadSeconds: 1.1,
+          diffToLeader: '+1.100',
+          diffToLeaderSeconds: 1.1,
+          overallFastest: false,
+          personalFastest: null,
+          raw: {
+            Position: '2',
+            RacingNumber: '81',
+            ShowPosition: true,
+            DiffToLeader: '+1.100',
+            OverallFastest: false,
+            DiffToAhead: '+1.100',
+          },
+        },
+      ],
+      row: null,
+    });
+  });
+
   it('serves replay-aware stream metadata over HTTP', async () => {
     const latestServer = await startTestServer(streamPoints);
 
