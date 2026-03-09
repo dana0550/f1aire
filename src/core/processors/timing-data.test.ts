@@ -103,4 +103,31 @@ describe('TimingDataProcessor', () => {
       LastLapTime: { Value: '1:30.100' },
     });
   });
+
+  it('tracks best lap numbers from the typed best-lap payload', () => {
+    const processor = new TimingDataProcessor();
+
+    processor.process({
+      type: 'TimingData',
+      json: {
+        SessionPart: '2',
+        Lines: {
+          '4': {
+            NumberOfLaps: '15',
+            InPit: '0',
+            BestLapTime: { Value: '1:29.999', Lap: '14' },
+          },
+        },
+      },
+      dateTime: new Date('2025-01-01T00:00:15Z'),
+    });
+
+    expect(processor.bestLaps.get('4')).toMatchObject({
+      time: '1:29.999',
+      lap: 14,
+      snapshot: {
+        SessionPart: 2,
+      },
+    });
+  });
 });

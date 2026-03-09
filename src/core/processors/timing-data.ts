@@ -1,6 +1,17 @@
 import type { Processor, RawPoint } from './types.js';
 import { parseLapTimeMs } from '../summary.js';
 import { mergeDeep } from './merge.js';
+import {
+  getTimingLineBestLapTime,
+  getTimingLineBestLapNumber,
+  getTimingLineLapNumber,
+  getTimingLinesRoot,
+  getTimingSessionPart,
+  isTimingDataPointType,
+  isTimingFlagActive,
+  type TimingLine,
+  type TimingState,
+} from '../timing-data.js';
 
 type BestLap = {
   time: string;
@@ -8,28 +19,6 @@ type BestLap = {
   lap: number | null;
   snapshot: TimingLine;
 };
-type TimingLine = Record<string, unknown>;
-type TimingState = { Lines?: Record<string, TimingLine> } & Record<
-  string,
-  unknown
->;
-type TimingPointType = 'TimingData' | 'TimingDataF1';
-
-const SUPPORTED_TIMING_TYPES = new Set<TimingPointType>([
-  'TimingData',
-  'TimingDataF1',
-]);
-
-function toLapNumber(value: unknown): number | null {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value;
-  }
-  if (typeof value === 'string' && value.trim().length > 0) {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-  return null;
-}
 
 export class TimingDataProcessor implements Processor<TimingState> {
   latest: TimingState | null = null;
@@ -61,7 +50,7 @@ export class TimingDataProcessor implements Processor<TimingState> {
   }
 
   process(point: RawPoint) {
-    if (!SUPPORTED_TIMING_TYPES.has(point.type as TimingPointType)) return;
+    if (!isTimingDataPointType(point.type)) return;
 
     const patch = point.json ?? {};
     if (!this.state) {
@@ -70,41 +59,45 @@ export class TimingDataProcessor implements Processor<TimingState> {
       mergeDeep(this.state as Record<string, unknown>, patch);
     }
     this.latest = this.state;
-    const patchLines = (patch as TimingState).Lines ?? {};
-    const mergedLines = this.state.Lines ?? {};
+    const patchLines = getTimingLinesRoot(patch);
+    const mergedLines = getTimingLinesRoot(this.state);
     for (const [num, partial] of Object.entries(patchLines)) {
       const merged = mergedLines[num];
       if (!merged) continue;
-      const driver = merged as any;
-      const partialDriver = partial as any;
-      const sessionPart = (this.state as any)?.SessionPart;
-      if (sessionPart && driver.SessionPart !== sessionPart) {
-        driver.SessionPart = sessionPart;
+      const sessionPart = getTimingSessionPart(this.state);
+      if (sessionPart !== null && merged.SessionPart !== sessionPart) {
+        merged.SessionPart = sessionPart;
       }
-      if (partialDriver?.PitOut || partialDriver?.InPit) {
-        driver.IsPitLap = true;
-      } else if (driver.IsPitLap && !driver.PitOut && !driver.InPit) {
-        driver.IsPitLap = false;
+      if (
+        isTimingFlagActive(partial.PitOut) ||
+        isTimingFlagActive(partial.InPit)
+      ) {
+        merged.IsPitLap = true;
+      } else if (
+        isTimingFlagActive(merged.IsPitLap) &&
+        !isTimingFlagActive(merged.PitOut) &&
+        !isTimingFlagActive(merged.InPit)
+      ) {
+        merged.IsPitLap = false;
       }
-      const lapNumber = toLapNumber((driver as any)?.NumberOfLaps);
-      const lapUpdate = toLapNumber(partialDriver?.NumberOfLaps);
+      const lapNumber = getTimingLineLapNumber(merged);
+      const lapUpdate = getTimingLineLapNumber(partial);
       if (lapNumber !== null) {
         this.currentLapByDriver.set(num, lapNumber);
       }
-      const currentLap =
-        lapNumber ?? (this.currentLapByDriver.get(num) ?? null);
+      const currentLap = lapNumber ?? this.currentLapByDriver.get(num) ?? null;
       if (lapUpdate !== null) {
         const lapDrivers = this.driversByLap.get(lapUpdate) ?? new Map();
         if (!this.driversByLap.has(lapUpdate)) {
           this.driversByLap.set(lapUpdate, lapDrivers);
         }
         const snap = structuredClone(merged) as TimingLine;
-        (snap as any).__dateTime = point.dateTime;
+        snap.__dateTime = point.dateTime;
         lapDrivers.set(num, snap);
       }
 
-      const time = driver?.BestLapTime?.Value;
-      if (typeof time !== 'string' || time.trim().length === 0) {
+      const time = getTimingLineBestLapTime(merged);
+      if (!time) {
         this.bestLaps.delete(num);
         continue;
       }
@@ -114,11 +107,11 @@ export class TimingDataProcessor implements Processor<TimingState> {
       const current = this.bestLaps.get(num);
       if (!current || ms < current.timeMs) {
         const bestLapSnapshot = structuredClone(merged) as TimingLine;
-        (bestLapSnapshot as any).__dateTime = point.dateTime;
+        bestLapSnapshot.__dateTime = point.dateTime;
         this.bestLaps.set(num, {
           time,
           timeMs: ms,
-          lap: currentLap,
+          lap: getTimingLineBestLapNumber(merged) ?? currentLap,
           snapshot: bestLapSnapshot,
         });
       }
