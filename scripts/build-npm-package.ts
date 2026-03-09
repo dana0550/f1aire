@@ -29,6 +29,15 @@ export async function stampPackageVersion(options: {
   const raw = await readFile(options.packageJsonPath, 'utf8');
   const pkg = JSON.parse(raw) as Record<string, unknown>;
   pkg.version = options.version;
+  if (typeof pkg.scripts === 'object' && pkg.scripts !== null) {
+    const scripts = { ...(pkg.scripts as Record<string, unknown>) };
+    delete scripts.prepack;
+    if (Object.keys(scripts).length === 0) {
+      delete pkg.scripts;
+    } else {
+      pkg.scripts = scripts;
+    }
+  }
   await writeFile(
     options.packageJsonPath,
     JSON.stringify(pkg, null, 2) + '\n',

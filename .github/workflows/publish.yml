@@ -40,8 +40,11 @@ jobs:
         id: pack
         run: |
           set -euo pipefail
-          tarball="$(npm pack --silent)"
-          echo "tarball=$tarball" >> "$GITHUB_OUTPUT"
+          VERSION="${GITHUB_REF_NAME}" ./scripts/build-npm-package.sh >/dev/null
+          pushd dist/npm >/dev/null
+          tarball="$(npm pack --silent .)"
+          popd >/dev/null
+          echo "tarball=dist/npm/$tarball" >> "$GITHUB_OUTPUT"
 
       - name: Upload npm tarball
         uses: actions/upload-artifact@v4
@@ -63,16 +66,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-
-      - name: Verify tag matches package.json version
-        run: |
-          set -euo pipefail
-          tag="${GITHUB_REF_NAME}"
-          pkg_version="$(node --input-type=module -e "import { readFileSync } from 'node:fs'; process.stdout.write(JSON.parse(readFileSync('package.json','utf8')).version)")"
-          if [ "$tag" != "v${pkg_version}" ]; then
-            echo "tag ($tag) does not match package.json version (v${pkg_version})" >&2
-            exit 1
-          fi
 
       - name: Download npm tarball
         uses: actions/download-artifact@v4

@@ -4,6 +4,7 @@ import path from 'node:path';
 import { afterEach, describe, expect, test } from 'vitest';
 
 import {
+  stageNpmPackage,
   stampPackageVersion,
   versionFromGitTag,
 } from './build-npm-package.ts';
@@ -60,6 +61,44 @@ describe('stampPackageVersion', () => {
     const repo = JSON.parse(await readFile(repoPackagePath, 'utf8'));
 
     expect(staged.version).toBe('0.1.6');
+    expect(staged.scripts?.prepack).toBeUndefined();
     expect(repo.version).toBe('0.0.0');
+  });
+
+  test('stageNpmPackage removes prepack from the staged package', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'f1aire-stage-package-'));
+    tempDirs.push(dir);
+
+    await mkdir(path.join(dir, 'dist', 'core'), { recursive: true });
+    await writeFile(path.join(dir, 'dist', 'index.js'), '#!/usr/bin/env node\n');
+    await writeFile(path.join(dir, 'dist', 'core', 'topic-registry.js'), 'export {};\n');
+    await writeFile(path.join(dir, 'README.md'), '# f1aire\n');
+    await writeFile(path.join(dir, 'LICENSE'), 'MIT\n');
+    await writeFile(
+      path.join(dir, 'package.json'),
+      JSON.stringify(
+        {
+          name: 'f1aire',
+          version: '0.0.0',
+          scripts: {
+            prepack: 'npm run build',
+            build: 'tsc -p tsconfig.build.json',
+          },
+        },
+        null,
+        2,
+      ) + '\n',
+    );
+
+    const result = await stageNpmPackage({
+      repoRoot: dir,
+      gitTag: 'v0.1.6',
+    });
+    const staged = JSON.parse(
+      await readFile(result.stagedPackageJsonPath, 'utf8'),
+    );
+
+    expect(staged.version).toBe('0.1.6');
+    expect(staged.scripts?.prepack).toBeUndefined();
   });
 });
