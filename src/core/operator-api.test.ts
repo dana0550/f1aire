@@ -1,3 +1,6 @@
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import type { SessionStore } from './session-store.js';
 import { TimingService } from './timing-service.js';
@@ -553,6 +556,83 @@ describe('createOperatorApi', () => {
         },
       ],
     });
+  });
+
+  it('downloads and plays team radio clips through operator workflows', async () => {
+    const service = new TimingService();
+    points.forEach((point) => service.enqueue(point));
+    const destinationDir = mkdtempSync(
+      path.join(tmpdir(), 'f1aire-operator-team-radio-'),
+    );
+    const fetchImpl = vi.fn(async () => new Response('radio-bytes'));
+    const spawnImpl = vi.fn(() => ({
+      pid: 4321,
+      once: () => undefined,
+      unref: () => undefined,
+    }));
+
+    try {
+      const api = createOperatorApi({
+        store: buildStore(points),
+        service,
+        teamRadioFetchImpl: fetchImpl as typeof fetch,
+        teamRadioSpawnImpl:
+          spawnImpl as Parameters<typeof createOperatorApi>[0]['teamRadioSpawnImpl'],
+      });
+
+      const download = await api.downloadTeamRadioCapture({
+        captureId: '1',
+        destinationDir,
+      });
+
+      expect(download).toMatchObject({
+        captureId: '1',
+        driverNumber: '4',
+        reused: false,
+        bytes: 11,
+        filePath: path.join(destinationDir, 'LANNOR01_4_20250101_000011.mp3'),
+      });
+      expect(readFileSync(download.filePath, 'utf-8')).toBe('radio-bytes');
+      expect(api.getTeamRadioEvents({ driverNumber: '4', limit: 1 })).toEqual({
+        sessionPrefix:
+          'https://livetiming.formula1.com/static/2025/Test_Weekend/Race/',
+        total: 1,
+        returned: 1,
+        captures: [
+          expect.objectContaining({
+            captureId: '1',
+            downloadedFilePath: download.filePath,
+          }),
+        ],
+      });
+
+      const playback = await api.playTeamRadioCapture({
+        captureId: '1',
+        destinationDir,
+        player: 'ffplay',
+      });
+
+      expect(playback).toMatchObject({
+        captureId: '1',
+        driverNumber: '4',
+        reused: true,
+        player: 'ffplay',
+        command: 'ffplay',
+        args: [
+          '-nodisp',
+          '-autoexit',
+          '-loglevel',
+          'error',
+          path.join(destinationDir, 'LANNOR01_4_20250101_000011.mp3'),
+        ],
+        pid: 4321,
+      });
+
+      expect(fetchImpl).toHaveBeenCalledTimes(1);
+      expect(spawnImpl).toHaveBeenCalledTimes(1);
+    } finally {
+      rmSync(destinationDir, { recursive: true, force: true });
+    }
   });
 
   it('returns cursor-aware session lifecycle snapshots and event timelines', () => {

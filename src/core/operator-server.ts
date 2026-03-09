@@ -14,7 +14,9 @@ import type {
   ReplayControlResult,
   SessionLifecycleOrder,
   SessionLifecycleResponse,
+  TeamRadioDownloadRequest,
   TeamRadioEventsResponse,
+  TeamRadioPlaybackRequest,
   TimingLapResponse,
   TyreStintsResponse,
 } from './operator-api.js';
@@ -41,6 +43,12 @@ type BestLapQuery = {
 type TeamRadioQuery = {
   driverNumber?: string;
   limit?: number;
+};
+
+type TeamRadioErrorResponse = {
+  statusCode: number;
+  errorCode: string;
+  errorMessage: string;
 };
 
 type TyreQuery = {
@@ -141,6 +149,32 @@ async function readJsonBody(req: IncomingMessage): Promise<JsonObject | null> {
   return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
     ? (parsed as JsonObject)
     : null;
+}
+
+function classifyTeamRadioError(error: unknown): TeamRadioErrorResponse {
+  const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+  if (/No matching team radio capture was found\./i.test(errorMessage)) {
+    return {
+      statusCode: 404,
+      errorCode: 'not-found',
+      errorMessage,
+    };
+  }
+
+  if (/does not have a downloadable asset URL\./i.test(errorMessage)) {
+    return {
+      statusCode: 400,
+      errorCode: 'invalid-request',
+      errorMessage,
+    };
+  }
+
+  return {
+    statusCode: 500,
+    errorCode: 'internal-error',
+    errorMessage,
+  };
 }
 
 function handleTimingLap(
@@ -303,6 +337,52 @@ export function createOperatorApiRequestHandler(opts: {
         }
         sendJson(res, 200, result.value);
         return;
+      }
+
+      if (
+        method === 'POST' &&
+        segments.length === 3 &&
+        segments[0] === 'data' &&
+        segments[1] === 'TeamRadio' &&
+        (segments[2] === 'download' || segments[2] === 'play')
+      ) {
+        let body: JsonObject = {};
+        try {
+          body = (await readJsonBody(req)) ?? {};
+        } catch {
+          sendError(
+            res,
+            400,
+            'invalid-request',
+            'Request body must be valid JSON.',
+          );
+          return;
+        }
+
+        try {
+          if (segments[2] === 'download') {
+            const result = await api.downloadTeamRadioCapture(
+              body as TeamRadioDownloadRequest,
+            );
+            sendJson(res, 200, result);
+            return;
+          }
+
+          const result = await api.playTeamRadioCapture(
+            body as TeamRadioPlaybackRequest,
+          );
+          sendJson(res, 200, result);
+          return;
+        } catch (error) {
+          const classified = classifyTeamRadioError(error);
+          sendError(
+            res,
+            classified.statusCode,
+            classified.errorCode,
+            classified.errorMessage,
+          );
+          return;
+        }
       }
 
       if (method === 'GET' && segments.length === 3 && segments[0] === 'data') {

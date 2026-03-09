@@ -11,9 +11,14 @@ import {
   type SessionLifecycleStatus,
 } from './session-lifecycle.js';
 import {
+  downloadTeamRadioCapture as downloadTeamRadioClip,
   getSessionStaticPrefix,
   getTeamRadioCaptures,
+  playTeamRadioCapture as playTeamRadioClip,
   type TeamRadioCaptureSummary,
+  type TeamRadioDownloadResult,
+  type TeamRadioPlaybackResult,
+  type TeamRadioPlayer,
 } from './team-radio.js';
 import {
   buildPositionSnapshotFromTimelines,
@@ -175,6 +180,23 @@ export type TeamRadioEventsResponse = {
   captures: TeamRadioEventRecord[];
 };
 
+export type TeamRadioDownloadRequest = {
+  captureId?: string | number;
+  driverNumber?: string | number;
+  destinationDir?: string;
+  overwrite?: boolean;
+  appName?: string;
+};
+
+export type TeamRadioPlaybackRequest = {
+  captureId?: string | number;
+  driverNumber?: string | number;
+  destinationDir?: string;
+  overwriteDownload?: boolean;
+  appName?: string;
+  player?: TeamRadioPlayer;
+};
+
 export type SessionLifecycleOrder = 'asc' | 'desc';
 
 export type SessionLifecycleEventRecord = Pick<
@@ -222,6 +244,12 @@ export type OperatorApi = {
     driverNumber?: string | number;
     limit?: number;
   }) => TeamRadioEventsResponse;
+  downloadTeamRadioCapture: (
+    options?: TeamRadioDownloadRequest,
+  ) => Promise<TeamRadioDownloadResult>;
+  playTeamRadioCapture: (
+    options?: TeamRadioPlaybackRequest,
+  ) => Promise<TeamRadioPlaybackResult>;
   getSessionLifecycle: (options?: {
     includeFuture?: boolean;
     limit?: number;
@@ -383,6 +411,18 @@ function getTeamRadioCaptureList(
 
   const requestedDriver = String(options.driverNumber);
   return captures.filter((capture) => capture.driverNumber === requestedDriver);
+}
+
+function getTeamRadioWorkflowState(
+  store: SessionStore,
+  service: TimingService,
+) {
+  return (
+    service.processors.teamRadio?.state ??
+    store.topic('TeamRadio').latest?.json ??
+    getSubscribeTopicSnapshot(store, 'TeamRadio') ??
+    null
+  );
 }
 
 function findLapRecordForDriverAt(
@@ -722,11 +762,27 @@ export function createOperatorApi({
   service,
   timeCursor = { latest: true },
   onTimeCursorChange,
+  teamRadioFetchImpl,
+  teamRadioSpawnImpl,
 }: {
   store: SessionStore;
   service: TimingService;
   timeCursor?: TimeCursor;
   onTimeCursorChange?: (cursor: TimeCursor) => void;
+  teamRadioFetchImpl?: typeof fetch;
+  teamRadioSpawnImpl?: (
+    command: string,
+    args: string[],
+    options: {
+      stdio: 'ignore';
+      detached: boolean;
+      shell: boolean;
+    },
+  ) => {
+    pid?: number;
+    once?: (event: string, listener: (...args: unknown[]) => unknown) => unknown;
+    unref?: () => void;
+  };
 }): OperatorApi {
   let currentCursor: TimeCursor = { ...timeCursor };
 
@@ -985,6 +1041,36 @@ export function createOperatorApi({
     };
   };
 
+  const downloadTeamRadioCapture: OperatorApi['downloadTeamRadioCapture'] = (
+    options = {},
+  ) =>
+    downloadTeamRadioClip({
+      source: store,
+      state: getTeamRadioWorkflowState(store, service),
+      captureId: options.captureId,
+      driverNumber: options.driverNumber,
+      destinationDir: options.destinationDir,
+      appName: options.appName,
+      overwrite: options.overwrite,
+      fetchImpl: teamRadioFetchImpl,
+    });
+
+  const playTeamRadioCapture: OperatorApi['playTeamRadioCapture'] = (
+    options = {},
+  ) =>
+    playTeamRadioClip({
+      source: store,
+      state: getTeamRadioWorkflowState(store, service),
+      captureId: options.captureId,
+      driverNumber: options.driverNumber,
+      destinationDir: options.destinationDir,
+      appName: options.appName,
+      overwriteDownload: options.overwriteDownload,
+      fetchImpl: teamRadioFetchImpl,
+      player: options.player,
+      spawnImpl: teamRadioSpawnImpl,
+    });
+
   const getSessionLifecycle: OperatorApi['getSessionLifecycle'] = (
     options = {},
   ) => {
@@ -1200,6 +1286,8 @@ export function createOperatorApi({
     getPositionSnapshot: getPositionSnapshotView,
     getBestLaps,
     getTeamRadioEvents,
+    downloadTeamRadioCapture,
+    playTeamRadioCapture,
     getSessionLifecycle,
     getControlState,
     applyControl,

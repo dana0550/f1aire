@@ -1,3 +1,6 @@
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { SessionStore } from './session-store.js';
 import { createOperatorApi } from './operator-api.js';
@@ -8,6 +11,11 @@ type RawPoint = SessionStore['raw']['live'][number];
 
 type BuildStoreOptions = {
   subscribe?: Record<string, unknown>;
+};
+
+type StartTestServerOptions = BuildStoreOptions & {
+  teamRadioFetchImpl?: typeof fetch;
+  teamRadioSpawnImpl?: Parameters<typeof createOperatorApi>[0]['teamRadioSpawnImpl'];
 };
 
 function buildStore(
@@ -361,13 +369,15 @@ afterEach(async () => {
 
 async function startTestServer(
   testPoints: RawPoint[] = points,
-  options: BuildStoreOptions = {},
+  options: StartTestServerOptions = {},
 ) {
   const service = new TimingService();
   testPoints.forEach((point) => service.enqueue(point));
   const api = createOperatorApi({
     store: buildStore(testPoints, options),
     service,
+    teamRadioFetchImpl: options.teamRadioFetchImpl,
+    teamRadioSpawnImpl: options.teamRadioSpawnImpl,
   });
   const server = await startOperatorApiServer({ api });
   activeServers.add(server);
@@ -699,6 +709,84 @@ describe('operator-server', () => {
         },
       ],
     });
+  });
+
+  it('serves team radio download and playback workflows over HTTP', async () => {
+    const destinationDir = mkdtempSync(
+      path.join(tmpdir(), 'f1aire-team-radio-http-'),
+    );
+    const fetchImpl = async () => new Response('radio-bytes');
+    const spawnImpl = () => ({
+      pid: 2468,
+      once: () => undefined,
+      unref: () => undefined,
+    });
+
+    try {
+      const server = await startTestServer(points, {
+        teamRadioFetchImpl: fetchImpl as typeof fetch,
+        teamRadioSpawnImpl: spawnImpl,
+      });
+
+      const downloadResponse = await fetch(
+        `${server.origin}/data/TeamRadio/download`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ captureId: '1', destinationDir }),
+        },
+      );
+      expect(downloadResponse.status).toBe(200);
+      await expect(downloadResponse.json()).resolves.toMatchObject({
+        captureId: '1',
+        driverNumber: '4',
+        reused: false,
+        bytes: 11,
+        filePath: path.join(destinationDir, 'LANNOR01_4_20250101_000011.mp3'),
+      });
+      expect(
+        readFileSync(
+          path.join(destinationDir, 'LANNOR01_4_20250101_000011.mp3'),
+          'utf-8',
+        ),
+      ).toBe('radio-bytes');
+
+      const playResponse = await fetch(`${server.origin}/data/TeamRadio/play`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ captureId: '1', destinationDir, player: 'mpv' }),
+      });
+      expect(playResponse.status).toBe(200);
+      await expect(playResponse.json()).resolves.toMatchObject({
+        captureId: '1',
+        driverNumber: '4',
+        reused: true,
+        player: 'mpv',
+        command: 'mpv',
+        args: [
+          '--really-quiet',
+          '--force-window=no',
+          path.join(destinationDir, 'LANNOR01_4_20250101_000011.mp3'),
+        ],
+        pid: 2468,
+      });
+
+      const notFoundResponse = await fetch(
+        `${server.origin}/data/TeamRadio/download`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ captureId: '999' }),
+        },
+      );
+      expect(notFoundResponse.status).toBe(404);
+      await expect(notFoundResponse.json()).resolves.toEqual({
+        errorCode: 'not-found',
+        errorMessage: 'No matching team radio capture was found.',
+      });
+    } finally {
+      rmSync(destinationDir, { recursive: true, force: true });
+    }
   });
 
   it('serves exact-time position snapshots over HTTP', async () => {
