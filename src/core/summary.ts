@@ -1,3 +1,5 @@
+import { getTotalLaps } from './lap-count.js';
+
 export type Summary = {
   winner: { number: string; name: string } | null;
   fastestLap: { number: string; name: string; time: string } | null;
@@ -64,8 +66,8 @@ export function summarizeFromLines(raw: string): Summary {
       }
     }
     if (entry.type === 'LapCount') {
-      const value = entry.json?.TotalLaps as number | undefined;
-      if (typeof value === 'number') totalLaps = value;
+      const value = getTotalLaps(entry.json);
+      if (value !== null) totalLaps = value;
     }
   }
 

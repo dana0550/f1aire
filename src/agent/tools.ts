@@ -24,7 +24,9 @@ import {
 } from '../core/analysis-utils.js';
 import { createAnalysisContext } from '../core/analysis.js';
 import { buildAnalysisIndex } from '../core/analysis-index.js';
+import { getHeartbeatSnapshot } from '../core/heartbeat.js';
 import { shapeOf, shapeOfMany } from '../core/inspect.js';
+import { getLapCountSnapshot } from '../core/lap-count.js';
 import {
   classifyDrsChannel45,
   computeGapTrainsForLap,
@@ -1647,6 +1649,15 @@ export function makeTools({
       };
     }
 
+    if (topic === 'Heartbeat') {
+      const state = processors.heartbeat?.state ?? null;
+      if (!state) return null;
+      return {
+        asOf,
+        heartbeat: getHeartbeatSnapshot(state) ?? state,
+      };
+    }
+
     if (topic === 'WeatherData') {
       const state = processors.weatherData?.state ?? null;
       if (!state) return null;
@@ -1792,7 +1803,9 @@ export function makeTools({
       if (!state) return null;
       return {
         asOf,
-        lapCount: pickKnownKeys(state, ['CurrentLap', 'TotalLaps']) ?? state,
+        lapCount:
+          getLapCountSnapshot(state) ??
+          (pickKnownKeys(state, ['CurrentLap', 'TotalLaps']) ?? state),
       };
     }
 
@@ -2341,7 +2354,10 @@ export function makeTools({
     get_lap_count: tool({
       description: 'Get merged LapCount',
       inputSchema: z.object({}),
-      execute: async () => processors.lapCount?.state ?? null,
+      execute: async () => {
+        const state = processors.lapCount?.state ?? null;
+        return state ? (getLapCountSnapshot(state) ?? state) : null;
+      },
     }),
     get_weather: tool({
       description: 'Get merged WeatherData',
@@ -3387,7 +3403,10 @@ export function makeTools({
     get_heartbeat: tool({
       description: 'Get merged Heartbeat',
       inputSchema: z.object({}),
-      execute: async () => processors.heartbeat?.state ?? null,
+      execute: async () => {
+        const state = processors.heartbeat?.state ?? null;
+        return state ? (getHeartbeatSnapshot(state) ?? state) : null;
+      },
     }),
     run_py: tool({
       description:

@@ -133,6 +133,32 @@ describe('summarizeFromLines', () => {
     expect(summary.fastestLap?.time).toBe('1:29.999');
     expect(summary.totalLaps).toBe(52);
   });
+
+  it('accepts string-valued LapCount totals', () => {
+    const raw = [
+      JSON.stringify({
+        type: 'DriverList',
+        json: { '81': { FullName: 'Oscar Piastri' } },
+        dateTime: '2024-01-01T00:00:00.000Z',
+      }),
+      JSON.stringify({
+        type: 'TimingData',
+        json: {
+          Lines: {
+            '81': { Position: '1', BestLapTime: { Value: '1:29.999' } },
+          },
+        },
+        dateTime: '2024-01-01T00:00:10.000Z',
+      }),
+      JSON.stringify({
+        type: 'LapCount',
+        json: { TotalLaps: '53' },
+        dateTime: '2024-01-01T00:00:11.000Z',
+      }),
+    ].join('\n');
+
+    expect(summarizeFromLines(raw).totalLaps).toBe(53);
+  });
 });
 
 describe('parseLapTimeMs', () => {

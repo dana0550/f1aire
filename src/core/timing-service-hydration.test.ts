@@ -212,4 +212,34 @@ describe('hydrateTimingServiceFromStore', () => {
       lap: 12,
     });
   });
+
+  it('uses alternate heartbeat UTC fields when deriving hydration timestamps', () => {
+    const service = new TimingService();
+    const store = buildStore({
+      subscribe: {
+        SessionInfo: {
+          Name: 'Practice 1',
+          Path: '2025/2025-03-01_Test_Weekend/2025-03-01_Practice_1/',
+        },
+        Heartbeat: {
+          UtcTime: '2025-03-01T10:00:00Z',
+        },
+      },
+      live: [],
+      keyframes: {
+        WeatherData: {
+          AirTemp: '21.4',
+        },
+      },
+    });
+
+    hydrateTimingServiceFromStore({ service, store });
+
+    expect(service.processors.heartbeat.state).toEqual({
+      Utc: '2025-03-01T10:00:00.000Z',
+    });
+    expect(service.processors.weatherData.state).toEqual({
+      AirTemp: '21.4',
+    });
+  });
 });

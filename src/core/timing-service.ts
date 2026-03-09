@@ -1,3 +1,4 @@
+import { getHeartbeatDate } from './heartbeat.js';
 import type { SessionStore } from './session-store.js';
 import type { RawPoint } from './processors/types.js';
 import { CarDataProcessor } from './processors/car-data.js';
@@ -5,6 +6,8 @@ import { DriverTrackerProcessor } from './processors/driver-tracker.js';
 import { DriverRaceInfoProcessor } from './processors/driver-race-info.js';
 import { DriverListProcessor } from './processors/driver-list.js';
 import { ExtrapolatedClockProcessor } from './processors/extrapolated-clock.js';
+import { HeartbeatProcessor } from './processors/heartbeat.js';
+import { LapCountProcessor } from './processors/lap-count.js';
 import { MergeProcessor } from './processors/merge-processor.js';
 import { normalizePoint } from './processors/normalize.js';
 import { PitLaneTimeCollectionProcessor } from './processors/pit-lane-time-collection.js';
@@ -65,17 +68,6 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function toValidDate(value: unknown): Date | null {
-  if (value instanceof Date) {
-    return Number.isFinite(value.getTime()) ? value : null;
-  }
-  if (typeof value !== 'string') {
-    return null;
-  }
-  const parsed = new Date(value);
-  return Number.isFinite(parsed.getTime()) ? parsed : null;
-}
-
 function canonicalizeTopicName(topic: string) {
   return (
     getTopicDefinition(topic)?.topic ??
@@ -111,13 +103,11 @@ function getHydrationDateTime(store: SessionStore): Date {
   }
 
   const heartbeatDate =
-    toValidDate(
-      (store.raw.subscribe as { Heartbeat?: { Utc?: unknown } })?.Heartbeat
-        ?.Utc,
+    getHeartbeatDate(
+      (store.raw.subscribe as { Heartbeat?: unknown } | null)?.Heartbeat,
     ) ??
-    toValidDate(
-      (store.raw.keyframes as { Heartbeat?: { Utc?: unknown } })?.Heartbeat
-        ?.Utc,
+    getHeartbeatDate(
+      (store.raw.keyframes as { Heartbeat?: unknown } | null)?.Heartbeat,
     );
   if (heartbeatDate) {
     return heartbeatDate;
@@ -134,13 +124,13 @@ export type TimingServiceHydrationResult = {
 
 export class TimingService {
   processors = {
-    heartbeat: new ReplaceProcessor('Heartbeat'),
+    heartbeat: new HeartbeatProcessor(),
     driverList: new DriverListProcessor(),
     timingData: new TimingDataProcessor(),
     timingAppData: new TimingAppDataProcessor(),
     timingStats: new TimingStatsProcessor(),
     trackStatus: new TrackStatusProcessor(),
-    lapCount: new ReplaceProcessor('LapCount'),
+    lapCount: new LapCountProcessor(),
     weatherData: new ReplaceProcessor('WeatherData'),
     sessionInfo: new SessionInfoProcessor(),
     sessionData: new MergeProcessor('SessionData'),

@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
+import { getHeartbeatUtc } from './heartbeat.js';
 import type { Meeting } from './types.js';
 import { parseJsonStreamLines, parseOffsetMs } from './parse.js';
 import { getStreamTopicsForSessionType } from './topic-registry.js';
@@ -419,7 +420,7 @@ function parseFirstLine(raw: string): { json: any; offsetMs: number } {
 }
 
 function extractStartUtc(heartbeat: { json: any; offsetMs: number }): Date {
-  const utc = heartbeat.json.Utc ?? heartbeat.json.UtcTime ?? heartbeat.json.utc;
+  const utc = getHeartbeatUtc(heartbeat.json);
   if (!utc) throw new Error('Heartbeat missing UTC');
   const utcMs = Date.parse(utc);
   if (Number.isNaN(utcMs)) {

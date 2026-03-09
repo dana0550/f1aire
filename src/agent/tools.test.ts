@@ -146,6 +146,37 @@ describe('tools', () => {
     });
   });
 
+  it('returns canonical heartbeat and lap-count snapshots from typed helpers', async () => {
+    const tools = makeTools({
+      store,
+      processors: {
+        ...processors,
+        heartbeat: {
+          state: {
+            UtcTime: '2025-03-09T12:34:56Z',
+          },
+        },
+        lapCount: {
+          state: {
+            CurrentLap: '12',
+            TotalLaps: '57',
+          },
+        },
+      } as any,
+      timeCursor: { latest: true },
+      onTimeCursorChange: () => {},
+    });
+
+    await expect(tools.get_heartbeat.execute({} as any)).resolves.toEqual({
+      utc: '2025-03-09T12:34:56.000Z',
+    });
+    await expect(tools.get_lap_count.execute({} as any)).resolves.toEqual({
+      currentLap: 12,
+      totalLaps: 57,
+      lapsRemaining: 45,
+    });
+  });
+
   it('get_audio_streams returns resolved playback metadata', async () => {
     const tools = makeTools({
       store: {
