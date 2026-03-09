@@ -1,8 +1,13 @@
 import type { SessionStore } from './session-store.js';
 import type { TimingService } from './timing-service.js';
-import { buildAnalysisIndex } from './analysis-index.js';
+import { buildAnalysisIndex, type LapRecord } from './analysis-index.js';
 import { isPlainObject } from './processors/merge.js';
 import { normalizePoint } from './processors/normalize.js';
+import {
+  getSessionStaticPrefix,
+  getTeamRadioCaptures,
+  type TeamRadioCaptureSummary,
+} from './team-radio.js';
 import {
   getTopicDefinition,
   type TopicAvailability,
@@ -99,6 +104,34 @@ export type BestLapsResponse = {
   records: BestLapRecord[];
 };
 
+export type TeamRadioMatchMode = 'at-or-before' | 'nearest';
+
+export type TeamRadioEventContext = {
+  captureTime: string;
+  matchedTimingTime: string | null;
+  matchMode: TeamRadioMatchMode;
+  lap: number;
+  position: number | null;
+  gapToLeaderSec: number | null;
+  intervalToAheadSec: number | null;
+  traffic: LapRecord['traffic'];
+  trackStatus: LapRecord['trackStatus'];
+  flags: LapRecord['flags'];
+  stint: LapRecord['stint'];
+};
+
+export type TeamRadioEventRecord = TeamRadioCaptureSummary & {
+  driverName: string | null;
+  context: TeamRadioEventContext | null;
+};
+
+export type TeamRadioEventsResponse = {
+  sessionPrefix: string | null;
+  total: number;
+  returned: number;
+  captures: TeamRadioEventRecord[];
+};
+
 export type OperatorApi = {
   getLatest: (topic: string) => OperatorTopicSnapshot | null;
   getTimingLap: (options?: {
@@ -110,6 +143,10 @@ export type OperatorApi = {
     limit?: number;
     includeSnapshot?: boolean;
   }) => BestLapsResponse;
+  getTeamRadioEvents: (options?: {
+    driverNumber?: string | number;
+    limit?: number;
+  }) => TeamRadioEventsResponse;
   getControlState: () => ReplayControlState;
   applyControl: (request: ReplayControlRequest) => ReplayControlResult;
 };
@@ -136,6 +173,14 @@ function serializeValue(value: unknown): unknown {
   return value;
 }
 
+function parseIsoDate(value: string | null): Date | null {
+  if (!value) {
+    return null;
+  }
+  const parsed = new Date(value);
+  return Number.isFinite(parsed.getTime()) ? parsed : null;
+}
+
 function getRawLatest(store: SessionStore, topic: string): RawPoint | null {
   const direct = store.topic(topic).latest as RawPoint | null;
   return direct ?? (store.topic(`${topic}.z`).latest as RawPoint | null);
@@ -146,6 +191,117 @@ function getDriverName(
   driverNumber: string,
 ): string | null {
   return service.processors.driverList?.getName?.(driverNumber) ?? null;
+}
+
+function getTeamRadioCaptureList(
+  store: SessionStore,
+  service: TimingService,
+  options: {
+    staticPrefix?: string | null;
+    driverNumber?: string | number;
+  } = {},
+): TeamRadioCaptureSummary[] {
+  const processor = service.processors.teamRadio as
+    | {
+        getCaptures?: (query?: {
+          staticPrefix?: string | null;
+          driverNumber?: string | number;
+          limit?: number;
+        }) => TeamRadioCaptureSummary[];
+        state?: unknown;
+      }
+    | undefined;
+
+  if (processor?.getCaptures) {
+    return processor.getCaptures(options) ?? [];
+  }
+
+  const captures = getTeamRadioCaptures(
+    processor?.state ?? store.topic('TeamRadio').latest?.json,
+    {
+      staticPrefix: options.staticPrefix,
+    },
+  );
+
+  if (options.driverNumber === undefined) {
+    return captures;
+  }
+
+  const requestedDriver = String(options.driverNumber);
+  return captures.filter((capture) => capture.driverNumber === requestedDriver);
+}
+
+function findLapRecordForDriverAt(
+  analysisIndex: ReturnType<typeof buildAnalysisIndex>,
+  driverNumber: string | null,
+  captureTime: Date | null,
+): { record: LapRecord; matchMode: TeamRadioMatchMode } | null {
+  if (!driverNumber || !captureTime) {
+    return null;
+  }
+
+  const records = analysisIndex.byDriver.get(driverNumber) ?? [];
+  if (records.length === 0) {
+    return null;
+  }
+
+  let atOrBefore: LapRecord | null = null;
+  let nearest: LapRecord | null = null;
+  let nearestDiff = Infinity;
+
+  for (const record of records) {
+    if (!record.dateTime) {
+      continue;
+    }
+
+    const diff = Math.abs(record.dateTime.getTime() - captureTime.getTime());
+    if (diff < nearestDiff) {
+      nearest = record;
+      nearestDiff = diff;
+    }
+
+    if (record.dateTime.getTime() <= captureTime.getTime()) {
+      atOrBefore = record;
+    }
+  }
+
+  if (atOrBefore) {
+    return { record: atOrBefore, matchMode: 'at-or-before' };
+  }
+  if (nearest) {
+    return { record: nearest, matchMode: 'nearest' };
+  }
+  return null;
+}
+
+function buildTeamRadioContext(
+  analysisIndex: ReturnType<typeof buildAnalysisIndex>,
+  capture: Pick<TeamRadioCaptureSummary, 'utc' | 'driverNumber'>,
+): TeamRadioEventContext | null {
+  const captureTime = parseIsoDate(capture.utc);
+  const match = findLapRecordForDriverAt(
+    analysisIndex,
+    capture.driverNumber,
+    captureTime,
+  );
+  if (!captureTime || !match) {
+    return null;
+  }
+
+  const { record, matchMode } = match;
+  return {
+    captureTime: captureTime.toISOString(),
+    matchedTimingTime: record.dateTime?.toISOString() ?? null,
+    matchMode,
+    lap: record.lap,
+    position: record.position,
+    gapToLeaderSec: record.gapToLeaderSec,
+    intervalToAheadSec: record.intervalToAheadSec,
+    traffic: record.traffic,
+    trackStatus: serializeValue(record.trackStatus) as LapRecord['trackStatus'],
+    flags: serializeValue(record.flags) as LapRecord['flags'],
+    stint: serializeValue(record.stint) as LapRecord['stint'],
+  };
 }
 
 function getTopicState(service: TimingService, topic: string): unknown | null {
@@ -431,6 +587,36 @@ export function createOperatorApi({
     };
   };
 
+  const getTeamRadioEvents: OperatorApi['getTeamRadioEvents'] = (
+    options = {},
+  ) => {
+    const sessionPrefix = getSessionStaticPrefix(store);
+    const captures = getTeamRadioCaptureList(store, service, {
+      staticPrefix: sessionPrefix,
+      driverNumber: options.driverNumber,
+    });
+    const analysisIndex = buildAnalysisIndex({
+      processors: service.processors,
+    });
+    const limited =
+      typeof options.limit === 'number' && options.limit >= 0
+        ? captures.slice(0, options.limit)
+        : captures;
+
+    return {
+      sessionPrefix,
+      total: captures.length,
+      returned: limited.length,
+      captures: limited.map((capture) => ({
+        ...capture,
+        driverName: capture.driverNumber
+          ? getDriverName(service, capture.driverNumber)
+          : null,
+        context: buildTeamRadioContext(analysisIndex, capture),
+      })),
+    };
+  };
+
   const getControlState = () =>
     buildControlState(store, service, currentCursor);
 
@@ -562,6 +748,7 @@ export function createOperatorApi({
     getLatest,
     getTimingLap,
     getBestLaps,
+    getTeamRadioEvents,
     getControlState,
     applyControl,
   };

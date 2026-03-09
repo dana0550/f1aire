@@ -10,6 +10,7 @@ import type {
   OperatorApi,
   ReplayControlRequest,
   ReplayControlResult,
+  TeamRadioEventsResponse,
   TimingLapResponse,
 } from './operator-api.js';
 
@@ -30,6 +31,11 @@ type BestLapQuery = {
   driverNumber?: string;
   limit?: number;
   includeSnapshot?: boolean;
+};
+
+type TeamRadioQuery = {
+  driverNumber?: string;
+  limit?: number;
 };
 
 const JSON_HEADERS = {
@@ -135,6 +141,22 @@ function handleBestLaps(api: OperatorApi, url: URL): BestLapsResponse {
   return api.getBestLaps(options);
 }
 
+function handleTeamRadioEvents(
+  api: OperatorApi,
+  url: URL,
+): TeamRadioEventsResponse {
+  const options: TeamRadioQuery = {};
+  const driverNumber = url.searchParams.get('driverNumber');
+  if (driverNumber) {
+    options.driverNumber = driverNumber;
+  }
+  const limit = parseOptionalInt(url.searchParams.get('limit'));
+  if (typeof limit === 'number') {
+    options.limit = limit;
+  }
+  return api.getTeamRadioEvents(options);
+}
+
 function applyControl(
   api: OperatorApi,
   request: JsonObject,
@@ -199,6 +221,10 @@ export function createOperatorApiRequestHandler(opts: {
 
       if (method === 'GET' && segments.length === 3 && segments[0] === 'data') {
         const topic = decodeURIComponent(segments[1]!);
+        if (topic === 'TeamRadio' && segments[2] === 'events') {
+          sendJson(res, 200, handleTeamRadioEvents(api, url));
+          return;
+        }
         if (segments[2] === 'latest') {
           const snapshot = api.getLatest(topic);
           if (!snapshot) {

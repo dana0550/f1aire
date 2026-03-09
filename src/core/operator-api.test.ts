@@ -21,7 +21,10 @@ function buildStore(points: RawPoint[]): SessionStore {
     raw: {
       subscribe: {},
       live: points,
-      download: null,
+      download: {
+        prefix:
+          'https://livetiming.formula1.com/static/2025/Test_Weekend/Race/',
+      },
       keyframes: null,
     },
     topic: (name) => {
@@ -65,6 +68,24 @@ describe('createOperatorApi', () => {
         ],
       },
       dateTime: new Date('2025-01-01T00:00:10Z'),
+    },
+    {
+      type: 'TeamRadio',
+      json: {
+        Captures: {
+          '0': {
+            Utc: '2025-01-01T00:00:10.500Z',
+            RacingNumber: '81',
+            Path: 'TeamRadio/OSCPIA01_81_20250101_000010.mp3',
+          },
+          '1': {
+            Utc: '2025-01-01T00:00:11.700Z',
+            RacingNumber: '4',
+            Path: 'TeamRadio/LANNOR01_4_20250101_000011.mp3',
+          },
+        },
+      },
+      dateTime: new Date('2025-01-01T00:00:11.700Z'),
     },
     {
       type: 'TimingData',
@@ -253,6 +274,50 @@ describe('createOperatorApi', () => {
     });
   });
 
+  it('returns deterministic team radio events with resolved clip URLs and lap context', () => {
+    const service = new TimingService();
+    points.forEach((point) => service.enqueue(point));
+    const api = createOperatorApi({ store: buildStore(points), service });
+
+    expect(api.getTeamRadioEvents({ limit: 1 })).toEqual({
+      sessionPrefix:
+        'https://livetiming.formula1.com/static/2025/Test_Weekend/Race/',
+      total: 2,
+      returned: 1,
+      captures: [
+        {
+          captureId: '1',
+          utc: '2025-01-01T00:00:11.700Z',
+          driverNumber: '4',
+          driverName: 'Lando Norris',
+          path: 'TeamRadio/LANNOR01_4_20250101_000011.mp3',
+          assetUrl:
+            'https://livetiming.formula1.com/static/2025/Test_Weekend/Race/TeamRadio/LANNOR01_4_20250101_000011.mp3',
+          downloadedFilePath: null,
+          hasTranscription: false,
+          context: {
+            captureTime: '2025-01-01T00:00:11.700Z',
+            matchedTimingTime: '2025-01-01T00:00:11.000Z',
+            matchMode: 'at-or-before',
+            lap: 11,
+            position: 2,
+            gapToLeaderSec: null,
+            intervalToAheadSec: null,
+            traffic: 'unknown',
+            trackStatus: null,
+            flags: {
+              pit: false,
+              pitIn: false,
+              pitOut: false,
+              inPit: false,
+            },
+            stint: null,
+          },
+        },
+      ],
+    });
+  });
+
   it('returns sorted best-lap records with JSON-safe snapshots', () => {
     const service = new TimingService();
     points.forEach((point) => service.enqueue(point));
@@ -354,7 +419,9 @@ describe('createOperatorApi', () => {
         errorMessage: 'set-time requires a valid ISO timestamp.',
       },
     });
-    expect(api.applyControl({ operation: 'step-time', deltaMs: Number.NaN })).toEqual({
+    expect(
+      api.applyControl({ operation: 'step-time', deltaMs: Number.NaN }),
+    ).toEqual({
       ok: false,
       error: {
         errorCode: 'invalid-request',
