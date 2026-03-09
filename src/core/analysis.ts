@@ -1,6 +1,11 @@
 import type { SessionStore } from './session-store.js';
 import type { RawPoint } from './processors/types.js';
 import {
+  getCarDataCars,
+  getLatestCarDataEntry,
+  type CarDataState,
+} from './feed-models.js';
+import {
   decodeCarChannels,
   extractLapTimeMs,
   extractSegmentStatuses,
@@ -341,15 +346,14 @@ export function createAnalysisContext(opts: {
   };
 
   const getLatestCarTelemetry = (driverNumber?: string) => {
-    const entry = (processors as any)?.carData?.state?.Entries?.slice?.(
-      -1,
-    )?.[0];
+    const entry = getLatestCarDataEntry(
+      (processors as any)?.carData?.state as CarDataState | null,
+    );
     if (!entry) return null;
-    const cars = entry?.Cars ?? {};
-    if (!isPlainObject(cars)) return null;
+    const cars = getCarDataCars(entry);
     if (driverNumber) {
-      const car = (cars as any)[driverNumber];
-      const channels = (car as any)?.Channels ?? null;
+      const car = cars[driverNumber];
+      const channels = car?.Channels ?? null;
       return {
         utc: entry?.Utc ?? null,
         driverNumber,
@@ -358,7 +362,7 @@ export function createAnalysisContext(opts: {
     }
     const all: Record<string, unknown> = {};
     for (const [num, car] of Object.entries(cars)) {
-      all[num] = decodeCarChannels((car as any)?.Channels ?? null);
+      all[num] = decodeCarChannels(car?.Channels ?? null);
     }
     return { utc: entry?.Utc ?? null, drivers: all };
   };

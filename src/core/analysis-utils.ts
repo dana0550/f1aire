@@ -1,24 +1,8 @@
 import { parseLapTimeMs } from './summary.js';
 import { isPlainObject } from './processors/merge.js';
+export { decodeCarChannels } from './feed-models.js';
 
 export type TrackStatusLike = { Status?: unknown; Message?: unknown } | null;
-
-export function decodeCarChannels(channels: unknown) {
-  if (!channels || typeof channels !== 'object') return null;
-  const data = channels as Record<string, unknown>;
-  const readNum = (key: string) => {
-    const value = data[key];
-    return typeof value === 'number' ? value : null;
-  };
-  return {
-    rpm: readNum('0'),
-    speed: readNum('2'),
-    gear: readNum('3'),
-    throttle: readNum('4'),
-    brake: readNum('5'),
-    drs: readNum('45'),
-  };
-}
 
 export function decodeSegmentStatus(status: unknown) {
   const raw = typeof status === 'number' ? status : Number(status);
@@ -53,7 +37,9 @@ export function extractSegmentStatuses(snapshot: unknown) {
         if (typeof value === 'number') segmentValues.push(value);
       }
     } else if (isPlainObject(segmentsRaw)) {
-      const keys = Object.keys(segmentsRaw).sort((a, b) => Number(a) - Number(b));
+      const keys = Object.keys(segmentsRaw).sort(
+        (a, b) => Number(a) - Number(b),
+      );
       for (const key of keys) {
         const value = (segmentsRaw as any)[key]?.Status;
         if (typeof value === 'number') segmentValues.push(value);
@@ -131,21 +117,24 @@ export function extractLapTimeMs(
 }
 
 export function trackStatusIsGreen(status: unknown, message: unknown) {
-  const statusValue = status === null || status === undefined ? '' : String(status);
-  const messageValue = message === null || message === undefined ? '' : String(message);
+  const statusValue =
+    status === null || status === undefined ? '' : String(status);
+  const messageValue =
+    message === null || message === undefined ? '' : String(message);
   const statusLower = statusValue.toLowerCase();
   const messageLower = messageValue.toLowerCase();
   if (statusLower === '1' || statusLower === 'green') return true;
-  if (messageLower.includes('allclear') || messageLower.includes('all clear')) return true;
+  if (messageLower.includes('allclear') || messageLower.includes('all clear'))
+    return true;
   return false;
 }
 
 export function isPitLap(snapshot: unknown) {
   return Boolean(
-    (snapshot as any)?.IsPitLap
-      || (snapshot as any)?.InPit
-      || (snapshot as any)?.PitOut
-      || (snapshot as any)?.PitIn,
+    (snapshot as any)?.IsPitLap ||
+    (snapshot as any)?.InPit ||
+    (snapshot as any)?.PitOut ||
+    (snapshot as any)?.PitIn,
   );
 }
 
@@ -189,7 +178,10 @@ export function getOrderedLines(lines: Record<string, any>) {
   });
 }
 
-export function smartGapToLeaderSeconds(lines: Record<string, any>, driverNumber: string) {
+export function smartGapToLeaderSeconds(
+  lines: Record<string, any>,
+  driverNumber: string,
+) {
   const ordered = getOrderedLines(lines);
   const index = ordered.findIndex(([num]) => num === driverNumber);
   if (index < 0) return null;
@@ -198,9 +190,9 @@ export function smartGapToLeaderSeconds(lines: Record<string, any>, driverNumber
 
   const gapToLeaderValue = line?.GapToLeader;
   if (
-    gapToLeaderValue !== null
-    && gapToLeaderValue !== undefined
-    && !String(gapToLeaderValue).toLowerCase().includes(' l')
+    gapToLeaderValue !== null &&
+    gapToLeaderValue !== undefined &&
+    !String(gapToLeaderValue).toLowerCase().includes(' l')
   ) {
     return parseGapSeconds(gapToLeaderValue);
   }

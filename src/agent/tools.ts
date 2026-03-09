@@ -75,6 +75,13 @@ import {
   getChampionshipPredictionTeams,
 } from '../core/championship-prediction.js';
 import {
+  decodePositionEntry,
+  getCarDataCars,
+  getLatestCarDataEntry,
+  getLatestPositionBatch,
+  getPositionEntries,
+} from '../core/feed-models.js';
+import {
   getRaceControlEvents,
   type RaceControlEvent,
 } from '../core/processors/race-control-messages.js';
@@ -640,12 +647,7 @@ export function makeTools({
   };
 
   const getLatestCarEntry = () => {
-    const state = processors.carData?.state as any;
-    const entries = Array.isArray(state?.Entries)
-      ? (state.Entries as any[])
-      : [];
-    if (!entries.length) return null;
-    return entries[entries.length - 1];
+    return getLatestCarDataEntry(processors.carData?.state ?? null);
   };
 
   const getProjectedClock = (referenceTime?: Date | null) => {
@@ -1310,11 +1312,10 @@ export function makeTools({
     if (topic === 'CarData') {
       const entry = getLatestCarEntry();
       if (!entry) return null;
-      const cars = (entry as any)?.Cars ?? {};
-      if (!isPlainObject(cars)) return null;
+      const cars = getCarDataCars(entry);
       if (resolvedDriver && resolvedDriver in cars) {
-        const car = (cars as any)[resolvedDriver];
-        const channels = (car as any)?.Channels ?? null;
+        const car = cars[resolvedDriver];
+        const channels = car?.Channels ?? null;
         return {
           asOf,
           utc: (entry as any)?.Utc ?? null,
@@ -1326,25 +1327,20 @@ export function makeTools({
       const first = Object.keys(cars)[0];
       if (!first)
         return { asOf, utc: (entry as any)?.Utc ?? null, sample: null };
-      const car = (cars as any)[first];
+      const car = cars[first];
       return {
         asOf,
         utc: (entry as any)?.Utc ?? null,
         driverNumber: first,
         driverName: getDriverName(first),
-        channels: decodeCarChannels((car as any)?.Channels ?? null),
+        channels: decodeCarChannels(car?.Channels ?? null),
       };
     }
 
     if (topic === 'Position') {
-      const state = processors.position?.state as any;
-      const batches = Array.isArray(state?.Position)
-        ? (state.Position as any[])
-        : [];
-      if (!batches.length) return null;
-      const latest = batches[batches.length - 1];
-      const entries = latest?.Entries ?? {};
-      if (!isPlainObject(entries)) return null;
+      const latest = getLatestPositionBatch(processors.position?.state ?? null);
+      if (!latest) return null;
+      const entries = getPositionEntries(latest);
       const key =
         resolvedDriver && resolvedDriver in entries
           ? resolvedDriver
@@ -1355,9 +1351,7 @@ export function makeTools({
         timestamp: latest?.Timestamp ?? null,
         driverNumber: key ?? null,
         driverName: key ? getDriverName(key) : null,
-        entry: sample
-          ? (pickKnownKeys(sample, ['Status', 'X', 'Y', 'Z']) ?? sample)
-          : null,
+        entry: sample ? (decodePositionEntry(sample) ?? sample) : null,
       };
     }
 
@@ -2618,12 +2612,11 @@ export function makeTools({
       execute: async ({ driverNumber }) => {
         const entry = getLatestCarEntry();
         if (!entry) return null;
-        const cars = (entry as any)?.Cars ?? {};
-        if (!isPlainObject(cars)) return null;
+        const cars = getCarDataCars(entry);
         if (driverNumber !== undefined) {
           const num = String(driverNumber);
-          const car = (cars as any)[num];
-          const channels = (car as any)?.Channels ?? null;
+          const car = cars[num];
+          const channels = car?.Channels ?? null;
           return {
             utc: (entry as any)?.Utc ?? null,
             driverNumber: num,
@@ -2632,7 +2625,7 @@ export function makeTools({
         }
         const all: Record<string, unknown> = {};
         for (const [num, car] of Object.entries(cars)) {
-          const channels = (car as any)?.Channels ?? null;
+          const channels = car?.Channels ?? null;
           all[num] = decodeCarChannels(channels);
         }
         return { utc: (entry as any)?.Utc ?? null, drivers: all };
@@ -2647,8 +2640,7 @@ export function makeTools({
       execute: async ({ driverNumber }) => {
         const entry = getLatestCarEntry();
         if (!entry) return null;
-        const cars = (entry as any)?.Cars ?? {};
-        if (!isPlainObject(cars)) return null;
+        const cars = getCarDataCars(entry);
 
         const classify = (channels: unknown) => {
           const drs = decodeCarChannels(channels)?.drs ?? null;
@@ -2661,8 +2653,8 @@ export function makeTools({
 
         if (driverNumber !== undefined) {
           const num = String(driverNumber);
-          const car = (cars as any)[num];
-          const channels = (car as any)?.Channels ?? null;
+          const car = cars[num];
+          const channels = car?.Channels ?? null;
           const drs = classify(channels);
           return {
             utc,
@@ -2681,7 +2673,7 @@ export function makeTools({
           unknown: 0,
         };
         for (const [num, car] of Object.entries(cars)) {
-          const channels = (car as any)?.Channels ?? null;
+          const channels = car?.Channels ?? null;
           const drs = classify(channels);
           counts[drs.state] = (counts[drs.state] ?? 0) + 1;
           drivers[num] = { driverName: getDriverName(num), drs };

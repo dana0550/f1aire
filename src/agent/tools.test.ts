@@ -214,6 +214,85 @@ describe('tools', () => {
     });
   });
 
+  it('get_topic_reference shows typed CarData and Position examples', async () => {
+    const tools = makeTools({
+      store,
+      processors: {
+        ...processors,
+        driverList: {
+          state: {},
+          getName: (driverNumber: string) =>
+            driverNumber === '81' ? 'Oscar Piastri' : 'Lando Norris',
+        },
+        carData: {
+          state: {
+            Entries: [
+              {
+                Utc: '2025-01-01T00:00:02Z',
+                Cars: {
+                  '81': { Channels: { '0': '12000', '2': '305', '45': '8' } },
+                },
+              },
+            ],
+          },
+        },
+        position: {
+          state: {
+            Position: [
+              {
+                Timestamp: '2025-01-01T00:00:03Z',
+                Entries: {
+                  '81': { Status: 'OnTrack', X: '10', Y: 20, Z: '30' },
+                },
+              },
+            ],
+          },
+        },
+      } as any,
+      timeCursor: { latest: true },
+      onTimeCursorChange: () => {},
+    });
+
+    const carData = await tools.get_topic_reference.execute({
+      topic: 'CarData',
+      driverNumber: '81',
+      includeExample: true,
+    } as any);
+
+    expect(carData).toMatchObject({
+      canonicalTopic: 'CarData',
+      example: {
+        driverNumber: '81',
+        driverName: 'Oscar Piastri',
+        channels: {
+          rpm: 12000,
+          speed: 305,
+          drs: 8,
+        },
+      },
+    });
+
+    const position = await tools.get_topic_reference.execute({
+      topic: 'Position',
+      driverNumber: '81',
+      includeExample: true,
+    } as any);
+
+    expect(position).toMatchObject({
+      canonicalTopic: 'Position',
+      example: {
+        driverNumber: '81',
+        driverName: 'Oscar Piastri',
+        entry: {
+          status: 'OnTrack',
+          x: 10,
+          y: 20,
+          z: 30,
+        },
+      },
+    });
+  });
+
   it('get_content_streams filters deterministic metadata by language and search text', async () => {
     const tools = makeTools({
       store: {

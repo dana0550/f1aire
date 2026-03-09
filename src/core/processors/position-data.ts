@@ -1,7 +1,6 @@
+import type { PositionBatch, PositionState } from '../feed-models.js';
+import { getPositionBatches, getPositionEntries } from '../feed-models.js';
 import type { Processor, RawPoint } from './types.js';
-
-type PositionEntry = { Timestamp?: string; Entries?: Record<string, unknown> };
-type PositionState = { Position: PositionEntry[] };
 
 export class PositionDataProcessor implements Processor<PositionState> {
   latest: PositionState | null = null;
@@ -9,19 +8,20 @@ export class PositionDataProcessor implements Processor<PositionState> {
 
   process(point: RawPoint) {
     if (point.type !== 'Position') return;
-    const updates = Array.isArray((point.json as any)?.Position)
-      ? ((point.json as any).Position as PositionEntry[])
-      : [];
+    const updates = getPositionBatches(point.json);
     if (!this.state) this.state = { Position: [] };
     if (this.state.Position.length === 0) {
       this.state.Position.push({ Entries: {} });
     }
-    const current = this.state.Position[this.state.Position.length - 1];
+    const current = this.state.Position[
+      this.state.Position.length - 1
+    ] as PositionBatch;
     for (const update of updates) {
-      if (update?.Entries && typeof update.Entries === 'object') {
+      const updateEntries = getPositionEntries(update);
+      if (Object.keys(updateEntries).length > 0) {
         current.Entries = {
           ...(current.Entries ?? {}),
-          ...(update.Entries ?? {}),
+          ...structuredClone(updateEntries),
         };
       }
       if (update?.Timestamp) current.Timestamp = update.Timestamp;
