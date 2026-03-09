@@ -14,6 +14,8 @@ describe('topic-registry', () => {
     expect(topics).toContain('LapSeries');
     expect(topics).toContain('WeatherDataSeries');
     expect(topics).toContain('TimingDataF1');
+    expect(topics).toContain('PitStopSeries');
+    expect(topics).toContain('PitStop');
     expect(topics).not.toContain('DriverRaceInfo');
     expect(topics).not.toContain('OvertakeSeries');
   });

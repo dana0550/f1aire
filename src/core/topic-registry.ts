@@ -223,13 +223,13 @@ export const TOPIC_REGISTRY: TopicDefinition[] = [
   {
     topic: 'PitStopSeries',
     streamName: 'PitStopSeries',
-    availability: 'race-only',
+    availability: 'all-sessions',
     semantics: 'patch',
   },
   {
     topic: 'PitStop',
     streamName: 'PitStop',
-    availability: 'race-only',
+    availability: 'all-sessions',
     semantics: 'replace',
   },
 ];

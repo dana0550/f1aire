@@ -13,6 +13,15 @@ const meeting = {
   ],
 };
 
+const practiceMeeting = {
+  Key: 1,
+  Name: 'Test GP',
+  Location: 'Testville',
+  Sessions: [
+    { Key: 11, Name: 'Practice 1', Type: 'Practice', Path: '2024/test/', StartDate: '', EndDate: '', GmtOffset: '' },
+  ],
+};
+
 describe('downloadSession', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -119,6 +128,49 @@ describe('downloadSession', () => {
     const manifestPath = path.join(dir, '2024_Testville_Race', 'download.json');
     const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'));
     expect(manifest.topics.PitStopSeries).toMatchObject({ ok: false, statusCode: 404 });
+  });
+
+  it('includes pit stop feeds for non-race registry fallbacks', async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'f1aire-'));
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url.endsWith('Index.json')) {
+        return new Response('missing', { status: 404 });
+      }
+      if (url.endsWith('SessionInfo.jsonStream')) {
+        return new Response('00:00:00.000{"SessionInfo":1}\n');
+      }
+      if (url.endsWith('Heartbeat.jsonStream')) {
+        return new Response('00:00:05.000{"Utc":"2024-01-01T00:00:10.000Z"}\n');
+      }
+      if (url.endsWith('.jsonStream')) {
+        return new Response('00:00:10.000{}\n');
+      }
+      if (url.endsWith('.json')) {
+        return new Response('{}');
+      }
+      return new Response('unexpected', { status: 500 });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await downloadSession({
+      year: 2024,
+      meeting: practiceMeeting,
+      sessionKey: 11,
+      dataRoot: dir,
+    });
+
+    const manifestPath = path.join(
+      dir,
+      '2024_Testville_Practice_1',
+      'download.json',
+    );
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'));
+
+    expect(manifest.sessionIndex.ok).toBe(false);
+    expect(manifest.topicsAttempted).toContain('PitStopSeries');
+    expect(manifest.topicsAttempted).toContain('PitStop');
+    expect(manifest.topics.PitStopSeries).toMatchObject({ ok: true });
+    expect(manifest.topics.PitStop).toMatchObject({ ok: true });
   });
 
   it('reuses existing data when allowExisting is true', async () => {
