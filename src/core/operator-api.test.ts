@@ -659,6 +659,169 @@ describe('createOperatorApi', () => {
     });
   });
 
+  it('returns replay-aware stream metadata for audio and content feeds', () => {
+    const streamPoints: RawPoint[] = [
+      ...points,
+      {
+        type: 'AudioStreams',
+        json: {
+          Streams: {
+            '0': {
+              Name: 'FX',
+              Language: 'en',
+              Path: 'AudioStreams/FX.m3u8',
+            },
+          },
+        },
+        dateTime: new Date('2025-01-01T00:00:11.000Z'),
+      },
+      {
+        type: 'AudioStreams',
+        json: {
+          Streams: {
+            '1': {
+              Name: 'Driver',
+              Language: 'de',
+              Uri: 'https://cdn.example.test/driver.m3u8',
+            },
+          },
+        },
+        dateTime: new Date('2025-01-01T00:00:12.500Z'),
+      },
+      {
+        type: 'ContentStreams',
+        json: {
+          Streams: {
+            '0': {
+              Type: 'Commentary',
+              Language: 'en',
+              Path: 'Content/commentary-en.json',
+            },
+          },
+        },
+        dateTime: new Date('2025-01-01T00:00:11.500Z'),
+      },
+      {
+        type: 'ContentStreams',
+        json: {
+          Streams: {
+            '1': {
+              Type: 'Telemetry',
+              Language: 'es',
+              Uri: 'https://cdn.example.test/telemetry-es.json',
+            },
+          },
+        },
+        dateTime: new Date('2025-01-01T00:00:12.200Z'),
+      },
+    ];
+
+    const service = new TimingService();
+    streamPoints.forEach((point) => service.enqueue(point));
+    const latestApi = createOperatorApi({
+      store: buildStore(streamPoints),
+      service,
+    });
+
+    expect(
+      latestApi.getStreamMetadata('AudioStreams', {
+        language: 'de',
+      }),
+    ).toEqual({
+      topic: 'AudioStreams',
+      sessionPrefix:
+        'https://livetiming.formula1.com/static/2025/Test_Weekend/Race/',
+      asOf: {
+        lap: 12,
+        dateTime: '2025-01-01T00:00:12.000Z',
+        source: 'latest',
+      },
+      total: 1,
+      returned: 1,
+      languages: ['de'],
+      types: [],
+      streams: [
+        {
+          streamId: '1',
+          name: 'Driver',
+          language: 'de',
+          type: null,
+          uri: 'https://cdn.example.test/driver.m3u8',
+          path: null,
+          resolvedUrl: 'https://cdn.example.test/driver.m3u8',
+        },
+      ],
+    });
+
+    const historicalApi = createOperatorApi({
+      store: buildStore(streamPoints),
+      service,
+      timeCursor: { iso: '2025-01-01T00:00:11.800Z' },
+    });
+
+    expect(
+      historicalApi.getStreamMetadata('AudioStreams', {
+        search: 'fx',
+      }),
+    ).toEqual({
+      topic: 'AudioStreams',
+      sessionPrefix:
+        'https://livetiming.formula1.com/static/2025/Test_Weekend/Race/',
+      asOf: {
+        lap: 12,
+        dateTime: '2025-01-01T00:00:12.000Z',
+        source: 'time',
+      },
+      total: 1,
+      returned: 1,
+      languages: ['en'],
+      types: [],
+      streams: [
+        {
+          streamId: '0',
+          name: 'FX',
+          language: 'en',
+          type: null,
+          uri: null,
+          path: 'AudioStreams/FX.m3u8',
+          resolvedUrl:
+            'https://livetiming.formula1.com/static/2025/Test_Weekend/Race/AudioStreams/FX.m3u8',
+        },
+      ],
+    });
+
+    expect(
+      historicalApi.getStreamMetadata('ContentStreams', {
+        limit: 5,
+      }),
+    ).toEqual({
+      topic: 'ContentStreams',
+      sessionPrefix:
+        'https://livetiming.formula1.com/static/2025/Test_Weekend/Race/',
+      asOf: {
+        lap: 12,
+        dateTime: '2025-01-01T00:00:12.000Z',
+        source: 'time',
+      },
+      total: 1,
+      returned: 1,
+      languages: ['en'],
+      types: ['Commentary'],
+      streams: [
+        {
+          streamId: '0',
+          name: null,
+          language: 'en',
+          type: 'Commentary',
+          uri: null,
+          path: 'Content/commentary-en.json',
+          resolvedUrl:
+            'https://livetiming.formula1.com/static/2025/Test_Weekend/Race/Content/commentary-en.json',
+        },
+      ],
+    });
+  });
+
   it('downloads and plays team radio clips through operator workflows', async () => {
     const service = new TimingService();
     points.forEach((point) => service.enqueue(point));

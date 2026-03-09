@@ -16,6 +16,7 @@ import type {
   ReplayControlResult,
   SessionLifecycleOrder,
   SessionLifecycleResponse,
+  StreamMetadataResponse,
   TeamRadioDownloadRequest,
   TeamRadioEventsResponse,
   TeamRadioPlaybackRequest,
@@ -56,6 +57,12 @@ type RaceControlQuery = {
 
 type TeamRadioQuery = {
   driverNumber?: string;
+  limit?: number;
+};
+
+type StreamMetadataQuery = {
+  language?: string;
+  search?: string;
   limit?: number;
 };
 
@@ -313,6 +320,27 @@ function handleTeamRadioEvents(
   return api.getTeamRadioEvents(options);
 }
 
+function handleStreamMetadata(
+  api: OperatorApi,
+  topic: 'AudioStreams' | 'ContentStreams',
+  url: URL,
+): StreamMetadataResponse {
+  const options: StreamMetadataQuery = {};
+  const language = url.searchParams.get('language');
+  if (language) {
+    options.language = language;
+  }
+  const search = url.searchParams.get('search');
+  if (search) {
+    options.search = search;
+  }
+  const limit = parseOptionalInt(url.searchParams.get('limit'));
+  if (typeof limit === 'number') {
+    options.limit = limit;
+  }
+  return api.getStreamMetadata(topic, options);
+}
+
 function handleCurrentTyres(api: OperatorApi, url: URL): CurrentTyresResponse {
   const options: TyreQuery = {};
   const driverNumber = url.searchParams.get('driverNumber');
@@ -525,6 +553,13 @@ export function createOperatorApiRequestHandler(opts: {
         }
         if (topic === 'TeamRadio' && segments[2] === 'events') {
           sendJson(res, 200, handleTeamRadioEvents(api, url));
+          return;
+        }
+        if (
+          (topic === 'AudioStreams' || topic === 'ContentStreams') &&
+          segments[2] === 'streams'
+        ) {
+          sendJson(res, 200, handleStreamMetadata(api, topic, url));
           return;
         }
         if (topic === 'CurrentTyres' && segments[2] === 'current') {

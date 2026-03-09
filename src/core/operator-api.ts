@@ -1,8 +1,10 @@
 import type { SessionStore } from './session-store.js';
 import type { TimingService } from './timing-service.js';
 import { buildAnalysisIndex, type LapRecord } from './analysis-index.js';
+import { MergeProcessor } from './processors/merge-processor.js';
 import { isPlainObject } from './processors/merge.js';
 import { normalizePoint } from './processors/normalize.js';
+import { ReplaceProcessor } from './processors/replace-processor.js';
 import {
   getRaceControlEvents as getRaceControlEventList,
   type RaceControlEvent,
@@ -45,6 +47,11 @@ import {
   getPitStopEventRecords,
   type PitStopEventRecord,
 } from './pit-stop-state.js';
+import {
+  getStreamMetadataRecords,
+  type StreamMetadataRecord,
+  type StreamMetadataTopic,
+} from './stream-metadata.js';
 import {
   getTopicDefinition,
   type TopicAvailability,
@@ -226,6 +233,17 @@ export type RaceControlEventsResponse = {
   events: RaceControlEventRecord[];
 };
 
+export type StreamMetadataResponse = {
+  topic: StreamMetadataTopic;
+  sessionPrefix: string | null;
+  asOf: SerializedResolvedCursor;
+  total: number;
+  returned: number;
+  languages: string[];
+  types: string[];
+  streams: StreamMetadataRecord[];
+};
+
 export type TeamRadioDownloadRequest = {
   captureId?: string | number;
   driverNumber?: string | number;
@@ -318,6 +336,14 @@ export type OperatorApi = {
     driverNumber?: string | number;
     limit?: number;
   }) => TeamRadioEventsResponse;
+  getStreamMetadata: (
+    topic: StreamMetadataTopic,
+    options?: {
+      language?: string;
+      search?: string;
+      limit?: number;
+    },
+  ) => StreamMetadataResponse;
   downloadTeamRadioCapture: (
     options?: TeamRadioDownloadRequest,
   ) => Promise<TeamRadioDownloadResult>;
@@ -431,6 +457,61 @@ function getSubscribeTopicSnapshot(
     ? store.raw.subscribe
     : null;
   return subscribe?.[topic] ?? null;
+}
+
+function getTopicStateAsOf(opts: {
+  store: SessionStore;
+  service: TimingService;
+  topic: string;
+  to?: Date;
+}): unknown | null {
+  if (!opts.to) {
+    const latest = getTopicState(opts.service, opts.topic);
+    if (latest !== null) {
+      return latest;
+    }
+  }
+
+  const subscribeSnapshot = getSubscribeTopicSnapshot(opts.store, opts.topic);
+  const fallbackDateTime = opts.to ?? new Date(0);
+  const normalizedSubscribe =
+    subscribeSnapshot === null
+      ? null
+      : normalizePoint({
+          type: opts.topic,
+          json: subscribeSnapshot,
+          dateTime: fallbackDateTime,
+        });
+  const timeline = getNormalizedTopicTimeline(
+    opts.store,
+    opts.topic,
+    opts.to ? { to: opts.to } : undefined,
+  );
+  const semantics = getTopicDefinition(opts.topic)?.semantics;
+
+  if (semantics === 'patch') {
+    const processor = new MergeProcessor(opts.topic);
+    if (normalizedSubscribe) {
+      processor.process(normalizedSubscribe);
+    }
+    for (const point of timeline) {
+      processor.process(point);
+    }
+    return processor.state ?? null;
+  }
+
+  if (semantics === 'replace') {
+    const processor = new ReplaceProcessor(opts.topic);
+    if (normalizedSubscribe) {
+      processor.process(normalizedSubscribe);
+    }
+    for (const point of timeline) {
+      processor.process(point);
+    }
+    return processor.state ?? null;
+  }
+
+  return timeline.at(-1)?.json ?? normalizedSubscribe?.json ?? null;
 }
 
 function serializeSessionLifecycleEvent(
@@ -1255,6 +1336,63 @@ export function createOperatorApi({
     };
   };
 
+  const getStreamMetadata: OperatorApi['getStreamMetadata'] = (
+    topic,
+    options = {},
+  ) => {
+    const analysisIndex = buildAnalysisIndex({
+      processors: service.processors,
+    });
+    const resolved = analysisIndex.resolveAsOf(currentCursor);
+    const replayCutoff = currentCursor.latest
+      ? undefined
+      : (parseCursorIso(currentCursor) ?? resolved.dateTime ?? undefined);
+    const sessionPrefix = getSessionStaticPrefix(store);
+    const allStreams = getStreamMetadataRecords({
+      topic,
+      state: getTopicStateAsOf({
+        store,
+        service,
+        topic,
+        to: replayCutoff,
+      }),
+      staticPrefix: sessionPrefix,
+      language: options.language ?? null,
+      search: options.search ?? null,
+    });
+    const streams =
+      typeof options.limit === 'number' && options.limit >= 0
+        ? allStreams.slice(0, options.limit)
+        : allStreams;
+    const languages = Array.from(
+      new Set(
+        allStreams
+          .map((stream) => stream.language)
+          .filter((language): language is string => Boolean(language)),
+      ),
+    ).sort((left, right) => left.localeCompare(right));
+    const types = Array.from(
+      new Set(
+        allStreams
+          .map((stream) => stream.type)
+          .filter((type): type is string => Boolean(type)),
+      ),
+    ).sort((left, right) => left.localeCompare(right));
+
+    return {
+      topic,
+      sessionPrefix,
+      asOf: serializeResolvedCursor(resolved),
+      total: allStreams.length,
+      returned: streams.length,
+      languages,
+      types,
+      streams: serializeValue(
+        structuredClone(streams),
+      ) as StreamMetadataRecord[],
+    };
+  };
+
   const downloadTeamRadioCapture: OperatorApi['downloadTeamRadioCapture'] = (
     options = {},
   ) =>
@@ -1522,6 +1660,7 @@ export function createOperatorApi({
     getBestLaps,
     getRaceControlEvents,
     getTeamRadioEvents,
+    getStreamMetadata,
     downloadTeamRadioCapture,
     playTeamRadioCapture,
     transcribeTeamRadioCapture,
