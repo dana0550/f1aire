@@ -7,6 +7,7 @@ import {
 import type { AddressInfo } from 'node:net';
 import type {
   BestLapsResponse,
+  CurrentTyresResponse,
   OperatorApi,
   PositionSnapshotResponse,
   ReplayControlRequest,
@@ -15,6 +16,7 @@ import type {
   SessionLifecycleResponse,
   TeamRadioEventsResponse,
   TimingLapResponse,
+  TyreStintsResponse,
 } from './operator-api.js';
 
 type JsonObject = Record<string, unknown>;
@@ -39,6 +41,10 @@ type BestLapQuery = {
 type TeamRadioQuery = {
   driverNumber?: string;
   limit?: number;
+};
+
+type TyreQuery = {
+  driverNumber?: string;
 };
 
 type PositionSnapshotQuery = {
@@ -185,6 +191,24 @@ function handleTeamRadioEvents(
   return api.getTeamRadioEvents(options);
 }
 
+function handleCurrentTyres(api: OperatorApi, url: URL): CurrentTyresResponse {
+  const options: TyreQuery = {};
+  const driverNumber = url.searchParams.get('driverNumber');
+  if (driverNumber) {
+    options.driverNumber = driverNumber;
+  }
+  return api.getCurrentTyres(options);
+}
+
+function handleTyreStints(api: OperatorApi, url: URL): TyreStintsResponse {
+  const options: TyreQuery = {};
+  const driverNumber = url.searchParams.get('driverNumber');
+  if (driverNumber) {
+    options.driverNumber = driverNumber;
+  }
+  return api.getTyreStints(options);
+}
+
 function handlePositionSnapshot(
   api: OperatorApi,
   url: URL,
@@ -285,6 +309,14 @@ export function createOperatorApiRequestHandler(opts: {
         const topic = decodeURIComponent(segments[1]!);
         if (topic === 'TeamRadio' && segments[2] === 'events') {
           sendJson(res, 200, handleTeamRadioEvents(api, url));
+          return;
+        }
+        if (topic === 'CurrentTyres' && segments[2] === 'current') {
+          sendJson(res, 200, handleCurrentTyres(api, url));
+          return;
+        }
+        if (topic === 'TyreStintSeries' && segments[2] === 'stints') {
+          sendJson(res, 200, handleTyreStints(api, url));
           return;
         }
         if (topic === 'Position' && segments[2] === 'snapshot') {

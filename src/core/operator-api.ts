@@ -21,6 +21,12 @@ import {
   type PositionSnapshot,
 } from './position-snapshot.js';
 import {
+  getCurrentTyreRecords,
+  getTyreStintRecords,
+  type CurrentTyreRecord,
+  type TyreStintRecord,
+} from './tyre-state.js';
+import {
   getTopicDefinition,
   type TopicAvailability,
   type TopicUpdateSemantics,
@@ -120,6 +126,26 @@ export type BestLapsResponse = {
   records: BestLapRecord[];
 };
 
+export type CurrentTyreViewRecord = CurrentTyreRecord & {
+  driverName: string | null;
+};
+
+export type CurrentTyresResponse = {
+  asOf: SerializedResolvedCursor;
+  totalDrivers: number;
+  records: CurrentTyreViewRecord[];
+};
+
+export type TyreStintViewRecord = TyreStintRecord & {
+  driverName: string | null;
+};
+
+export type TyreStintsResponse = {
+  asOf: SerializedResolvedCursor;
+  totalRecords: number;
+  records: TyreStintViewRecord[];
+};
+
 export type TeamRadioMatchMode = 'at-or-before' | 'nearest';
 
 export type TeamRadioEventContext = {
@@ -177,6 +203,12 @@ export type OperatorApi = {
     lap?: number;
     driverNumber?: string | number;
   }) => TimingLapResponse | null;
+  getCurrentTyres: (options?: {
+    driverNumber?: string | number;
+  }) => CurrentTyresResponse;
+  getTyreStints: (options?: {
+    driverNumber?: string | number;
+  }) => TyreStintsResponse;
   getPositionSnapshot: (options?: {
     driverNumber?: string | number;
   }) => PositionSnapshotResponse | null;
@@ -552,6 +584,22 @@ function getTimingDataStateAsOfLap(
   return { Lines: lines };
 }
 
+function getHistoricalTyreAsOfLap(
+  analysisIndex: ReturnType<typeof buildAnalysisIndex>,
+  cursor: TimeCursor,
+) {
+  const resolved = analysisIndex.resolveAsOf(cursor);
+  const latestLap = analysisIndex.lapNumbers.at(-1) ?? null;
+  if (
+    typeof resolved.lap !== 'number' ||
+    typeof latestLap !== 'number' ||
+    resolved.lap >= latestLap
+  ) {
+    return null;
+  }
+  return resolved.lap;
+}
+
 function parseSnapshotDateTime(value: unknown): Date | null {
   if (value instanceof Date) {
     return Number.isFinite(value.getTime()) ? value : null;
@@ -725,6 +773,57 @@ export function createOperatorApi({
         driverName: getDriverName(service, driverNumber),
         snapshot: serializeValue(structuredClone(snapshot)),
       })),
+    };
+  };
+
+  const getCurrentTyres: OperatorApi['getCurrentTyres'] = (options = {}) => {
+    const analysisIndex = buildAnalysisIndex({
+      processors: service.processors,
+    });
+    const resolved = analysisIndex.resolveAsOf(currentCursor);
+    const asOfLap = getHistoricalTyreAsOfLap(analysisIndex, currentCursor);
+    const records = getCurrentTyreRecords({
+      currentTyresState: service.processors.extraTopics?.CurrentTyres?.state,
+      tyreStintSeriesState:
+        service.processors.extraTopics?.TyreStintSeries?.state,
+      timingAppDataState: service.processors.timingAppData?.state,
+      timingDataState: getTimingDataStateAsOfLap(service, asOfLap),
+      driverNumber: options.driverNumber,
+      asOfLap: asOfLap ?? undefined,
+    }).map((record) => ({
+      ...record,
+      driverName: getDriverName(service, record.driverNumber),
+    }));
+
+    return {
+      asOf: serializeResolvedCursor(resolved),
+      totalDrivers: records.length,
+      records,
+    };
+  };
+
+  const getTyreStints: OperatorApi['getTyreStints'] = (options = {}) => {
+    const analysisIndex = buildAnalysisIndex({
+      processors: service.processors,
+    });
+    const resolved = analysisIndex.resolveAsOf(currentCursor);
+    const asOfLap = getHistoricalTyreAsOfLap(analysisIndex, currentCursor);
+    const records = getTyreStintRecords({
+      tyreStintSeriesState:
+        service.processors.extraTopics?.TyreStintSeries?.state,
+      timingAppDataState: service.processors.timingAppData?.state,
+      timingDataState: getTimingDataStateAsOfLap(service, asOfLap),
+      driverNumber: options.driverNumber,
+      asOfLap: asOfLap ?? undefined,
+    }).map((record) => ({
+      ...record,
+      driverName: getDriverName(service, record.driverNumber),
+    }));
+
+    return {
+      asOf: serializeResolvedCursor(resolved),
+      totalRecords: records.length,
+      records,
     };
   };
 
@@ -1065,6 +1164,8 @@ export function createOperatorApi({
   return {
     getLatest,
     getTimingLap,
+    getCurrentTyres,
+    getTyreStints,
     getPositionSnapshot: getPositionSnapshotView,
     getBestLaps,
     getTeamRadioEvents,

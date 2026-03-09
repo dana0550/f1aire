@@ -699,6 +699,211 @@ describe('createOperatorApi', () => {
     });
   });
 
+  it('returns replay-aware current tyres and tyre stints', () => {
+    const service = new TimingService();
+    const tyrePoints: RawPoint[] = [
+      {
+        type: 'DriverList',
+        json: {
+          '4': { FullName: 'Lando Norris' },
+          '81': { FullName: 'Oscar Piastri' },
+        },
+        dateTime: new Date('2025-01-01T00:00:01Z'),
+      },
+      {
+        type: 'TimingData',
+        json: {
+          Lines: {
+            '4': { Line: 1, NumberOfLaps: 12 },
+            '81': { Line: 2, NumberOfLaps: 12 },
+          },
+        },
+        dateTime: new Date('2025-01-01T00:00:12Z'),
+      },
+      {
+        type: 'TimingData',
+        json: {
+          Lines: {
+            '4': { Line: 1, NumberOfLaps: 13 },
+            '81': { Line: 2, NumberOfLaps: 13 },
+          },
+        },
+        dateTime: new Date('2025-01-01T00:00:13Z'),
+      },
+      {
+        type: 'CurrentTyres',
+        json: {
+          Tyres: {
+            '81': { Compound: 'HARD', New: 'false' },
+          },
+        },
+        dateTime: new Date('2025-01-01T00:00:13.100Z'),
+      },
+      {
+        type: 'TyreStintSeries',
+        json: {
+          Stints: {
+            '4': {
+              '1': {
+                Compound: 'MEDIUM',
+                New: 'true',
+                StartLaps: 1,
+                TotalLaps: 12,
+                LapNumber: 12,
+              },
+              '2': {
+                Compound: 'HARD',
+                New: 'false',
+                StartLaps: 12,
+                TotalLaps: 20,
+                LapNumber: 13,
+              },
+            },
+          },
+        },
+        dateTime: new Date('2025-01-01T00:00:13.200Z'),
+      },
+    ];
+
+    tyrePoints.forEach((point) => service.enqueue(point));
+
+    const latestApi = createOperatorApi({
+      store: buildStore(tyrePoints),
+      service,
+    });
+
+    expect(latestApi.getCurrentTyres()).toEqual({
+      asOf: {
+        lap: 13,
+        dateTime: '2025-01-01T00:00:13.000Z',
+        source: 'latest',
+      },
+      totalDrivers: 2,
+      records: [
+        {
+          driverNumber: '4',
+          driverName: 'Lando Norris',
+          position: 1,
+          compound: 'HARD',
+          isNew: false,
+          tyresNotChanged: null,
+          stint: 2,
+          startLaps: 12,
+          totalLaps: 20,
+          lapsOnTyre: 8,
+          source: 'TyreStintSeries',
+        },
+        {
+          driverNumber: '81',
+          driverName: 'Oscar Piastri',
+          position: 2,
+          compound: 'HARD',
+          isNew: false,
+          tyresNotChanged: null,
+          stint: null,
+          startLaps: null,
+          totalLaps: null,
+          lapsOnTyre: null,
+          source: 'CurrentTyres',
+        },
+      ],
+    });
+
+    expect(latestApi.getTyreStints({ driverNumber: '4' })).toEqual({
+      asOf: {
+        lap: 13,
+        dateTime: '2025-01-01T00:00:13.000Z',
+        source: 'latest',
+      },
+      totalRecords: 2,
+      records: [
+        {
+          driverNumber: '4',
+          driverName: 'Lando Norris',
+          stint: 1,
+          compound: 'MEDIUM',
+          isNew: true,
+          tyresNotChanged: null,
+          startLaps: 1,
+          totalLaps: 12,
+          lapsOnTyre: 11,
+          lapTime: null,
+          lapNumber: 12,
+          source: 'TyreStintSeries',
+        },
+        {
+          driverNumber: '4',
+          driverName: 'Lando Norris',
+          stint: 2,
+          compound: 'HARD',
+          isNew: false,
+          tyresNotChanged: null,
+          startLaps: 12,
+          totalLaps: 20,
+          lapsOnTyre: 8,
+          lapTime: null,
+          lapNumber: 13,
+          source: 'TyreStintSeries',
+        },
+      ],
+    });
+
+    const historicalApi = createOperatorApi({
+      store: buildStore(tyrePoints),
+      service,
+      timeCursor: { lap: 12 },
+    });
+
+    expect(historicalApi.getCurrentTyres()).toEqual({
+      asOf: {
+        lap: 12,
+        dateTime: '2025-01-01T00:00:12.000Z',
+        source: 'lap',
+      },
+      totalDrivers: 1,
+      records: [
+        {
+          driverNumber: '4',
+          driverName: 'Lando Norris',
+          position: 1,
+          compound: 'MEDIUM',
+          isNew: true,
+          tyresNotChanged: null,
+          stint: 1,
+          startLaps: 1,
+          totalLaps: 12,
+          lapsOnTyre: 11,
+          source: 'TyreStintSeries',
+        },
+      ],
+    });
+
+    expect(historicalApi.getTyreStints({ driverNumber: '4' })).toEqual({
+      asOf: {
+        lap: 12,
+        dateTime: '2025-01-01T00:00:12.000Z',
+        source: 'lap',
+      },
+      totalRecords: 1,
+      records: [
+        {
+          driverNumber: '4',
+          driverName: 'Lando Norris',
+          stint: 1,
+          compound: 'MEDIUM',
+          isNew: true,
+          tyresNotChanged: null,
+          startLaps: 1,
+          totalLaps: 12,
+          lapsOnTyre: 11,
+          lapTime: null,
+          lapNumber: 12,
+          source: 'TyreStintSeries',
+        },
+      ],
+    });
+  });
+
   it('returns replay-aware position snapshots from Position and CarData feeds', () => {
     const service = new TimingService();
     positionPoints.forEach((point) => service.enqueue(point));
