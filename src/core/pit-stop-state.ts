@@ -1,5 +1,5 @@
 import { isPlainObject } from './processors/merge.js';
-import { parseDurationMs } from './race-engineer-metrics.js';
+import { parseDurationMs } from './pit-lane-time-collection.js';
 import { getTyreStintRecords, type TyreStintRecord } from './tyre-state.js';
 
 export type PitStopEventSource = 'PitStopSeries';
@@ -96,7 +96,9 @@ function sortTyreStints(records: TyreStintRecord[]) {
   });
 }
 
-function toTyreContext(record: TyreStintRecord | null): PitStopTyreContext | null {
+function toTyreContext(
+  record: TyreStintRecord | null,
+): PitStopTyreContext | null {
   if (!record) {
     return null;
   }
@@ -218,7 +220,8 @@ export function getPitStopEventRecords(opts: {
   const pitTimes = isPlainObject(
     (opts.pitStopSeriesState as { PitTimes?: unknown } | null)?.PitTimes,
   )
-    ? ((opts.pitStopSeriesState as { PitTimes: Record<string, unknown> }).PitTimes ?? {})
+    ? ((opts.pitStopSeriesState as { PitTimes: Record<string, unknown> })
+        .PitTimes ?? {})
     : {};
 
   const driverNumbers = requestedDriver
@@ -236,7 +239,9 @@ export function getPitStopEventRecords(opts: {
       }
       const nested = isPlainObject(rawStop.PitStop) ? rawStop.PitStop : rawStop;
       const stopNumber = toOptionalNumber(stopKey);
-      const lap = toOptionalNumber((nested as Record<string, unknown>).Lap ?? rawStop.Lap);
+      const lap = toOptionalNumber(
+        (nested as Record<string, unknown>).Lap ?? rawStop.Lap,
+      );
       if (startLap !== null && lap !== null && lap < startLap) {
         continue;
       }
@@ -245,19 +250,19 @@ export function getPitStopEventRecords(opts: {
       }
 
       const timestamp =
-        toOptionalString(rawStop.Timestamp)
-        ?? toOptionalString((nested as Record<string, unknown>).Timestamp)
-        ?? toOptionalString(rawStop.Utc)
-        ?? toOptionalString((nested as Record<string, unknown>).Utc);
+        toOptionalString(rawStop.Timestamp) ??
+        toOptionalString((nested as Record<string, unknown>).Timestamp) ??
+        toOptionalString(rawStop.Utc) ??
+        toOptionalString((nested as Record<string, unknown>).Utc);
       const pitStopTime =
-        toOptionalString((nested as Record<string, unknown>).PitStopTime)
-        ?? toOptionalString(rawStop.PitStopTime);
+        toOptionalString((nested as Record<string, unknown>).PitStopTime) ??
+        toOptionalString(rawStop.PitStopTime);
       const pitLaneTime =
-        toOptionalString((nested as Record<string, unknown>).PitLaneTime)
-        ?? toOptionalString(rawStop.PitLaneTime);
+        toOptionalString((nested as Record<string, unknown>).PitLaneTime) ??
+        toOptionalString(rawStop.PitLaneTime);
       const canonicalDriver =
-        toOptionalString((nested as Record<string, unknown>).RacingNumber)
-        ?? driverNumber;
+        toOptionalString((nested as Record<string, unknown>).RacingNumber) ??
+        driverNumber;
 
       events.push({
         driverNumber: canonicalDriver,
@@ -269,12 +274,8 @@ export function getPitStopEventRecords(opts: {
         pitStopTimeMs: parseDurationMs(pitStopTime),
         pitLaneTime,
         pitLaneTimeMs: parseDurationMs(pitLaneTime),
-        tyreBefore: toTyreContext(
-          pickTyreBefore(tyreStints, lap, stopNumber),
-        ),
-        tyreAfter: toTyreContext(
-          pickTyreAfter(tyreStints, lap, stopNumber),
-        ),
+        tyreBefore: toTyreContext(pickTyreBefore(tyreStints, lap, stopNumber)),
+        tyreAfter: toTyreContext(pickTyreAfter(tyreStints, lap, stopNumber)),
         source: 'PitStopSeries',
       });
     }

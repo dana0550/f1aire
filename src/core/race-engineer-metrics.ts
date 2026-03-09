@@ -1,5 +1,7 @@
 import type { LapRecord } from './analysis-index.js';
-import { isPlainObject } from './processors/merge.js';
+import { getPitLaneTimeRecords } from './pit-lane-time-collection.js';
+
+export { parseDurationMs } from './pit-lane-time-collection.js';
 
 export type TrackPhase = 'green' | 'yellow' | 'sc' | 'vsc' | 'red' | 'unknown';
 export type DrsState = 'off' | 'eligible' | 'on' | 'unknown';
@@ -107,7 +109,10 @@ function median(values: number[]): number | null {
   return Math.round((sorted[mid - 1] + sorted[mid]) / 2);
 }
 
-function phaseStats(values: number[], baselineMedianMs: number | null): PhaseStats {
+function phaseStats(
+  values: number[],
+  baselineMedianMs: number | null,
+): PhaseStats {
   if (values.length === 0) {
     return {
       samples: 0,
@@ -141,7 +146,10 @@ function normalizeText(value: unknown): string {
   return String(value).trim();
 }
 
-export function classifyTrackPhase(status: unknown, message: unknown): TrackPhase {
+export function classifyTrackPhase(
+  status: unknown,
+  message: unknown,
+): TrackPhase {
   const statusText = normalizeText(status).toLowerCase();
   const messageText = normalizeText(message).toLowerCase();
 
@@ -164,16 +172,25 @@ export function classifyTrackPhase(status: unknown, message: unknown): TrackPhas
   }
 
   // Message fallback (varies by feed/year).
-  if (messageText.includes('allclear') || messageText.includes('all clear')) return 'green';
-  if (messageText.includes('virtual safety car') || /\bvsc\b/i.test(messageText)) return 'vsc';
-  if (messageText.includes('safety car') || /\bsc\b/i.test(messageText)) return 'sc';
+  if (messageText.includes('allclear') || messageText.includes('all clear'))
+    return 'green';
+  if (
+    messageText.includes('virtual safety car') ||
+    /\bvsc\b/i.test(messageText)
+  )
+    return 'vsc';
+  if (messageText.includes('safety car') || /\bsc\b/i.test(messageText))
+    return 'sc';
   if (messageText.includes('red')) return 'red';
   if (messageText.includes('yellow')) return 'yellow';
 
   return 'unknown';
 }
 
-export function classifyDrsChannel45(value: unknown): { raw: number | null; state: DrsState } {
+export function classifyDrsChannel45(value: unknown): {
+  raw: number | null;
+  state: DrsState;
+} {
   const rawNum =
     typeof value === 'number'
       ? value
@@ -189,18 +206,30 @@ export function classifyDrsChannel45(value: unknown): { raw: number | null; stat
   return { raw, state: 'unknown' };
 }
 
-export function computePhasePeriods(laps: Array<{ lap: number; phase: TrackPhase }>): PhasePeriod[] {
+export function computePhasePeriods(
+  laps: Array<{ lap: number; phase: TrackPhase }>,
+): PhasePeriod[] {
   const ordered = [...laps].sort((a, b) => a.lap - b.lap);
   const periods: PhasePeriod[] = [];
   let current: PhasePeriod | null = null;
   for (const item of ordered) {
     if (!current) {
-      current = { phase: item.phase, startLap: item.lap, endLap: item.lap, lapCount: 1 };
+      current = {
+        phase: item.phase,
+        startLap: item.lap,
+        endLap: item.lap,
+        lapCount: 1,
+      };
       continue;
     }
     if (current.phase !== item.phase || item.lap !== current.endLap + 1) {
       periods.push(current);
-      current = { phase: item.phase, startLap: item.lap, endLap: item.lap, lapCount: 1 };
+      current = {
+        phase: item.phase,
+        startLap: item.lap,
+        endLap: item.lap,
+        lapCount: 1,
+      };
       continue;
     }
     current.endLap = item.lap;
@@ -221,8 +250,12 @@ export function computeGapTrainsForLap(opts: {
   const { lap, lapRecords, thresholdSec, minCars, requireGreen } = opts;
   const getDriverName = opts.getDriverName ?? (() => null);
 
-  const anyStatus = Array.from(lapRecords.values()).find((r) => r.trackStatus)?.trackStatus ?? null;
-  const phase = anyStatus ? classifyTrackPhase(anyStatus.status, anyStatus.message) : 'unknown';
+  const anyStatus =
+    Array.from(lapRecords.values()).find((r) => r.trackStatus)?.trackStatus ??
+    null;
+  const phase = anyStatus
+    ? classifyTrackPhase(anyStatus.status, anyStatus.message)
+    : 'unknown';
   const trackStatus = anyStatus
     ? {
         status: anyStatus.status ?? null,
@@ -256,11 +289,13 @@ export function computeGapTrainsForLap(opts: {
   for (let i = 1; i < ordered.length; i += 1) {
     const rec = ordered[i];
     const gap = rec.intervalToAheadSec;
-    const within = typeof gap === 'number' && Number.isFinite(gap) && gap <= thresholdSec;
+    const within =
+      typeof gap === 'number' && Number.isFinite(gap) && gap <= thresholdSec;
     if (within) {
       if (current.length === 0) current.push(ordered[i - 1]);
       const prev = ordered[i - 1];
-      if (current[current.length - 1]?.driverNumber !== prev.driverNumber) current.push(prev);
+      if (current[current.length - 1]?.driverNumber !== prev.driverNumber)
+        current.push(prev);
       current.push(rec);
       continue;
     }
@@ -283,7 +318,10 @@ export function computeGapTrainsForLap(opts: {
   };
 }
 
-function toTrain(records: LapRecord[], getDriverName: (driverNumber: string) => string | null): GapTrain {
+function toTrain(
+  records: LapRecord[],
+  getDriverName: (driverNumber: string) => string | null,
+): GapTrain {
   const drivers: GapTrainDriver[] = records.map((r) => ({
     driverNumber: r.driverNumber,
     driverName: getDriverName(r.driverNumber),
@@ -332,7 +370,9 @@ export function computeScVscDeltas(opts: {
       continue;
     }
 
-    const anyStatus = Array.from(lapMap.values()).find((r) => r.trackStatus)?.trackStatus ?? null;
+    const anyStatus =
+      Array.from(lapMap.values()).find((r) => r.trackStatus)?.trackStatus ??
+      null;
     const status = anyStatus?.status ?? null;
     const message = anyStatus?.message ?? null;
     const phase = classifyTrackPhase(status, message);
@@ -384,8 +424,12 @@ export function computeScVscDeltas(opts: {
       continue;
     }
 
-    const candidates = Array.from(lapMap.values()).filter((r) => r.lapTimeMs !== null);
-    const filtered = includePitLaps ? candidates : candidates.filter((r) => !hasAnyPitFlag(r));
+    const candidates = Array.from(lapMap.values()).filter(
+      (r) => r.lapTimeMs !== null,
+    );
+    const filtered = includePitLaps
+      ? candidates
+      : candidates.filter((r) => !hasAnyPitFlag(r));
     const values = filtered
       .map((r) => r.lapTimeMs)
       .filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
@@ -413,45 +457,83 @@ export function computeScVscDeltas(opts: {
   const periods = computePhasePeriods(phaseByLap);
 
   const greenValues = laps
-    .filter((lap) => lap.excludedReason === null && lap.phase === 'green' && lap.lapTimeMs !== null)
+    .filter(
+      (lap) =>
+        lap.excludedReason === null &&
+        lap.phase === 'green' &&
+        lap.lapTimeMs !== null,
+    )
     .map((lap) => lap.lapTimeMs as number);
   const baselineMedianMs = median(greenValues);
-  const baseline = baselineMedianMs === null ? null : phaseStats(greenValues, baselineMedianMs);
+  const baseline =
+    baselineMedianMs === null
+      ? null
+      : phaseStats(greenValues, baselineMedianMs);
 
   const phases: Record<TrackPhase, PhaseStats> = {
     green: phaseStats(
       laps
-        .filter((lap) => lap.excludedReason === null && lap.phase === 'green' && lap.lapTimeMs !== null)
+        .filter(
+          (lap) =>
+            lap.excludedReason === null &&
+            lap.phase === 'green' &&
+            lap.lapTimeMs !== null,
+        )
         .map((lap) => lap.lapTimeMs as number),
       baselineMedianMs,
     ),
     yellow: phaseStats(
       laps
-        .filter((lap) => lap.excludedReason === null && lap.phase === 'yellow' && lap.lapTimeMs !== null)
+        .filter(
+          (lap) =>
+            lap.excludedReason === null &&
+            lap.phase === 'yellow' &&
+            lap.lapTimeMs !== null,
+        )
         .map((lap) => lap.lapTimeMs as number),
       baselineMedianMs,
     ),
     sc: phaseStats(
       laps
-        .filter((lap) => lap.excludedReason === null && lap.phase === 'sc' && lap.lapTimeMs !== null)
+        .filter(
+          (lap) =>
+            lap.excludedReason === null &&
+            lap.phase === 'sc' &&
+            lap.lapTimeMs !== null,
+        )
         .map((lap) => lap.lapTimeMs as number),
       baselineMedianMs,
     ),
     vsc: phaseStats(
       laps
-        .filter((lap) => lap.excludedReason === null && lap.phase === 'vsc' && lap.lapTimeMs !== null)
+        .filter(
+          (lap) =>
+            lap.excludedReason === null &&
+            lap.phase === 'vsc' &&
+            lap.lapTimeMs !== null,
+        )
         .map((lap) => lap.lapTimeMs as number),
       baselineMedianMs,
     ),
     red: phaseStats(
       laps
-        .filter((lap) => lap.excludedReason === null && lap.phase === 'red' && lap.lapTimeMs !== null)
+        .filter(
+          (lap) =>
+            lap.excludedReason === null &&
+            lap.phase === 'red' &&
+            lap.lapTimeMs !== null,
+        )
         .map((lap) => lap.lapTimeMs as number),
       baselineMedianMs,
     ),
     unknown: phaseStats(
       laps
-        .filter((lap) => lap.excludedReason === null && lap.phase === 'unknown' && lap.lapTimeMs !== null)
+        .filter(
+          (lap) =>
+            lap.excludedReason === null &&
+            lap.phase === 'unknown' &&
+            lap.lapTimeMs !== null,
+        )
         .map((lap) => lap.lapTimeMs as number),
       baselineMedianMs,
     ),
@@ -470,37 +552,6 @@ export function computeScVscDeltas(opts: {
   };
 }
 
-export function parseDurationMs(value: unknown): number | null {
-  if (value === null || value === undefined) return null;
-  if (typeof value === 'number') {
-    return Number.isFinite(value) ? Math.round(value * 1000) : null;
-  }
-  const raw = String(value).trim();
-  if (!raw) return null;
-  const text = raw.replace(/^[+]/, '');
-  if (/^\d+(\.\d+)?$/.test(text)) {
-    const sec = Number(text);
-    return Number.isFinite(sec) ? Math.round(sec * 1000) : null;
-  }
-  if (!text.includes(':')) return null;
-  const parts = text.split(':').map((p) => p.trim());
-  if (parts.some((p) => p.length === 0)) return null;
-  const seconds = Number(parts[parts.length - 1]);
-  if (!Number.isFinite(seconds)) return null;
-  if (parts.length === 2) {
-    const minutes = Number(parts[0]);
-    if (!Number.isFinite(minutes)) return null;
-    return Math.round((minutes * 60 + seconds) * 1000);
-  }
-  if (parts.length === 3) {
-    const hours = Number(parts[0]);
-    const minutes = Number(parts[1]);
-    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
-    return Math.round((hours * 3600 + minutes * 60 + seconds) * 1000);
-  }
-  return null;
-}
-
 export function computePitLaneTimeStats(opts: {
   state: unknown;
   method?: 'median' | 'mean';
@@ -515,41 +566,50 @@ export function computePitLaneTimeStats(opts: {
   const startLap = typeof opts.startLap === 'number' ? opts.startLap : null;
   const endLap = typeof opts.endLap === 'number' ? opts.endLap : null;
 
-  const listRaw = (opts.state as any)?.PitTimesList;
   const byDriver: PitLaneTimeStats['byDriver'] = [];
   const allDurations: number[] = [];
 
-  if (isPlainObject(listRaw)) {
-    const driverNumbers = Object.keys(listRaw).sort((a, b) => Number(a) - Number(b));
-    for (const driverNumber of driverNumbers) {
-      if (driverFilter && driverNumber !== driverFilter) continue;
-      const pits = (listRaw as any)[driverNumber];
-      if (!Array.isArray(pits)) continue;
-      const durations: number[] = [];
-      for (const pit of pits) {
-        const lapValue = (pit as any)?.Lap;
-        const lapNum = Number.isFinite(Number(lapValue)) ? Number(lapValue) : null;
-        if (startLap !== null && lapNum !== null && lapNum < startLap) continue;
-        if (endLap !== null && lapNum !== null && lapNum > endLap) continue;
-        const ms = parseDurationMs((pit as any)?.Duration);
-        if (ms === null) continue;
-        durations.push(ms);
-        allDurations.push(ms);
-      }
-      const pitLaneTimeMs =
-        durations.length === 0 ? null : method === 'mean' ? mean(durations) : median(durations);
-      byDriver.push({
-        driverNumber,
-        driverName: getDriverName(driverNumber),
-        samples: durations.length,
-        pitLaneTimeMs,
-        pitLaneTimeSec: pitLaneTimeMs === null ? null : pitLaneTimeMs / 1000,
-      });
+  const records = getPitLaneTimeRecords({
+    state: opts.state,
+    ...(driverFilter ? { driverNumber: driverFilter } : {}),
+    ...(startLap !== null ? { startLap } : {}),
+    ...(endLap !== null ? { endLap } : {}),
+  });
+  const durationsByDriver = new Map<string, number[]>();
+
+  for (const record of records) {
+    if (record.durationMs === null) {
+      continue;
     }
+
+    const durations = durationsByDriver.get(record.driverNumber) ?? [];
+    durations.push(record.durationMs);
+    durationsByDriver.set(record.driverNumber, durations);
+    allDurations.push(record.durationMs);
+  }
+
+  for (const [driverNumber, durations] of durationsByDriver.entries()) {
+    const pitLaneTimeMs =
+      durations.length === 0
+        ? null
+        : method === 'mean'
+          ? mean(durations)
+          : median(durations);
+    byDriver.push({
+      driverNumber,
+      driverName: getDriverName(driverNumber),
+      samples: durations.length,
+      pitLaneTimeMs,
+      pitLaneTimeSec: pitLaneTimeMs === null ? null : pitLaneTimeMs / 1000,
+    });
   }
 
   const pitLaneTimeMs =
-    allDurations.length === 0 ? null : method === 'mean' ? mean(allDurations) : median(allDurations);
+    allDurations.length === 0
+      ? null
+      : method === 'mean'
+        ? mean(allDurations)
+        : median(allDurations);
 
   return {
     source: 'PitLaneTimeCollection',
