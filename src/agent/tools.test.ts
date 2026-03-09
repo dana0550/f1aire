@@ -64,6 +64,7 @@ describe('tools', () => {
     expect(tools).toHaveProperty('get_drs_trains');
     expect(tools).toHaveProperty('get_sc_vsc_deltas');
     expect(tools).toHaveProperty('get_pit_loss_estimate');
+    expect(tools).toHaveProperty('get_position_snapshot');
     expect(tools).toHaveProperty('get_position_changes');
     expect(tools).toHaveProperty('get_race_control_events');
     expect(tools).toHaveProperty('get_driver_tracker');
@@ -2078,6 +2079,237 @@ describe('tools', () => {
           source: 'CurrentTyres',
         },
       ],
+    });
+  });
+
+  it('get_position_snapshot returns merged position + telemetry state', async () => {
+    const tools = makeTools({
+      store,
+      processors: {
+        ...processors,
+        driverList: {
+          state: {
+            '4': { FullName: 'Lando Norris' },
+            '81': { BroadcastName: 'Oscar Piastri' },
+          },
+          getName: (driverNumber: string) =>
+            driverNumber === '4' ? 'Lando Norris' : 'Oscar Piastri',
+        },
+        timingData: {
+          state: {
+            Lines: {
+              '4': { Line: 1 },
+              '81': { Line: 2 },
+            },
+          },
+          bestLaps: new Map(),
+          getLapHistory: () => [],
+          getLapNumbers: () => [12],
+          driversByLap: new Map([
+            [
+              12,
+              new Map([
+                [
+                  '4',
+                  { __dateTime: new Date('2025-01-01T00:00:12Z'), Line: 1 },
+                ],
+                [
+                  '81',
+                  { __dateTime: new Date('2025-01-01T00:00:12Z'), Line: 2 },
+                ],
+              ]),
+            ],
+          ]),
+        },
+        position: {
+          state: {
+            Position: [
+              {
+                Timestamp: '2025-01-01T00:00:12.000Z',
+                Entries: {
+                  '4': { Status: 'OnTrack', X: '10', Y: 20, Z: '30' },
+                  '81': { Status: 'OffTrack', X: 40, Y: '50', Z: 60 },
+                },
+              },
+            ],
+          },
+        },
+        carData: {
+          state: {
+            Entries: [
+              {
+                Utc: '2025-01-01T00:00:12.100Z',
+                Cars: {
+                  '4': { Channels: { '2': '302', '3': '8', '45': '10' } },
+                  '81': { Channels: { '2': 120, '3': '3', '45': '8' } },
+                },
+              },
+            ],
+          },
+        },
+      } as any,
+      timeCursor: { latest: true },
+      onTimeCursorChange: () => {},
+    });
+
+    await expect(
+      tools.get_position_snapshot.execute({} as any),
+    ).resolves.toEqual({
+      asOf: {
+        source: 'latest',
+        lap: 12,
+        dateTime: new Date('2025-01-01T00:00:12.000Z'),
+      },
+      positionTimestamp: '2025-01-01T00:00:12.000Z',
+      telemetryUtc: '2025-01-01T00:00:12.100Z',
+      totalDrivers: 2,
+      drivers: [
+        {
+          driverNumber: '4',
+          driverName: 'Lando Norris',
+          timingPosition: 1,
+          status: 'OnTrack',
+          offTrack: false,
+          coordinates: { x: 10, y: 20, z: 30 },
+          telemetry: {
+            rpm: null,
+            speed: 302,
+            gear: 8,
+            throttle: null,
+            brake: null,
+            drs: 10,
+          },
+        },
+        {
+          driverNumber: '81',
+          driverName: 'Oscar Piastri',
+          timingPosition: 2,
+          status: 'OffTrack',
+          offTrack: true,
+          coordinates: { x: 40, y: 50, z: 60 },
+          telemetry: {
+            rpm: null,
+            speed: 120,
+            gear: 3,
+            throttle: null,
+            brake: null,
+            drs: 8,
+          },
+        },
+      ],
+    });
+  });
+
+  it('get_position_snapshot respects historical replay cursor', async () => {
+    const tools = makeTools({
+      store: {
+        ...store,
+        topic: (name: string) => ({
+          latest: null,
+          timeline: () => {
+            if (name === 'Position') {
+              return [
+                {
+                  type: 'Position',
+                  json: {
+                    Position: [
+                      {
+                        Timestamp: '2025-01-01T00:00:11.000Z',
+                        Entries: {
+                          '4': { Status: 'OnTrack', X: 1, Y: 2, Z: 3 },
+                        },
+                      },
+                    ],
+                  },
+                  dateTime: new Date('2025-01-01T00:00:11.000Z'),
+                },
+              ];
+            }
+            if (name === 'CarData') {
+              return [
+                {
+                  type: 'CarData',
+                  json: {
+                    Entries: [
+                      {
+                        Utc: '2025-01-01T00:00:11.100Z',
+                        Cars: {
+                          '4': {
+                            Channels: { '2': '300', '3': '7', '45': '10' },
+                          },
+                        },
+                      },
+                    ],
+                  },
+                  dateTime: new Date('2025-01-01T00:00:11.100Z'),
+                },
+              ];
+            }
+            return [];
+          },
+        }),
+        raw: { subscribe: {}, live: [] },
+      } as any,
+      processors: {
+        ...processors,
+        driverList: {
+          state: { '4': { FullName: 'Lando Norris' } },
+          getName: () => 'Lando Norris',
+        },
+        timingData: {
+          state: {
+            Lines: {
+              '4': { Line: 2 },
+            },
+          },
+          bestLaps: new Map(),
+          getLapHistory: () => [],
+          getLapNumbers: () => [11, 12],
+          driversByLap: new Map([
+            [
+              11,
+              new Map([
+                [
+                  '4',
+                  { __dateTime: new Date('2025-01-01T00:00:11Z'), Line: 1 },
+                ],
+              ]),
+            ],
+            [
+              12,
+              new Map([
+                [
+                  '4',
+                  { __dateTime: new Date('2025-01-01T00:00:12Z'), Line: 2 },
+                ],
+              ]),
+            ],
+          ]),
+        },
+        position: { state: null },
+        carData: { state: null },
+      } as any,
+      timeCursor: { lap: 11 },
+      onTimeCursorChange: () => {},
+    });
+
+    await expect(
+      tools.get_position_snapshot.execute({ driverNumber: '4' } as any),
+    ).resolves.toEqual({
+      driverNumber: '4',
+      driverName: 'Lando Norris',
+      timingPosition: 1,
+      status: 'OnTrack',
+      offTrack: false,
+      coordinates: { x: 1, y: 2, z: 3 },
+      telemetry: {
+        rpm: null,
+        speed: 300,
+        gear: 7,
+        throttle: null,
+        brake: null,
+        drs: 10,
+      },
     });
   });
 

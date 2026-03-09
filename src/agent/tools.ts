@@ -82,6 +82,10 @@ import {
   getPositionEntries,
 } from '../core/feed-models.js';
 import {
+  buildPositionSnapshotFromTimelines,
+  getPositionSnapshot,
+} from '../core/position-snapshot.js';
+import {
   getRaceControlEvents,
   type RaceControlEvent,
 } from '../core/processors/race-control-messages.js';
@@ -701,6 +705,38 @@ export function makeTools({
     }));
   };
 
+  const getPositionSnapshotView = (driverNumber?: string | number) => {
+    const resolved = resolveCurrentCursor();
+    const latestLap = analysisIndex.lapNumbers.at(-1) ?? null;
+    const useHistoricalReplay =
+      Boolean(resolved.dateTime) &&
+      typeof resolved.lap === 'number' &&
+      typeof latestLap === 'number' &&
+      resolved.lap < latestLap;
+
+    if (!useHistoricalReplay) {
+      return getPositionSnapshot({
+        positionState: processors.position?.state,
+        carDataState: processors.carData?.state,
+        driverListState: processors.driverList?.state ?? null,
+        timingDataState: processors.timingData?.state,
+        driverNumber,
+      });
+    }
+
+    return buildPositionSnapshotFromTimelines({
+      positionTimeline: analysis.getTopicTimeline('Position', {
+        to: resolved.dateTime ?? undefined,
+      }),
+      carDataTimeline: analysis.getTopicTimeline('CarData', {
+        to: resolved.dateTime ?? undefined,
+      }),
+      driverListState: processors.driverList?.state ?? null,
+      timingDataState: getTimingDataStateAsOfLap(resolved.lap),
+      driverNumber,
+    });
+  };
+
   const serializeLapSeriesRecord = (
     record: ReturnType<typeof getLapSeriesRecords>[number],
   ) => ({
@@ -1017,7 +1053,9 @@ export function makeTools({
     } = {},
   ) => {
     const resolved = resolveCurrentCursor();
-    const to = opts.includeFuture ? undefined : (resolved.dateTime ?? undefined);
+    const to = opts.includeFuture
+      ? undefined
+      : (resolved.dateTime ?? undefined);
     const fallbackDateTime = resolved.dateTime ?? new Date(0);
 
     const sessionDataBase = normalizePoint({
@@ -1033,11 +1071,13 @@ export function makeTools({
 
     const sessionStatusState =
       analysis.getTopicTimeline('SessionStatus', { to }).at(-1)?.json ??
-      ((store.raw.subscribe as any)?.SessionStatus ?? null);
+      (store.raw.subscribe as any)?.SessionStatus ??
+      null;
 
     const archiveStatusState =
       analysis.getTopicTimeline('ArchiveStatus', { to }).at(-1)?.json ??
-      ((store.raw.subscribe as any)?.ArchiveStatus ?? null);
+      (store.raw.subscribe as any)?.ArchiveStatus ??
+      null;
 
     const sessionInfoState =
       processors.sessionInfo?.state ??
@@ -3192,6 +3232,33 @@ export function makeTools({
       description: 'Get latest Position entry',
       inputSchema: z.object({}),
       execute: async () => processors.position?.state ?? null,
+    }),
+    get_position_snapshot: tool({
+      description:
+        'Get a deterministic per-driver position snapshot by combining Position.z coordinates, latest CarData telemetry, timing order, and driver metadata. Respects the current replay cursor when historical snapshots are available.',
+      inputSchema: z.object({
+        driverNumber: z.union([z.string(), z.number()]).optional(),
+      }),
+      execute: async ({ driverNumber }) => {
+        const snapshot = getPositionSnapshotView(driverNumber);
+        if (!snapshot) {
+          return null;
+        }
+
+        if (driverNumber !== undefined) {
+          return snapshot.drivers[0] ?? null;
+        }
+
+        const resolved = resolveCurrentCursor();
+        return {
+          asOf: {
+            source: resolved.source,
+            lap: resolved.lap,
+            dateTime: resolved.dateTime,
+          },
+          ...snapshot,
+        };
+      },
     }),
     get_heartbeat: tool({
       description: 'Get merged Heartbeat',
