@@ -21,7 +21,7 @@ import { downloadSession } from './core/download.js';
 import { getMeetings } from './core/f1-api.js';
 import { summarizeFromLines, type Summary as SummaryData } from './core/summary.js';
 import { loadSessionStore } from './core/session-store.js';
-import { TimingService } from './core/timing-service.js';
+import { hydrateTimingServiceFromStore, TimingService } from './core/timing-service.js';
 import type { TimeCursor } from './core/time-cursor.js';
 import { getDataDir } from './core/xdg.js';
 import { appendUserMessage, type ChatMessage } from './tui/chat-state.js';
@@ -377,21 +377,18 @@ export function App(): React.JSX.Element {
       livePoints: store.raw.live.length,
     });
     const timingService = new TimingService();
-    const subscribe = store.raw.subscribe ?? {};
     const processStart = performance.now();
-    for (const [type, json] of Object.entries(subscribe)) {
-      timingService.enqueue({
-        type,
-        json,
-        dateTime: new Date(),
-      });
-    }
-    for (const point of store.raw.live) timingService.enqueue(point);
+    const hydration = hydrateTimingServiceFromStore({
+      service: timingService,
+      store,
+    });
     const processDurationMs = performance.now() - processStart;
     void engineerLoggerRef.current?.logger({
       type: 'timing-process',
       durationMs: Math.round(processDurationMs),
-      livePoints: store.raw.live.length,
+      livePoints: hydration.livePoints,
+      subscribeTopics: hydration.subscribeTopics.length,
+      keyframeTopics: hydration.keyframeTopics.length,
     });
     const initialTimeCursor: TimeCursor = { latest: true };
     setTimeCursor(initialTimeCursor);
