@@ -4,6 +4,11 @@ import { buildAnalysisIndex, type LapRecord } from './analysis-index.js';
 import { isPlainObject } from './processors/merge.js';
 import { normalizePoint } from './processors/normalize.js';
 import {
+  getRaceControlEvents as getRaceControlEventList,
+  type RaceControlEvent,
+  type RaceControlEventQuery,
+} from './processors/race-control-messages.js';
+import {
   buildSessionDataState,
   buildSessionLifecycleSnapshot,
   type SessionArchiveStatus,
@@ -182,6 +187,22 @@ export type TeamRadioEventsResponse = {
   captures: TeamRadioEventRecord[];
 };
 
+export type RaceControlEventRecord = Omit<RaceControlEvent, 'dateTime'> & {
+  dateTime: string | null;
+};
+
+export type RaceControlEventsResponse = {
+  asOf: {
+    source: SerializedResolvedCursor['source'];
+    lap: number | null;
+    dateTime: string | null;
+    includeFuture: boolean;
+  };
+  total: number;
+  returned: number;
+  events: RaceControlEventRecord[];
+};
+
 export type TeamRadioDownloadRequest = {
   captureId?: string | number;
   driverNumber?: string | number;
@@ -254,6 +275,13 @@ export type OperatorApi = {
     limit?: number;
     includeSnapshot?: boolean;
   }) => BestLapsResponse;
+  getRaceControlEvents: (
+    options?:
+      | (RaceControlEventQuery & {
+          includeFuture?: boolean;
+        })
+      | undefined,
+  ) => RaceControlEventsResponse;
   getTeamRadioEvents: (options?: {
     driverNumber?: string | number;
     limit?: number;
@@ -382,6 +410,15 @@ function serializeSessionLifecycleEvent(
     sessionStatus: event.sessionStatus,
     trackStatus: event.trackStatus,
     source: event.source,
+  };
+}
+
+function serializeRaceControlEvent(
+  event: RaceControlEvent,
+): RaceControlEventRecord {
+  return {
+    ...event,
+    dateTime: event.dateTime?.toISOString() ?? null,
   };
 }
 
@@ -1031,6 +1068,62 @@ export function createOperatorApi({
     };
   };
 
+  const getRaceControlEvents: OperatorApi['getRaceControlEvents'] = (
+    options = {},
+  ) => {
+    const analysisIndex = buildAnalysisIndex({
+      processors: service.processors,
+    });
+    const resolved = analysisIndex.resolveAsOf(currentCursor);
+    const replayCutoff = parseCursorIso(currentCursor) ?? resolved.dateTime;
+    const before =
+      options.before !== undefined
+        ? options.before
+        : options.includeFuture
+          ? undefined
+          : (replayCutoff ?? undefined);
+    const query: RaceControlEventQuery = {
+      before,
+      category: options.category,
+      flag: options.flag,
+      scope: options.scope,
+      driverNumber: options.driverNumber,
+      search: options.search,
+    };
+    const processor = service.processors.raceControlMessages as
+      | {
+          getMessages?: (query?: RaceControlEventQuery) => RaceControlEvent[];
+          state?: unknown;
+        }
+      | undefined;
+    const state =
+      processor?.state ??
+      getSubscribeTopicSnapshot(store, 'RaceControlMessages') ??
+      null;
+    const events = processor?.getMessages
+      ? processor.getMessages(query)
+      : getRaceControlEventList(state, query);
+    const limited =
+      typeof options.limit === 'number' && options.limit >= 0
+        ? events.slice(0, options.limit)
+        : events;
+
+    return {
+      asOf: {
+        lap: resolved.lap,
+        dateTime:
+          resolved.source === 'time'
+            ? (currentCursor.iso ?? null)
+            : (resolved.dateTime?.toISOString() ?? null),
+        source: resolved.source,
+        includeFuture: Boolean(options.includeFuture),
+      },
+      total: events.length,
+      returned: limited.length,
+      events: limited.map(serializeRaceControlEvent),
+    };
+  };
+
   const getTeamRadioEvents: OperatorApi['getTeamRadioEvents'] = (
     options = {},
   ) => {
@@ -1323,6 +1416,7 @@ export function createOperatorApi({
     getTyreStints,
     getPositionSnapshot: getPositionSnapshotView,
     getBestLaps,
+    getRaceControlEvents,
     getTeamRadioEvents,
     downloadTeamRadioCapture,
     playTeamRadioCapture,

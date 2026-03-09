@@ -10,6 +10,7 @@ import type {
   CurrentTyresResponse,
   OperatorApi,
   PositionSnapshotResponse,
+  RaceControlEventsResponse,
   ReplayControlRequest,
   ReplayControlResult,
   SessionLifecycleOrder,
@@ -39,6 +40,17 @@ type BestLapQuery = {
   driverNumber?: string;
   limit?: number;
   includeSnapshot?: boolean;
+};
+
+type RaceControlQuery = {
+  before?: string;
+  category?: string;
+  flag?: string;
+  scope?: string;
+  driverNumber?: string;
+  search?: string;
+  limit?: number;
+  includeFuture?: boolean;
 };
 
 type TeamRadioQuery = {
@@ -220,6 +232,48 @@ function handleBestLaps(api: OperatorApi, url: URL): BestLapsResponse {
     options.includeSnapshot = includeSnapshot;
   }
   return api.getBestLaps(options);
+}
+
+function handleRaceControlEvents(
+  api: OperatorApi,
+  url: URL,
+): RaceControlEventsResponse {
+  const options: RaceControlQuery = {};
+  const before = url.searchParams.get('before');
+  if (before) {
+    options.before = before;
+  }
+  const category = url.searchParams.get('category');
+  if (category) {
+    options.category = category;
+  }
+  const flag = url.searchParams.get('flag');
+  if (flag) {
+    options.flag = flag;
+  }
+  const scope = url.searchParams.get('scope');
+  if (scope) {
+    options.scope = scope;
+  }
+  const driverNumber = url.searchParams.get('driverNumber');
+  if (driverNumber) {
+    options.driverNumber = driverNumber;
+  }
+  const search = url.searchParams.get('search');
+  if (search) {
+    options.search = search;
+  }
+  const limit = parseOptionalInt(url.searchParams.get('limit'));
+  if (typeof limit === 'number') {
+    options.limit = limit;
+  }
+  const includeFuture = parseOptionalBoolean(
+    url.searchParams.get('includeFuture'),
+  );
+  if (typeof includeFuture === 'boolean') {
+    options.includeFuture = includeFuture;
+  }
+  return api.getRaceControlEvents(options);
 }
 
 function handleTeamRadioEvents(
@@ -410,6 +464,10 @@ export function createOperatorApiRequestHandler(opts: {
 
       if (method === 'GET' && segments.length === 3 && segments[0] === 'data') {
         const topic = decodeURIComponent(segments[1]!);
+        if (topic === 'RaceControlMessages' && segments[2] === 'events') {
+          sendJson(res, 200, handleRaceControlEvents(api, url));
+          return;
+        }
         if (topic === 'TeamRadio' && segments[2] === 'events') {
           sendJson(res, 200, handleTeamRadioEvents(api, url));
           return;

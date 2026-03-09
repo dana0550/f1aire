@@ -193,6 +193,46 @@ const positionPoints: RawPoint[] = [
   },
 ];
 
+const raceControlPoints: RawPoint[] = [
+  ...points,
+  {
+    type: 'RaceControlMessages',
+    json: {
+      Messages: [
+        {
+          Utc: '2025-01-01T00:00:10.500Z',
+          Lap: '11',
+          Category: 'Flag',
+          Flag: 'YELLOW',
+          Scope: 'Track',
+          Sector: 1,
+          RacingNumber: '81',
+          Message: 'Yellow flag in sector 1',
+        },
+      ],
+    },
+    dateTime: new Date('2025-01-01T00:00:10.500Z'),
+  },
+  {
+    type: 'RaceControlMessages',
+    json: {
+      Messages: {
+        '1': {
+          Utc: '2025-01-01T00:00:11.800Z',
+          Lap: '12',
+          Category: 'Flag',
+          Flag: 'GREEN',
+          Scope: 'Track',
+          Sector: 1,
+          RacingNumber: '4',
+          Message: 'Track clear',
+        },
+      },
+    },
+    dateTime: new Date('2025-01-01T00:00:11.800Z'),
+  },
+];
+
 const tyrePoints: RawPoint[] = [
   {
     type: 'DriverList',
@@ -486,6 +526,78 @@ describe('operator-server', () => {
             LastLapTime: { Value: '1:30.100' },
             __dateTime: '2025-01-01T00:00:12.000Z',
           },
+        },
+      ],
+    });
+  });
+
+  it('serves replay-aware race control events over HTTP', async () => {
+    const service = new TimingService();
+    raceControlPoints.forEach((point) => service.enqueue(point));
+    const api = createOperatorApi({
+      store: buildStore(raceControlPoints),
+      service,
+      timeCursor: { lap: 11 },
+    });
+    const server = await startOperatorApiServer({ api });
+    activeServers.add(server);
+
+    const historicalResponse = await fetch(
+      `${server.origin}/data/RaceControlMessages/events`,
+    );
+    expect(historicalResponse.status).toBe(200);
+    await expect(historicalResponse.json()).resolves.toEqual({
+      asOf: {
+        lap: 11,
+        dateTime: '2025-01-01T00:00:11.000Z',
+        source: 'lap',
+        includeFuture: false,
+      },
+      total: 1,
+      returned: 1,
+      events: [
+        {
+          messageId: '0',
+          utc: '2025-01-01T00:00:10.500Z',
+          dateTime: '2025-01-01T00:00:10.500Z',
+          lap: 11,
+          category: 'Flag',
+          flag: 'YELLOW',
+          scope: 'Track',
+          sector: 1,
+          status: null,
+          driverNumber: '81',
+          message: 'Yellow flag in sector 1',
+        },
+      ],
+    });
+
+    const includeFutureResponse = await fetch(
+      `${server.origin}/data/RaceControlMessages/events?includeFuture=true&category=Flag&limit=1`,
+    );
+    expect(includeFutureResponse.status).toBe(200);
+    await expect(includeFutureResponse.json()).resolves.toEqual({
+      asOf: {
+        lap: 11,
+        dateTime: '2025-01-01T00:00:11.000Z',
+        source: 'lap',
+        includeFuture: true,
+      },
+      total: 2,
+      returned: 1,
+      events: [
+        {
+          messageId: '1',
+          utc: '2025-01-01T00:00:11.800Z',
+          dateTime: '2025-01-01T00:00:11.800Z',
+          lap: 12,
+          category: 'Flag',
+          flag: 'GREEN',
+          scope: 'Track',
+          sector: 1,
+          status: null,
+          driverNumber: '4',
+          message: 'Track clear',
         },
       ],
     });
