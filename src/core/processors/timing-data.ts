@@ -20,6 +20,17 @@ const SUPPORTED_TIMING_TYPES = new Set<TimingPointType>([
   'TimingDataF1',
 ]);
 
+function toLapNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === 'string' && value.trim().length > 0) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
 export class TimingDataProcessor implements Processor<TimingState> {
   latest: TimingState | null = null;
   state: TimingState | null = null;
@@ -75,18 +86,17 @@ export class TimingDataProcessor implements Processor<TimingState> {
       } else if (driver.IsPitLap && !driver.PitOut && !driver.InPit) {
         driver.IsPitLap = false;
       }
-      const lapNumber = (driver as any)?.NumberOfLaps;
-      if (typeof lapNumber === 'number') {
+      const lapNumber = toLapNumber((driver as any)?.NumberOfLaps);
+      const lapUpdate = toLapNumber(partialDriver?.NumberOfLaps);
+      if (lapNumber !== null) {
         this.currentLapByDriver.set(num, lapNumber);
       }
-      const snapshotLap =
-        typeof lapNumber === 'number'
-          ? lapNumber
-          : this.currentLapByDriver.get(num);
-      if (typeof snapshotLap === 'number') {
-        const lapDrivers = this.driversByLap.get(snapshotLap) ?? new Map();
-        if (!this.driversByLap.has(snapshotLap)) {
-          this.driversByLap.set(snapshotLap, lapDrivers);
+      const currentLap =
+        lapNumber ?? (this.currentLapByDriver.get(num) ?? null);
+      if (lapUpdate !== null) {
+        const lapDrivers = this.driversByLap.get(lapUpdate) ?? new Map();
+        if (!this.driversByLap.has(lapUpdate)) {
+          this.driversByLap.set(lapUpdate, lapDrivers);
         }
         const snap = structuredClone(merged) as TimingLine;
         (snap as any).__dateTime = point.dateTime;
@@ -108,10 +118,7 @@ export class TimingDataProcessor implements Processor<TimingState> {
         this.bestLaps.set(num, {
           time,
           timeMs: ms,
-          lap:
-            typeof snapshotLap === 'number'
-              ? snapshotLap
-              : (this.currentLapByDriver.get(num) ?? null),
+          lap: currentLap,
           snapshot: bestLapSnapshot,
         });
       }
