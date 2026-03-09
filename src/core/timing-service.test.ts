@@ -599,6 +599,69 @@ describe('TimingService', () => {
       },
     });
   });
+  it('routes TimingAppData through the dedicated processor helpers', () => {
+    const service = new TimingService();
+
+    service.enqueue({
+      type: 'TimingAppData',
+      json: {
+        Lines: {
+          '4': {
+            Stints: [
+              {
+                Compound: 'SOFT',
+                StartLaps: 0,
+                TotalLaps: 10,
+              },
+            ],
+          },
+        },
+      },
+      dateTime: new Date('2025-01-01T00:00:01Z'),
+    });
+
+    service.enqueue({
+      type: 'TimingAppData',
+      json: {
+        Lines: {
+          '4': {
+            Line: 1,
+            Stints: {
+              '1': {
+                Compound: 'MEDIUM',
+                StartLaps: 10,
+                TotalLaps: 20,
+              },
+            },
+          },
+        },
+      },
+      dateTime: new Date('2025-01-01T00:00:02Z'),
+    });
+
+    expect(service.processors.timingAppData.getLine('4')).toMatchObject({
+      Line: 1,
+    });
+    expect(service.processors.timingAppData.getStints('4')).toEqual([
+      [
+        '0',
+        {
+          Compound: 'SOFT',
+          StartLaps: 0,
+          TotalLaps: 10,
+        },
+      ],
+      [
+        '1',
+        {
+          Compound: 'MEDIUM',
+          StartLaps: 10,
+          TotalLaps: 20,
+        },
+      ],
+    ]);
+  });
+
   it('routes TeamRadio through the dedicated processor helpers', () => {
     const service = new TimingService();
 

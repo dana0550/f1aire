@@ -1,3 +1,7 @@
+import {
+  getTimingAppDataLinesRoot,
+  getTimingAppDataStints,
+} from './timing-app-data.js';
 import { isPlainObject } from './processors/merge.js';
 
 export type TyreStintSource = 'TyreStintSeries' | 'TimingAppData';
@@ -131,16 +135,10 @@ function buildDriverOrder(
 function extractTimingAppDataMap(
   state: unknown,
 ): Map<string, TyreStintRecord[]> {
-  const lines = isPlainObject((state as { Lines?: unknown } | null)?.Lines)
-    ? ((state as { Lines: Record<string, unknown> }).Lines ?? {})
-    : {};
+  const lines = getTimingAppDataLinesRoot(state);
   const out = new Map<string, TyreStintRecord[]>();
   for (const [driverNumber, rawLine] of Object.entries(lines)) {
-    if (!isPlainObject(rawLine)) {
-      continue;
-    }
-    const stints = toOrderedEntries(rawLine.Stints);
-    const records = stints
+    const records = getTimingAppDataStints(rawLine)
       .map(([stintKey, raw]) =>
         buildTyreStintRecord(driverNumber, stintKey, raw, 'TimingAppData'),
       )
