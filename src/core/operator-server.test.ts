@@ -300,6 +300,75 @@ const tyrePoints: RawPoint[] = [
   },
 ];
 
+const timingStatsPoints: RawPoint[] = [
+  {
+    type: 'DriverList',
+    json: {
+      '4': { FullName: 'Lando Norris' },
+      '81': { FullName: 'Oscar Piastri' },
+    },
+    dateTime: new Date('2025-01-01T00:00:01Z'),
+  },
+  {
+    type: 'TimingData',
+    json: {
+      Lines: {
+        '4': { Line: 2, NumberOfLaps: 11 },
+        '81': { Line: 1, NumberOfLaps: 11 },
+      },
+    },
+    dateTime: new Date('2025-01-01T00:00:11Z'),
+  },
+  {
+    type: 'TimingStats',
+    json: {
+      Lines: {
+        '4': {
+          BestSpeeds: {
+            FL: { Value: '338.5', Position: 2 },
+            I1: { Value: '295.1', Position: 1 },
+          },
+        },
+        '81': {
+          BestSpeeds: {
+            FL: { Value: '340.0', Position: 1 },
+            I1: { Value: '294.4', Position: 2 },
+          },
+        },
+      },
+    },
+    dateTime: new Date('2025-01-01T00:00:10.900Z'),
+  },
+  {
+    type: 'TimingData',
+    json: {
+      Lines: {
+        '4': { Line: 1, NumberOfLaps: 12 },
+        '81': { Line: 2, NumberOfLaps: 12 },
+      },
+    },
+    dateTime: new Date('2025-01-01T00:00:12Z'),
+  },
+  {
+    type: 'TimingStats',
+    json: {
+      Lines: {
+        '4': {
+          BestSpeeds: {
+            ST: { Value: '319.0', Position: 2 },
+          },
+        },
+        '81': {
+          BestSpeeds: {
+            ST: { Value: '320.1', Position: 1 },
+          },
+        },
+      },
+    },
+    dateTime: new Date('2025-01-01T00:00:11.900Z'),
+  },
+];
+
 const streamPoints: RawPoint[] = [
   ...points,
   {
@@ -983,6 +1052,118 @@ describe('operator-server', () => {
           source: 'TyreStintSeries',
         },
       ],
+    });
+  });
+
+  it('serves replay-aware timing stats over HTTP', async () => {
+    const latestServer = await startTestServer(timingStatsPoints);
+
+    const trapResponse = await fetch(
+      `${latestServer.origin}/data/TimingStats/stats?trap=st&limit=1`,
+    );
+    expect(trapResponse.status).toBe(200);
+    await expect(trapResponse.json()).resolves.toEqual({
+      asOf: {
+        lap: 12,
+        dateTime: '2025-01-01T00:00:12.000Z',
+        source: 'latest',
+      },
+      requestedTrap: 'ST',
+      requestedDriverNumber: null,
+      limit: 1,
+      totalDrivers: 2,
+      driver: null,
+      trapTable: {
+        trap: 'ST',
+        totalDrivers: 2,
+        fastest: {
+          trap: 'ST',
+          driverNumber: '81',
+          driverName: 'Oscar Piastri',
+          position: 1,
+          value: '320.1',
+          speedKph: 320.1,
+          raw: {
+            Value: '320.1',
+            Position: 1,
+          },
+        },
+        records: [
+          {
+            trap: 'ST',
+            driverNumber: '81',
+            driverName: 'Oscar Piastri',
+            position: 1,
+            value: '320.1',
+            speedKph: 320.1,
+            raw: {
+              Value: '320.1',
+              Position: 1,
+            },
+          },
+        ],
+      },
+      trapTables: null,
+    });
+
+    const service = new TimingService();
+    timingStatsPoints.forEach((point) => service.enqueue(point));
+    const api = createOperatorApi({
+      store: buildStore(timingStatsPoints),
+      service,
+      timeCursor: { lap: 11 },
+    });
+    const historicalServer = await startOperatorApiServer({ api });
+    activeServers.add(historicalServer);
+
+    const driverResponse = await fetch(
+      `${historicalServer.origin}/data/TimingStats/stats?driverNumber=4`,
+    );
+    expect(driverResponse.status).toBe(200);
+    await expect(driverResponse.json()).resolves.toEqual({
+      asOf: {
+        lap: 11,
+        dateTime: '2025-01-01T00:00:11.000Z',
+        source: 'lap',
+      },
+      requestedTrap: null,
+      requestedDriverNumber: '4',
+      limit: null,
+      totalDrivers: 2,
+      driver: {
+        driverNumber: '4',
+        driverName: 'Lando Norris',
+        bestSpeeds: [
+          {
+            trap: 'FL',
+            position: 2,
+            value: '338.5',
+            speedKph: 338.5,
+            raw: {
+              Value: '338.5',
+              Position: 2,
+            },
+          },
+          {
+            trap: 'I1',
+            position: 1,
+            value: '295.1',
+            speedKph: 295.1,
+            raw: {
+              Value: '295.1',
+              Position: 1,
+            },
+          },
+        ],
+        raw: {
+          BestSpeeds: {
+            FL: { Value: '338.5', Position: 2 },
+            I1: { Value: '295.1', Position: 1 },
+          },
+        },
+      },
+      trapTable: null,
+      trapTables: null,
     });
   });
 

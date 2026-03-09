@@ -59,6 +59,13 @@ import {
   type DriverTrackerRow,
 } from './driver-tracker.js';
 import {
+  getTimingStatsDriver,
+  getTimingStatsTrapTable,
+  getTimingStatsTrapTables,
+  type TimingStatsDriverRecord,
+  type TimingStatsTrapTable,
+} from './timing-stats.js';
+import {
   getTopicDefinition,
   type TopicAvailability,
   type TopicUpdateSemantics,
@@ -166,6 +173,17 @@ export type CurrentTyresResponse = {
   asOf: SerializedResolvedCursor;
   totalDrivers: number;
   records: CurrentTyreViewRecord[];
+};
+
+export type TimingStatsResponse = {
+  asOf: SerializedResolvedCursor;
+  requestedTrap: string | null;
+  requestedDriverNumber: string | null;
+  limit: number | null;
+  totalDrivers: number;
+  driver: TimingStatsDriverRecord | null;
+  trapTable: TimingStatsTrapTable | null;
+  trapTables: TimingStatsTrapTable[] | null;
 };
 
 export type DriverTrackerRowRecord = Omit<DriverTrackerRow, 'raw'> & {
@@ -333,6 +351,11 @@ export type OperatorApi = {
   getCurrentTyres: (options?: {
     driverNumber?: string | number;
   }) => CurrentTyresResponse;
+  getTimingStats: (options?: {
+    trap?: string;
+    driverNumber?: string | number;
+    limit?: number;
+  }) => TimingStatsResponse;
   getDriverTracker: (options?: {
     driverNumber?: string | number;
     includeFuture?: boolean;
@@ -592,6 +615,15 @@ function getDriverName(
   driverNumber: string,
 ): string | null {
   return service.processors.driverList?.getName?.(driverNumber) ?? null;
+}
+
+function getTimingStatsTotalDrivers(state: unknown): number {
+  if (!isPlainObject((state as { Lines?: unknown } | null)?.Lines)) {
+    return 0;
+  }
+
+  return Object.keys((state as { Lines: Record<string, unknown> }).Lines)
+    .length;
 }
 
 function getTeamRadioCaptureList(
@@ -1110,6 +1142,103 @@ export function createOperatorApi({
       asOf: serializeResolvedCursor(resolved),
       totalDrivers: records.length,
       records,
+    };
+  };
+
+  const getTimingStats: OperatorApi['getTimingStats'] = (options = {}) => {
+    const analysisIndex = buildAnalysisIndex({
+      processors: service.processors,
+    });
+    const resolved = analysisIndex.resolveAsOf(currentCursor);
+    const replayCutoff = currentCursor.latest
+      ? undefined
+      : (parseCursorIso(currentCursor) ?? resolved.dateTime ?? undefined);
+    const state = getTopicStateAsOf({
+      store,
+      service,
+      topic: 'TimingStats',
+      to: replayCutoff,
+    });
+    const requestedDriverNumber =
+      options.driverNumber === undefined ? null : String(options.driverNumber);
+    const requestedTrap =
+      requestedDriverNumber === null && typeof options.trap === 'string'
+        ? options.trap.trim().toUpperCase() || null
+        : null;
+    const limit =
+      typeof options.limit === 'number' &&
+      Number.isFinite(options.limit) &&
+      options.limit > 0
+        ? Math.floor(options.limit)
+        : null;
+    const totalDrivers = getTimingStatsTotalDrivers(state);
+
+    if (requestedDriverNumber !== null) {
+      const driver = state
+        ? getTimingStatsDriver({
+            state,
+            driverListState: service.processors.driverList?.state ?? null,
+            driverNumber: requestedDriverNumber,
+          })
+        : null;
+
+      return {
+        asOf: serializeResolvedCursor(resolved),
+        requestedTrap: null,
+        requestedDriverNumber,
+        limit,
+        totalDrivers,
+        driver: driver
+          ? (serializeValue(structuredClone(driver)) as TimingStatsDriverRecord)
+          : null,
+        trapTable: null,
+        trapTables: null,
+      };
+    }
+
+    if (requestedTrap !== null) {
+      const trapTable = state
+        ? getTimingStatsTrapTable({
+            state,
+            driverListState: service.processors.driverList?.state ?? null,
+            trap: requestedTrap,
+            limit: limit ?? undefined,
+          })
+        : null;
+
+      return {
+        asOf: serializeResolvedCursor(resolved),
+        requestedTrap,
+        requestedDriverNumber: null,
+        limit,
+        totalDrivers,
+        driver: null,
+        trapTable: trapTable
+          ? (serializeValue(structuredClone(trapTable)) as TimingStatsTrapTable)
+          : null,
+        trapTables: null,
+      };
+    }
+
+    const trapTables = state
+      ? getTimingStatsTrapTables({
+          state,
+          driverListState: service.processors.driverList?.state ?? null,
+          limit: limit ?? undefined,
+        })
+      : [];
+
+    return {
+      asOf: serializeResolvedCursor(resolved),
+      requestedTrap: null,
+      requestedDriverNumber: null,
+      limit,
+      totalDrivers,
+      driver: null,
+      trapTable: null,
+      trapTables: serializeValue(
+        structuredClone(trapTables),
+      ) as TimingStatsTrapTable[],
     };
   };
 
@@ -1750,6 +1879,7 @@ export function createOperatorApi({
     getLatest,
     getTimingLap,
     getCurrentTyres,
+    getTimingStats,
     getDriverTracker,
     getTyreStints,
     getPitStopEvents,

@@ -22,6 +22,7 @@ import type {
   TeamRadioEventsResponse,
   TeamRadioPlaybackRequest,
   TeamRadioTranscriptionRequest,
+  TimingStatsResponse,
   TimingLapResponse,
   TyreStintsResponse,
 } from './operator-api.js';
@@ -80,6 +81,12 @@ type TyreQuery = {
 type DriverTrackerQuery = {
   driverNumber?: string;
   includeFuture?: boolean;
+  limit?: number;
+};
+
+type TimingStatsQuery = {
+  trap?: string;
+  driverNumber?: string;
   limit?: number;
 };
 
@@ -357,6 +364,23 @@ function handleCurrentTyres(api: OperatorApi, url: URL): CurrentTyresResponse {
   return api.getCurrentTyres(options);
 }
 
+function handleTimingStats(api: OperatorApi, url: URL): TimingStatsResponse {
+  const options: TimingStatsQuery = {};
+  const trap = url.searchParams.get('trap');
+  if (trap) {
+    options.trap = trap;
+  }
+  const driverNumber = url.searchParams.get('driverNumber');
+  if (driverNumber) {
+    options.driverNumber = driverNumber;
+  }
+  const limit = parseOptionalInt(url.searchParams.get('limit'));
+  if (typeof limit === 'number') {
+    options.limit = limit;
+  }
+  return api.getTimingStats(options);
+}
+
 function handleDriverTracker(
   api: OperatorApi,
   url: URL,
@@ -593,6 +617,10 @@ export function createOperatorApiRequestHandler(opts: {
         }
         if (topic === 'CurrentTyres' && segments[2] === 'current') {
           sendJson(res, 200, handleCurrentTyres(api, url));
+          return;
+        }
+        if (topic === 'TimingStats' && segments[2] === 'stats') {
+          sendJson(res, 200, handleTimingStats(api, url));
           return;
         }
         if (topic === 'DriverTracker' && segments[2] === 'rows') {
