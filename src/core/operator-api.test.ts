@@ -831,6 +831,245 @@ describe('createOperatorApi', () => {
     });
   });
 
+  it('returns replay-aware championship prediction standings', () => {
+    const championshipPoints: RawPoint[] = [
+      ...points,
+      {
+        type: 'DriverList',
+        json: {
+          '1': {
+            FullName: 'Max Verstappen',
+            TeamName: 'Red Bull Racing',
+          },
+          '4': {
+            FullName: 'Lando Norris',
+            TeamName: 'McLaren Mercedes',
+          },
+        },
+        dateTime: new Date('2025-01-01T00:00:01.500Z'),
+      },
+      {
+        type: 'ChampionshipPrediction',
+        json: {
+          Drivers: {
+            '4': {
+              PredictedPosition: 1,
+              PredictedPoints: 109,
+            },
+          },
+          Teams: {
+            'McLaren Mercedes': {
+              PredictedPosition: 1,
+              PredictedPoints: 190,
+            },
+          },
+        },
+        dateTime: new Date('2025-01-01T00:00:10.500Z'),
+      },
+      {
+        type: 'ChampionshipPrediction',
+        json: {
+          Drivers: {
+            '1': {
+              PredictedPosition: 2,
+              PredictedPoints: 107,
+            },
+          },
+          Teams: {
+            'Red Bull Racing': {
+              PredictedPosition: 2,
+              PredictedPoints: 186,
+            },
+          },
+        },
+        dateTime: new Date('2025-01-01T00:00:12.500Z'),
+      },
+    ];
+
+    const subscribe = {
+      ChampionshipPrediction: {
+        Drivers: {
+          '1': {
+            RacingNumber: '1',
+            TeamName: 'Red Bull Racing',
+            CurrentPosition: 1,
+            PredictedPosition: 1,
+            CurrentPoints: 100,
+            PredictedPoints: 108,
+          },
+          '4': {
+            RacingNumber: '4',
+            TeamName: 'McLaren Mercedes',
+            CurrentPosition: 2,
+            PredictedPosition: 2,
+            CurrentPoints: 95,
+            PredictedPoints: 101,
+          },
+        },
+        Teams: {
+          'Red Bull Racing': {
+            TeamName: 'Red Bull Racing',
+            CurrentPosition: 1,
+            PredictedPosition: 1,
+            CurrentPoints: 180,
+            PredictedPoints: 188,
+          },
+          'McLaren Mercedes': {
+            TeamName: 'McLaren Mercedes',
+            CurrentPosition: 2,
+            PredictedPosition: 2,
+            CurrentPoints: 170,
+            PredictedPoints: 181,
+          },
+        },
+      },
+    };
+
+    const service = new TimingService();
+    championshipPoints.forEach((point) => service.enqueue(point));
+    const api = createOperatorApi({
+      store: buildStore(championshipPoints, { subscribe }),
+      service,
+      timeCursor: { lap: 11 },
+    });
+
+    expect(
+      api.getChampionshipPrediction({
+        driverNumber: '4',
+        teamName: 'mclaren',
+        limit: 1,
+      }),
+    ).toEqual({
+      asOf: {
+        source: 'lap',
+        lap: 11,
+        dateTime: '2025-01-01T00:00:11.000Z',
+        includeFuture: false,
+      },
+      totalDrivers: 2,
+      totalTeams: 2,
+      returnedDrivers: 1,
+      returnedTeams: 1,
+      drivers: [
+        {
+          driverNumber: '4',
+          driverName: 'Lando Norris',
+          teamName: 'McLaren Mercedes',
+          currentPosition: 2,
+          predictedPosition: 1,
+          positionsGained: 1,
+          currentPoints: 95,
+          predictedPoints: 109,
+          pointsDelta: 14,
+          gapToLeaderPoints: 0,
+          raw: {
+            RacingNumber: '4',
+            TeamName: 'McLaren Mercedes',
+            CurrentPosition: 2,
+            PredictedPosition: 1,
+            CurrentPoints: 95,
+            PredictedPoints: 109,
+          },
+        },
+      ],
+      teams: [
+        {
+          teamName: 'McLaren Mercedes',
+          currentPosition: 2,
+          predictedPosition: 1,
+          positionsGained: 1,
+          currentPoints: 170,
+          predictedPoints: 190,
+          pointsDelta: 20,
+          gapToLeaderPoints: 0,
+          raw: {
+            TeamName: 'McLaren Mercedes',
+            CurrentPosition: 2,
+            PredictedPosition: 1,
+            CurrentPoints: 170,
+            PredictedPoints: 190,
+          },
+        },
+      ],
+    });
+
+    expect(
+      api.getChampionshipPrediction({
+        driverNumber: '1',
+        includeFuture: true,
+      }),
+    ).toEqual({
+      asOf: {
+        source: 'lap',
+        lap: 11,
+        dateTime: '2025-01-01T00:00:11.000Z',
+        includeFuture: true,
+      },
+      totalDrivers: 2,
+      totalTeams: 2,
+      returnedDrivers: 1,
+      returnedTeams: 2,
+      drivers: [
+        {
+          driverNumber: '1',
+          driverName: 'Max Verstappen',
+          teamName: 'Red Bull Racing',
+          currentPosition: 1,
+          predictedPosition: 2,
+          positionsGained: -1,
+          currentPoints: 100,
+          predictedPoints: 107,
+          pointsDelta: 7,
+          gapToLeaderPoints: 0,
+          raw: {
+            RacingNumber: '1',
+            TeamName: 'Red Bull Racing',
+            CurrentPosition: 1,
+            PredictedPosition: 2,
+            CurrentPoints: 100,
+            PredictedPoints: 107,
+          },
+        },
+      ],
+      teams: [
+        {
+          teamName: 'McLaren Mercedes',
+          currentPosition: 2,
+          predictedPosition: 1,
+          positionsGained: 1,
+          currentPoints: 170,
+          predictedPoints: 190,
+          pointsDelta: 20,
+          gapToLeaderPoints: 0,
+          raw: {
+            TeamName: 'McLaren Mercedes',
+            CurrentPosition: 2,
+            PredictedPosition: 1,
+            CurrentPoints: 170,
+            PredictedPoints: 190,
+          },
+        },
+        {
+          teamName: 'Red Bull Racing',
+          currentPosition: 1,
+          predictedPosition: 2,
+          positionsGained: -1,
+          currentPoints: 180,
+          predictedPoints: 186,
+          pointsDelta: 6,
+          gapToLeaderPoints: 4,
+          raw: {
+            TeamName: 'Red Bull Racing',
+            CurrentPosition: 1,
+            PredictedPosition: 2,
+            CurrentPoints: 180,
+            PredictedPoints: 186,
+          },
+        },
+      ],
+    });
+  });
+
   it('downloads and plays team radio clips through operator workflows', async () => {
     const service = new TimingService();
     points.forEach((point) => service.enqueue(point));

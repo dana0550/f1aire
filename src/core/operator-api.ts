@@ -1,6 +1,13 @@
 import type { SessionStore } from './session-store.js';
 import type { TimingService } from './timing-service.js';
 import { buildAnalysisIndex, type LapRecord } from './analysis-index.js';
+import {
+  buildChampionshipPredictionState,
+  getChampionshipPredictionDrivers,
+  getChampionshipPredictionTeams,
+  type ChampionshipPredictionDriverRecord,
+  type ChampionshipPredictionTeamRecord,
+} from './championship-prediction.js';
 import { MergeProcessor } from './processors/merge-processor.js';
 import { isPlainObject } from './processors/merge.js';
 import { normalizePoint } from './processors/normalize.js';
@@ -189,6 +196,21 @@ export type TimingStatsResponse = {
   trapTables: TimingStatsTrapTable[] | null;
 };
 
+export type ChampionshipPredictionResponse = {
+  asOf: {
+    source: SerializedResolvedCursor['source'];
+    lap: number | null;
+    dateTime: string | null;
+    includeFuture: boolean;
+  };
+  totalDrivers: number;
+  totalTeams: number;
+  returnedDrivers: number;
+  returnedTeams: number;
+  drivers: ChampionshipPredictionDriverRecord[];
+  teams: ChampionshipPredictionTeamRecord[];
+};
+
 export type DriverTrackerRowRecord = Omit<DriverTrackerRow, 'raw'> & {
   raw: DriverTrackerRow['raw'];
 };
@@ -359,6 +381,12 @@ export type OperatorApi = {
     driverNumber?: string | number;
     limit?: number;
   }) => TimingStatsResponse;
+  getChampionshipPrediction: (options?: {
+    driverNumber?: string | number;
+    teamName?: string;
+    includeFuture?: boolean;
+    limit?: number;
+  }) => ChampionshipPredictionResponse;
   getDriverTracker: (options?: {
     driverNumber?: string | number;
     includeFuture?: boolean;
@@ -1249,6 +1277,93 @@ export function createOperatorApi({
     };
   };
 
+  const getChampionshipPrediction: OperatorApi['getChampionshipPrediction'] = (
+    options = {},
+  ) => {
+    const analysisIndex = buildAnalysisIndex({
+      processors: service.processors,
+    });
+    const resolved = analysisIndex.resolveAsOf(currentCursor);
+    const includeFuture = options.includeFuture === true;
+    const cutoff =
+      includeFuture || currentCursor.latest
+        ? undefined
+        : (parseCursorIso(currentCursor) ?? resolved.dateTime ?? undefined);
+
+    const subscribeState = normalizePoint({
+      type: 'ChampionshipPrediction',
+      json: (store.raw.subscribe as { ChampionshipPrediction?: unknown } | null)
+        ?.ChampionshipPrediction,
+      dateTime: cutoff ?? new Date(0),
+    }).json;
+    let state = buildChampionshipPredictionState({
+      baseState: subscribeState,
+      timeline: getNormalizedTopicTimeline(
+        store,
+        'ChampionshipPrediction',
+        cutoff ? { to: cutoff } : undefined,
+      ),
+    });
+
+    let allDrivers = getChampionshipPredictionDrivers({
+      state,
+      driverListState: service.processors.driverList?.state ?? null,
+    });
+    let allTeams = getChampionshipPredictionTeams({ state });
+
+    if (
+      allDrivers.length === 0 &&
+      allTeams.length === 0 &&
+      service.processors.championshipPrediction?.state
+    ) {
+      state = service.processors.championshipPrediction.state as typeof state;
+      allDrivers = getChampionshipPredictionDrivers({
+        state,
+        driverListState: service.processors.driverList?.state ?? null,
+      });
+      allTeams = getChampionshipPredictionTeams({ state });
+    }
+
+    return {
+      asOf: {
+        source: resolved.source,
+        lap: resolved.lap,
+        dateTime: resolved.dateTime?.toISOString() ?? null,
+        includeFuture,
+      },
+      totalDrivers: allDrivers.length,
+      totalTeams: allTeams.length,
+      returnedDrivers: getChampionshipPredictionDrivers({
+        state,
+        driverListState: service.processors.driverList?.state ?? null,
+        driverNumber: options.driverNumber,
+        teamName: options.teamName,
+        limit: options.limit,
+      }).length,
+      returnedTeams: getChampionshipPredictionTeams({
+        state,
+        teamName: options.teamName,
+        limit: options.limit,
+      }).length,
+      drivers: serializeValue(
+        getChampionshipPredictionDrivers({
+          state,
+          driverListState: service.processors.driverList?.state ?? null,
+          driverNumber: options.driverNumber,
+          teamName: options.teamName,
+          limit: options.limit,
+        }),
+      ) as ChampionshipPredictionDriverRecord[],
+      teams: serializeValue(
+        getChampionshipPredictionTeams({
+          state,
+          teamName: options.teamName,
+          limit: options.limit,
+        }),
+      ) as ChampionshipPredictionTeamRecord[],
+    };
+  };
+
   const getDriverTracker: OperatorApi['getDriverTracker'] = (options = {}) => {
     const analysisIndex = buildAnalysisIndex({
       processors: service.processors,
@@ -1887,6 +2002,7 @@ export function createOperatorApi({
     getTimingLap,
     getCurrentTyres,
     getTimingStats,
+    getChampionshipPrediction,
     getDriverTracker,
     getTyreStints,
     getPitStopEvents,

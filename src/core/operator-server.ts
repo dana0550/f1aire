@@ -7,6 +7,7 @@ import {
 import type { AddressInfo } from 'node:net';
 import type {
   BestLapsResponse,
+  ChampionshipPredictionResponse,
   CurrentTyresResponse,
   DriverTrackerResponse,
   OperatorApi,
@@ -87,6 +88,13 @@ type DriverTrackerQuery = {
 type TimingStatsQuery = {
   trap?: string;
   driverNumber?: string;
+  limit?: number;
+};
+
+type ChampionshipPredictionQuery = {
+  driverNumber?: string;
+  teamName?: string;
+  includeFuture?: boolean;
   limit?: number;
 };
 
@@ -381,6 +389,32 @@ function handleTimingStats(api: OperatorApi, url: URL): TimingStatsResponse {
   return api.getTimingStats(options);
 }
 
+function handleChampionshipPrediction(
+  api: OperatorApi,
+  url: URL,
+): ChampionshipPredictionResponse {
+  const options: ChampionshipPredictionQuery = {};
+  const driverNumber = url.searchParams.get('driverNumber');
+  if (driverNumber) {
+    options.driverNumber = driverNumber;
+  }
+  const teamName = url.searchParams.get('teamName');
+  if (teamName) {
+    options.teamName = teamName;
+  }
+  const includeFuture = parseOptionalBoolean(
+    url.searchParams.get('includeFuture'),
+  );
+  if (typeof includeFuture === 'boolean') {
+    options.includeFuture = includeFuture;
+  }
+  const limit = parseOptionalInt(url.searchParams.get('limit'));
+  if (typeof limit === 'number') {
+    options.limit = limit;
+  }
+  return api.getChampionshipPrediction(options);
+}
+
 function handleDriverTracker(
   api: OperatorApi,
   url: URL,
@@ -621,6 +655,10 @@ export function createOperatorApiRequestHandler(opts: {
         }
         if (topic === 'TimingStats' && segments[2] === 'stats') {
           sendJson(res, 200, handleTimingStats(api, url));
+          return;
+        }
+        if (topic === 'ChampionshipPrediction' && segments[2] === 'standings') {
+          sendJson(res, 200, handleChampionshipPrediction(api, url));
           return;
         }
         if (topic === 'DriverTracker' && segments[2] === 'rows') {
