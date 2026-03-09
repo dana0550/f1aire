@@ -97,4 +97,49 @@ describe('SessionStore', () => {
       json: compressedCarData,
     });
   });
+
+  it('parses BOM-prefixed PascalCase legacy replay dumps from the reference repo', async () => {
+    const base = createSessionDir();
+
+    writeFileSync(
+      path.join(base, 'subscribe.txt'),
+      `\uFEFF${JSON.stringify({
+        SessionInfo: { Name: 'Sakhir Race' },
+        Heartbeat: { Utc: '2025-04-13T14:08:16.000Z' },
+      })}`,
+      'utf-8',
+    );
+    writeFileSync(
+      path.join(base, 'live.txt'),
+      [
+        `\uFEFF${JSON.stringify({
+          Type: 'TrackStatus',
+          Json: { Status: '1', Message: 'AllClear' },
+          DateTime: '2025-04-13T14:08:16.2570245+00:00',
+        })}`,
+        JSON.stringify({
+          Type: 'ExtrapolatedClock',
+          Json: {
+            Utc: '2025-04-13T14:08:17.393Z',
+            Remaining: '00:00:00',
+            Extrapolating: false,
+          },
+          DateTime: '2025-04-13T14:08:19.3840245+00:00',
+        }),
+      ].join('\n'),
+      'utf-8',
+    );
+
+    const store = await loadSessionStore(base);
+
+    expect(store.raw.subscribe.SessionInfo.Name).toBe('Sakhir Race');
+    expect(store.raw.live).toHaveLength(2);
+    expect(store.topic('TrackStatus').latest).toMatchObject({
+      type: 'TrackStatus',
+      json: { Status: '1', Message: 'AllClear' },
+    });
+    expect(store.topic('ExtrapolatedClock').latest?.dateTime.toISOString()).toBe(
+      '2025-04-13T14:08:19.384Z',
+    );
+  });
 });

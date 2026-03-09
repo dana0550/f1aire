@@ -3,6 +3,14 @@ import path from 'node:path';
 
 type RawPoint = { type: string; json: any; dateTime: Date };
 
+function stripUtf8Bom(value: string) {
+  return value.replace(/^\uFEFF/, '');
+}
+
+function parseJsonText<T>(text: string): T {
+  return JSON.parse(stripUtf8Bom(text)) as T;
+}
+
 async function readOptionalFile(file: string) {
   try {
     return await fs.readFile(file, 'utf-8');
@@ -22,7 +30,7 @@ async function readFirstExisting(candidates: string[]) {
 }
 
 function parseRecordedPoint(line: string): RawPoint | null {
-  const trimmed = line.trim();
+  const trimmed = stripUtf8Bom(line).trim();
   if (trimmed.length === 0) {
     return null;
   }
@@ -30,26 +38,48 @@ function parseRecordedPoint(line: string): RawPoint | null {
   try {
     const parsed = JSON.parse(trimmed) as {
       type?: unknown;
+      Type?: unknown;
       json?: unknown;
+      Json?: unknown;
       dateTime?: unknown;
+      DateTime?: unknown;
       A?: unknown;
     } | null;
     if (!parsed || typeof parsed !== 'object') {
       return null;
     }
 
+    const normalizedType =
+      typeof parsed.type === 'string'
+        ? parsed.type
+        : typeof parsed.Type === 'string'
+          ? parsed.Type
+          : null;
+    const normalizedJson =
+      'json' in parsed
+        ? (parsed as { json?: unknown }).json
+        : 'Json' in parsed
+          ? (parsed as { Json?: unknown }).Json
+          : undefined;
+    const normalizedRecordedAt =
+      'dateTime' in parsed
+        ? parsed.dateTime
+        : 'DateTime' in parsed
+          ? parsed.DateTime
+          : undefined;
+
     if (
-      typeof parsed.type === 'string' &&
-      'dateTime' in parsed &&
-      (parsed as { json?: unknown }).json !== undefined
+      typeof normalizedType === 'string' &&
+      normalizedRecordedAt !== undefined &&
+      normalizedJson !== undefined
     ) {
-      const dateTime = new Date(String(parsed.dateTime));
+      const dateTime = new Date(String(normalizedRecordedAt));
       if (!Number.isFinite(dateTime.getTime())) {
         return null;
       }
       return {
-        type: parsed.type,
-        json: (parsed as { json?: unknown }).json ?? null,
+        type: normalizedType,
+        json: normalizedJson ?? null,
         dateTime,
       };
     }
@@ -101,10 +131,10 @@ export async function loadSessionStore(dir: string): Promise<SessionStore> {
   if (subscribeText === null) {
     throw new Error(`Could not find subscribe.json or subscribe.txt in ${dir}`);
   }
-  const subscribeRaw = JSON.parse(subscribeText);
+  const subscribeRaw = parseJsonText(subscribeText);
   let downloadRaw: any | null = null;
   try {
-    downloadRaw = JSON.parse(
+    downloadRaw = parseJsonText(
       await fs.readFile(path.join(dir, 'download.json'), 'utf-8'),
     );
   } catch {
@@ -112,7 +142,7 @@ export async function loadSessionStore(dir: string): Promise<SessionStore> {
   }
   let keyframesRaw: any | null = null;
   try {
-    keyframesRaw = JSON.parse(
+    keyframesRaw = parseJsonText(
       await fs.readFile(path.join(dir, 'keyframes.json'), 'utf-8'),
     );
   } catch {
