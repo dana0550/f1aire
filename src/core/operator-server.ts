@@ -8,6 +8,7 @@ import type { AddressInfo } from 'node:net';
 import type {
   BestLapsResponse,
   OperatorApi,
+  PositionSnapshotResponse,
   ReplayControlRequest,
   ReplayControlResult,
   SessionLifecycleOrder,
@@ -38,6 +39,10 @@ type BestLapQuery = {
 type TeamRadioQuery = {
   driverNumber?: string;
   limit?: number;
+};
+
+type PositionSnapshotQuery = {
+  driverNumber?: string;
 };
 
 type SessionLifecycleQuery = {
@@ -180,6 +185,18 @@ function handleTeamRadioEvents(
   return api.getTeamRadioEvents(options);
 }
 
+function handlePositionSnapshot(
+  api: OperatorApi,
+  url: URL,
+): PositionSnapshotResponse | null {
+  const options: PositionSnapshotQuery = {};
+  const driverNumber = url.searchParams.get('driverNumber');
+  if (driverNumber) {
+    options.driverNumber = driverNumber;
+  }
+  return api.getPositionSnapshot(options);
+}
+
 function handleSessionLifecycle(
   api: OperatorApi,
   url: URL,
@@ -268,6 +285,20 @@ export function createOperatorApiRequestHandler(opts: {
         const topic = decodeURIComponent(segments[1]!);
         if (topic === 'TeamRadio' && segments[2] === 'events') {
           sendJson(res, 200, handleTeamRadioEvents(api, url));
+          return;
+        }
+        if (topic === 'Position' && segments[2] === 'snapshot') {
+          const snapshot = handlePositionSnapshot(api, url);
+          if (!snapshot) {
+            sendError(
+              res,
+              404,
+              'not-found',
+              'Position snapshot was not found.',
+            );
+            return;
+          }
+          sendJson(res, 200, snapshot);
           return;
         }
         if (topic === 'SessionLifecycle' && segments[2] === 'events') {

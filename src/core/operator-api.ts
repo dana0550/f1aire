@@ -16,6 +16,11 @@ import {
   type TeamRadioCaptureSummary,
 } from './team-radio.js';
 import {
+  buildPositionSnapshotFromTimelines,
+  getPositionSnapshot,
+  type PositionSnapshot,
+} from './position-snapshot.js';
+import {
   getTopicDefinition,
   type TopicAvailability,
   type TopicUpdateSemantics,
@@ -97,6 +102,10 @@ export type TimingLapResponse = {
   drivers: TimingLapDriverSnapshot[];
 };
 
+export type PositionSnapshotResponse = PositionSnapshot & {
+  asOf: SerializedResolvedCursor;
+};
+
 export type BestLapRecord = {
   driverNumber: string;
   driverName: string | null;
@@ -168,6 +177,9 @@ export type OperatorApi = {
     lap?: number;
     driverNumber?: string | number;
   }) => TimingLapResponse | null;
+  getPositionSnapshot: (options?: {
+    driverNumber?: string | number;
+  }) => PositionSnapshotResponse | null;
   getBestLaps: (options?: {
     driverNumber?: string | number;
     limit?: number;
@@ -233,7 +245,10 @@ function getNormalizedTopicTimeline(
   return timeline.map((point) => normalizePoint(point));
 }
 
-function getSubscribeTopicSnapshot(store: SessionStore, topic: string): unknown {
+function getSubscribeTopicSnapshot(
+  store: SessionStore,
+  topic: string,
+): unknown {
   const subscribe = isPlainObject(store.raw.subscribe)
     ? store.raw.subscribe
     : null;
@@ -506,6 +521,87 @@ function sortTimingSnapshots(entries: Array<[string, unknown]>) {
   });
 }
 
+function getTimingDataStateAsOfLap(
+  service: TimingService,
+  asOfLap: number | null,
+) {
+  if (typeof asOfLap !== 'number') {
+    return service.processors.timingData?.state ?? null;
+  }
+
+  const lapDrivers = service.processors.timingData?.driversByLap?.get(asOfLap);
+  if (!lapDrivers) {
+    return service.processors.timingData?.state ?? null;
+  }
+
+  const lines: Record<string, unknown> = {};
+  for (const [driverNumber, snapshot] of lapDrivers.entries()) {
+    lines[driverNumber] = snapshot;
+  }
+
+  return { Lines: lines };
+}
+
+function parseSnapshotDateTime(value: unknown): Date | null {
+  if (value instanceof Date) {
+    return Number.isFinite(value.getTime()) ? value : null;
+  }
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const parsed = new Date(value);
+  return Number.isFinite(parsed.getTime()) ? parsed : null;
+}
+
+function getLapSnapshotDateTime(
+  service: TimingService,
+  lap: number,
+): Date | null {
+  const lapDrivers = service.processors.timingData?.driversByLap?.get(lap);
+  if (!lapDrivers) {
+    return null;
+  }
+
+  let earliest: Date | null = null;
+  for (const snapshot of lapDrivers.values()) {
+    const dateTime = parseSnapshotDateTime(
+      (snapshot as { __dateTime?: unknown }).__dateTime,
+    );
+    if (!dateTime) {
+      continue;
+    }
+    if (!earliest || dateTime.getTime() < earliest.getTime()) {
+      earliest = dateTime;
+    }
+  }
+
+  return earliest;
+}
+
+function getHistoricalReplayCutoff(
+  service: TimingService,
+  lapNumbers: number[],
+  resolvedLap: number | null,
+): Date | null {
+  if (typeof resolvedLap !== 'number') {
+    return null;
+  }
+
+  const nextLap = [...lapNumbers]
+    .sort((left, right) => left - right)
+    .find((lap) => lap > resolvedLap);
+  if (nextLap === undefined) {
+    return null;
+  }
+
+  const nextLapDateTime = getLapSnapshotDateTime(service, nextLap);
+  if (!nextLapDateTime) {
+    return null;
+  }
+
+  return new Date(nextLapDateTime.getTime() - 1);
+}
+
 function buildControlState(
   store: SessionStore,
   service: TimingService,
@@ -622,6 +718,53 @@ export function createOperatorApi({
     };
   };
 
+  const getPositionSnapshotView: OperatorApi['getPositionSnapshot'] = (
+    options = {},
+  ) => {
+    const analysisIndex = buildAnalysisIndex({
+      processors: service.processors,
+    });
+    const resolved = analysisIndex.resolveAsOf(currentCursor);
+    const historicalCutoff = getHistoricalReplayCutoff(
+      service,
+      analysisIndex.lapNumbers,
+      resolved.lap,
+    );
+
+    const snapshot = historicalCutoff
+      ? buildPositionSnapshotFromTimelines({
+          positionTimeline: getNormalizedTopicTimeline(store, 'Position', {
+            to: historicalCutoff,
+          }),
+          carDataTimeline: getNormalizedTopicTimeline(store, 'CarData', {
+            to: historicalCutoff,
+          }),
+          driverListState: service.processors.driverList?.state ?? null,
+          timingDataState: getTimingDataStateAsOfLap(service, resolved.lap),
+          driverNumber: options.driverNumber,
+        })
+      : getPositionSnapshot({
+          positionState: service.processors.position?.state,
+          carDataState: service.processors.carData?.state,
+          driverListState: service.processors.driverList?.state ?? null,
+          timingDataState: service.processors.timingData?.state,
+          driverNumber: options.driverNumber,
+        });
+
+    if (!snapshot) {
+      return null;
+    }
+
+    return {
+      asOf: {
+        lap: resolved.lap,
+        dateTime: resolved.dateTime?.toISOString() ?? null,
+        source: resolved.source,
+      },
+      ...(serializeValue(structuredClone(snapshot)) as PositionSnapshot),
+    };
+  };
+
   const getBestLaps: OperatorApi['getBestLaps'] = (options = {}) => {
     const records = Array.from(service.processors.timingData?.bestLaps ?? [])
       .filter(([driverNumber]) =>
@@ -694,7 +837,9 @@ export function createOperatorApi({
       processors: service.processors,
     });
     const resolved = analysisIndex.resolveAsOf(currentCursor);
-    const to = options.includeFuture ? undefined : (resolved.dateTime ?? undefined);
+    const to = options.includeFuture
+      ? undefined
+      : (resolved.dateTime ?? undefined);
     const fallbackDateTime = resolved.dateTime ?? new Date(0);
 
     const sessionDataBase = normalizePoint({
@@ -895,6 +1040,7 @@ export function createOperatorApi({
   return {
     getLatest,
     getTimingLap,
+    getPositionSnapshot: getPositionSnapshotView,
     getBestLaps,
     getTeamRadioEvents,
     getSessionLifecycle,

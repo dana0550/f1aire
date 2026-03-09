@@ -136,6 +136,70 @@ describe('createOperatorApi', () => {
     },
   ];
 
+  const positionPoints: RawPoint[] = [
+    ...points,
+    {
+      type: 'Position',
+      json: {
+        Position: [
+          {
+            Timestamp: '2025-01-01T00:00:11.500Z',
+            Entries: {
+              '4': { Status: 'OnTrack', X: '10', Y: '20', Z: '1' },
+              '81': { Status: 'OffTrack', X: '30', Y: '40', Z: '2' },
+            },
+          },
+        ],
+      },
+      dateTime: new Date('2025-01-01T00:00:11.500Z'),
+    },
+    {
+      type: 'CarData',
+      json: {
+        Entries: [
+          {
+            Utc: '2025-01-01T00:00:11.500Z',
+            Cars: {
+              '4': { Channels: { '2': '301', '3': '8' } },
+              '81': { Channels: { '2': '299', '3': '7' } },
+            },
+          },
+        ],
+      },
+      dateTime: new Date('2025-01-01T00:00:11.500Z'),
+    },
+    {
+      type: 'Position',
+      json: {
+        Position: [
+          {
+            Timestamp: '2025-01-01T00:00:12.500Z',
+            Entries: {
+              '4': { Status: 'OffTrack', X: '11', Y: '21', Z: '1' },
+              '81': { Status: 'OnTrack', X: '31', Y: '41', Z: '2' },
+            },
+          },
+        ],
+      },
+      dateTime: new Date('2025-01-01T00:00:12.500Z'),
+    },
+    {
+      type: 'CarData',
+      json: {
+        Entries: [
+          {
+            Utc: '2025-01-01T00:00:12.500Z',
+            Cars: {
+              '4': { Channels: { '2': '305', '3': '8' } },
+              '81': { Channels: { '2': '300', '3': '7' } },
+            },
+          },
+        ],
+      },
+      dateTime: new Date('2025-01-01T00:00:12.500Z'),
+    },
+  ];
+
   it('returns stable topic snapshots backed by processor state', () => {
     const service = new TimingService();
     points.forEach((point) => service.enqueue(point));
@@ -528,6 +592,96 @@ describe('createOperatorApi', () => {
             BestLapTime: { Value: '1:30.900', Lap: 11 },
             LastLapTime: { Value: '1:30.900' },
             __dateTime: '2025-01-01T00:00:11.000Z',
+          },
+        },
+      ],
+    });
+  });
+
+  it('returns replay-aware position snapshots from Position and CarData feeds', () => {
+    const service = new TimingService();
+    positionPoints.forEach((point) => service.enqueue(point));
+
+    const api = createOperatorApi({
+      store: buildStore(positionPoints),
+      service,
+    });
+
+    expect(api.getPositionSnapshot()).toEqual({
+      asOf: {
+        lap: 12,
+        dateTime: '2025-01-01T00:00:12.000Z',
+        source: 'latest',
+      },
+      positionTimestamp: '2025-01-01T00:00:12.500Z',
+      telemetryUtc: '2025-01-01T00:00:12.500Z',
+      totalDrivers: 2,
+      drivers: [
+        {
+          driverNumber: '4',
+          driverName: 'Lando Norris',
+          timingPosition: 1,
+          status: 'OffTrack',
+          offTrack: true,
+          coordinates: { x: 11, y: 21, z: 1 },
+          telemetry: {
+            rpm: null,
+            speed: 305,
+            gear: 8,
+            throttle: null,
+            brake: null,
+            drs: null,
+          },
+        },
+        {
+          driverNumber: '81',
+          driverName: 'Oscar Piastri',
+          timingPosition: 2,
+          status: 'OnTrack',
+          offTrack: false,
+          coordinates: { x: 31, y: 41, z: 2 },
+          telemetry: {
+            rpm: null,
+            speed: 300,
+            gear: 7,
+            throttle: null,
+            brake: null,
+            drs: null,
+          },
+        },
+      ],
+    });
+
+    const historicalApi = createOperatorApi({
+      store: buildStore(positionPoints),
+      service,
+      timeCursor: { lap: 11 },
+    });
+
+    expect(historicalApi.getPositionSnapshot({ driverNumber: 4 })).toEqual({
+      asOf: {
+        lap: 11,
+        dateTime: '2025-01-01T00:00:11.000Z',
+        source: 'lap',
+      },
+      positionTimestamp: '2025-01-01T00:00:11.500Z',
+      telemetryUtc: '2025-01-01T00:00:11.500Z',
+      totalDrivers: 1,
+      drivers: [
+        {
+          driverNumber: '4',
+          driverName: 'Lando Norris',
+          timingPosition: 2,
+          status: 'OnTrack',
+          offTrack: false,
+          coordinates: { x: 10, y: 20, z: 1 },
+          telemetry: {
+            rpm: null,
+            speed: 301,
+            gear: 8,
+            throttle: null,
+            brake: null,
+            drs: null,
           },
         },
       ],
