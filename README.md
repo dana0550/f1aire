@@ -8,7 +8,26 @@ Terminal-first Formula 1 race engineering with real session data.
 
 This project is built to be easy to read, easy to trust, and easy to contribute to.
 
-## Start In 30 Seconds
+## Table of Contents
+
+- [Quick Start](#quick-start)
+- [Features](#features)
+- [Why It Is Useful](#why-it-is-useful)
+- [How It Works](#how-it-works)
+- [Usage Flow](#usage-flow)
+- [Example Questions](#example-questions)
+- [Configuration](#configuration)
+- [Keyboard Controls](#keyboard-controls)
+- [Data Storage](#data-storage)
+- [Development](#development)
+- [Contributing](#contributing)
+- [Help](#help)
+- [Maintainers](#maintainers)
+- [License](#license)
+
+## Quick Start
+
+Run instantly (no global install required):
 
 ```bash
 npx -y f1aire@latest
@@ -19,7 +38,7 @@ Requirements:
 - Node `>= 24.13.0`
 - OpenAI API key (`OPENAI_API_KEY`) or in-app key entry
 
-## At A Glance
+## Features
 
 | Topic | Summary |
 |---|---|
@@ -50,15 +69,15 @@ flowchart LR
   G --> F
 ```
 
-## What The App Does
+## Usage Flow
 
-1. Lets you pick a season, Grand Prix, and session in the TUI.
-2. Downloads and merges live timing feeds from `livetiming.formula1.com`.
-3. Opens an engineer chat seeded with session context and summary.
-4. Uses the loaded dataset to answer tactical race questions.
-5. Optionally runs sandboxed Python against the same context.
+1. Pick a season, Grand Prix, and session in the TUI.
+2. Download and merge live timing feeds from `livetiming.formula1.com`.
+3. Open an engineer chat seeded with session context and summary.
+4. Ask tactical race questions against the loaded dataset.
+5. Optionally run sandboxed Python against the same context.
 
-Example prompts:
+## Example Questions
 
 - `Compare Norris vs Verstappen on clean laps 10-25.`
 - `What was the undercut window vs car #1 with a 20.5s pit loss?`
@@ -81,6 +100,19 @@ You can set the key in two ways:
 
 - Global: Enter select, `b`/Backspace/Esc back, `q` quit
 - Chat: Enter send, PgUp/PgDn scroll, Esc back, Ctrl+C quit
+
+## Data Storage
+
+Session artifacts are stored outside the repo in the per-user app data directory (`f1aire/data`).
+
+- macOS/Linux: `$XDG_DATA_HOME/f1aire/data` or `~/.local/share/f1aire/data`
+- Windows: `%LOCALAPPDATA%\f1aire\data`, then `%APPDATA%\f1aire\data`, then `%USERPROFILE%\AppData\Local\f1aire\data`
+
+Operational notes:
+
+- Existing complete session folders are reused.
+- Partial folders are rejected to prevent corrupt state.
+- First run downloads Pyodide assets (~200MB), then reuses cache.
 
 ## Development
 
@@ -125,29 +157,6 @@ Project map:
 - `src/agent`: engineer session, model wiring, Pyodide tool bridge
 - `src/tui`: terminal screens and UI components
 
-## Data Storage
-
-Session artifacts are stored outside the repo in the per-user app data directory (`f1aire/data`).
-
-- macOS/Linux: `$XDG_DATA_HOME/f1aire/data` or `~/.local/share/f1aire/data`
-- Windows: `%LOCALAPPDATA%\f1aire\data`, then `%APPDATA%\f1aire\data`, then `%USERPROFILE%\AppData\Local\f1aire\data`
-
-Operational notes:
-
-- Existing complete session folders are reused.
-- Partial folders are rejected to prevent corrupt state.
-- First run downloads Pyodide assets (~200MB), then reuses cache.
-
-## Open Source Quality Bar
-
-- TypeScript + ESM throughout
-- Colocated Vitest unit tests
-- TUI test coverage with `ink-testing-library`
-- ESLint + Prettier enforcement
-- Clear boundaries across `src/core`, `src/tui`, and `src/agent`
-
-The goal is straightforward: software that is pleasant to use, easy to inspect, and safe to evolve.
-
 ## Contributing
 
 Issues and pull requests are welcome.
@@ -163,7 +172,17 @@ Conventions:
 - Conventional commits (`feat:`, `fix:`, `docs:`, `chore:`, `ux:`)
 - Small, reviewable diffs over broad mixed changes
 
-## Maintainer Automation
+## Help
+
+- Bug reports and feature requests: [GitHub Issues](https://github.com/dana0550/f1aire/issues)
+- Design notes and implementation plans: [docs](./docs)
+
+## Maintainers
+
+Maintained by repository contributors. See [contributors](https://github.com/dana0550/f1aire/graphs/contributors).
+
+<details>
+<summary>Maintainer automation (advanced)</summary>
 
 `loop.sh` is an advanced maintenance loop for high-autonomy local repo automation.
 
@@ -173,6 +192,8 @@ Conventions:
 
 Use `--dry-run` first to inspect commands before running.
 
+</details>
+
 ## License
 
-MIT. See `LICENSE`.
+MIT. See [LICENSE](./LICENSE).
