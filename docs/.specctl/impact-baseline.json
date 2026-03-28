@@ -1,0 +1,64 @@
+{
+  "features": {
+    "F-001": {
+      "nodes": {
+        "D-F001-001": {
+          "entity_type": "design",
+          "hash": "02b170efb4ac3bdd5495f87134ecf09eb5d45568950a4efebd6fe1aba27f2a39",
+          "line": 9,
+          "path": "docs/features/F-001-f1aire-baseline/design.md",
+          "references": [
+            "R-F001-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "R-F001-001": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87"
+          }
+        },
+        "EVIDENCE(S-F001-001)": {
+          "entity_type": "evidence",
+          "hash": "03626549a59abf648ee59163b3b8acbf66c36513cb1e76d6e277bc044c926e30",
+          "line": 10,
+          "path": "docs/features/F-001-f1aire-baseline/verification.md",
+          "references": [
+            "S-F001-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "S-F001-001": "75196deb121a8f546154338c009e7fe018a6fd476089a75e15552823494d44f8"
+          }
+        },
+        "R-F001-001": {
+          "entity_type": "requirement",
+          "hash": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87",
+          "line": 11,
+          "path": "docs/features/F-001-f1aire-baseline/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "S-F001-001": {
+          "entity_type": "scenario",
+          "hash": "75196deb121a8f546154338c009e7fe018a6fd476089a75e15552823494d44f8",
+          "line": 12,
+          "path": "docs/features/F-001-f1aire-baseline/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "T-F001-001": {
+          "entity_type": "task",
+          "hash": "dcb8faa859b6421c6b6bf3de713e6360ab5d4cad57b5d46e7902e67708308213",
+          "line": 9,
+          "path": "docs/features/F-001-f1aire-baseline/tasks.md",
+          "references": [
+            "D-F001-001",
+            "R-F001-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "D-F001-001": "02b170efb4ac3bdd5495f87134ecf09eb5d45568950a4efebd6fe1aba27f2a39",
+            "R-F001-001": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87"
+          }
+        }
+      }
+    }
+  },
+  "generated_at": "20260327-215615",
+  "schema_version": "1"
+}

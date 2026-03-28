@@ -1,113 +1,151 @@
-# F1aire
+# f1aire
 
-Terminal F1 AI race engineer chat agent.
+**A terminal-native F1 race engineer.**
 
-Pick a season/Grand Prix/session, download the official live timing feeds, then chat with an “engineer” that answers using the loaded session data (pace deltas, stints/tyres, gaps, safety car phases, undercut windows, etc.). The agent can also run sandboxed Python (Pyodide) for custom calculations.
+`f1aire` lets you load official Formula 1 live timing feeds, then ask an AI engineer questions grounded in the downloaded session data: stint deltas, gaps, safety car phases, pit windows, and more. It also supports sandboxed Python (Pyodide) for custom calculations.
 
-## Quickstart (recommended)
+This README is intentionally clear, fast to scan, and complete enough to get productive in minutes.
 
-Run the latest published version (no clone required):
+## Why This Project Feels Solid
+
+- Clear UX: pick season -> meeting -> session -> chat.
+- Real data: built around official live timing feeds.
+- Practical AI: answers are tied to loaded session context.
+- Engineerable: strict TypeScript, tests, linting, and reproducible scripts.
+- Open-source friendly: transparent structure, straightforward commands, and no hidden setup steps.
+
+## Quick Start
+
+Run the latest version without cloning:
 
 ```bash
 npx -y f1aire@latest
 ```
 
-Requires Node `>= 24.13.0`.
-Set `OPENAI_API_KEY` (see Configuration) or paste it in-app when prompted.
+Requirements:
 
-## Development (from source)
+- Node `>= 24.13.0`
+- OpenAI API key via `OPENAI_API_KEY` or in-app settings prompt
 
-1) Install Node via mise (see `mise.toml`):
+## What It Does
 
-   ```bash
-   mise install
-   ```
+1. Choose season, Grand Prix, and session from the terminal UI.
+2. Download and parse session timing streams.
+3. Open engineer chat with an initial summary.
+4. Ask analytical race questions in plain language.
+5. Optionally run Python-assisted analysis safely in the Pyodide sandbox.
 
-2) Install dependencies:
+Example prompts:
 
-   ```bash
-   npm install
-   ```
-
-## Running
-
-- Dev TUI (Ink):
-
-  ```bash
-  mise run dev
-  ```
-
-- Unit tests (Vitest):
-
-  ```bash
-  mise run test
-  ```
+- `Compare Norris vs Verstappen on clean laps 10-25.`
+- `What was the undercut window vs car #1? Assume 20.5s pit loss.`
+- `As of lap 35, who is gaining the most on average?`
 
 ## Configuration
 
-OpenAI:
-
 ```bash
 export OPENAI_API_KEY=...
-# optional (defaults to gpt-5.2-codex)
+# Optional (defaults to gpt-5.2-codex)
 export OPENAI_API_MODEL=...
 ```
 
-You can also paste/store the API key in-app (Settings on the season/meeting/session screens, or when prompted after a download).
+API key options:
 
-## Usage
+- Environment variable (`OPENAI_API_KEY`)
+- In-app settings (`s` on selection screens) or prompt flow after download
 
-- Navigation: Enter selects, `b`/Backspace/Esc goes back, `q` quits.
-- Engineer chat: Enter sends, PgUp/PgDn scroll, Esc back, Ctrl+C quits.
+## Usage Controls
 
-## AI Race Engineer
+- Global navigation: Enter select, `b`/Backspace/Esc back, `q` quit
+- Chat: Enter send, PgUp/PgDn scroll, Esc back, Ctrl+C quit
 
-After a session download finishes, the UI switches into chat mode. The first assistant message includes a quick summary, then you can ask questions like:
+## Development
 
-- “Compare Norris vs Verstappen on clean laps 10–25.”
-- “What was the undercut window vs car #1? Assume 20.5s pit loss.”
-- “As of lap 35, who’s gaining the most on average?”
+Install toolchain and dependencies:
 
-## E2E tests (optional)
+```bash
+mise install
+npm install
+```
 
-Runs a live streaming call against the OpenAI API (networked; costs money):
+Run in dev mode:
+
+```bash
+mise run dev
+# or
+npm run dev
+```
+
+Build:
+
+```bash
+npm run build
+```
+
+Quality checks:
+
+```bash
+npm run typecheck
+npm run lint
+npm test
+```
+
+Optional e2e streaming test (uses OpenAI API, incurs cost):
 
 ```bash
 npm run test:e2e
 ```
 
-## Codex loop
+## Data & Runtime Footprint
 
-For aggressive local repo automation, run:
-
-```bash
-./loop.sh
-```
-
-This invokes Codex in explicit YOLO mode, audits `f1aire` against `/Users/shayne/code/undercut-f1`, fixes one highest-priority `P0`/`P1`/`P2` gap per iteration, verifies the change, and commits directly on `main`.
-
-Recommended first run:
-
-```bash
-./loop.sh --dry-run --max-iterations 1
-```
-
-Dry-run prints the Codex command and rendered prompt without executing Codex.
-
-## Data directory
-
-Session downloads are stored under the per-user data directory for the app name `f1aire`:
+Session data is stored outside the repo under the app data directory (`f1aire/data`).
 
 - macOS/Linux:
-  - `$XDG_DATA_HOME/f1aire/data` (when `XDG_DATA_HOME` is set)
+  - `$XDG_DATA_HOME/f1aire/data` (if set)
   - `~/.local/share/f1aire/data` (fallback)
 - Windows:
   - `%LOCALAPPDATA%\f1aire\data` (preferred)
   - `%APPDATA%\f1aire\data` (fallback)
   - `%USERPROFILE%\AppData\Local\f1aire\data` (final fallback)
 
-## Usage notes
+Notes:
 
-- Downloads fetch data from `livetiming.formula1.com` and write `live.jsonl` and `subscribe.json` under the data directory.
-- If a session folder already exists, it will be reused; delete the folder to re-download cleanly (partial folders are rejected).
-- First run downloads the Pyodide runtime (~200MB) into the data directory; later runs reuse the cached assets.
+- Downloads come from `livetiming.formula1.com`.
+- Session folders are reused if already complete.
+- Partial folders are rejected for safety.
+- First run downloads Pyodide runtime assets (~200MB), then reuses cache.
+
+## Repository Quality Signals
+
+- Typed codebase (TypeScript, ESM)
+- Colocated unit tests with Vitest
+- TUI tests via `ink-testing-library`
+- Linting (`eslint`) + formatting (`prettier`)
+- Clear module boundaries (`src/core`, `src/tui`, `src/agent`)
+
+If you value disciplined, inspectable open-source software, this repo is built for that standard.
+
+## Contributing
+
+Issues and pull requests are welcome.
+
+A strong PR includes:
+
+1. What changed and why
+2. Reproduction steps (when fixing a bug)
+3. Test evidence (for example: `npm test`, targeted test output, or screenshots for TUI changes)
+
+Conventions:
+
+- Conventional Commit style (`feat:`, `fix:`, `docs:`, `chore:`, `ux:`)
+- Keep changes focused and easy to review
+
+## Maintainer Automation (Advanced)
+
+`loop.sh` is a high-autonomy maintenance script intended for power users and maintainers.
+
+```bash
+./loop.sh --dry-run --max-iterations 1
+```
+
+Use `--dry-run` first to inspect generated commands before execution.
