@@ -438,6 +438,65 @@ export function App(): React.JSX.Element {
           pushActivity('Response ready');
           return;
         }
+        if (event.type === 'strategy-plan-start') {
+          setStreamStatus('Planning verified strategy...');
+          pushActivity('Planning verified strategy');
+          return;
+        }
+        if (event.type === 'strategy-draft-start') {
+          const attempt =
+            typeof event.attempt === 'number' ? Math.floor(event.attempt) : 1;
+          setStreamStatus(`Drafting strategy (attempt ${attempt})...`);
+          pushActivity(`Drafting strategy (attempt ${attempt})`);
+          return;
+        }
+        if (event.type === 'strategy-draft-invalid') {
+          const reason =
+            typeof event.reason === 'string' ? event.reason : 'invalid draft';
+          setStreamStatus('Draft failed validation, repairing...');
+          pushActivity(`Draft invalid: ${reason}`);
+          return;
+        }
+        if (event.type === 'strategy-check-start') {
+          const claimCount =
+            typeof event.claimCount === 'number' ? Math.floor(event.claimCount) : 0;
+          setStreamStatus(`Verifying claims (${claimCount})...`);
+          pushActivity(`Verifying claims (${claimCount})`);
+          return;
+        }
+        if (event.type === 'strategy-check-finish') {
+          const ok = event.ok === true;
+          if (ok) {
+            setStreamStatus('Verification passed');
+            pushActivity('Verification passed');
+          } else {
+            setStreamStatus('Verification failed, repairing...');
+            pushActivity('Verification failed');
+          }
+          return;
+        }
+        if (event.type === 'strategy-repair-attempt') {
+          const reason =
+            typeof event.reason === 'string' ? event.reason : 'verification failure';
+          setStreamStatus('Repairing strategy draft...');
+          pushActivity(`Repair attempt: ${reason}`);
+          return;
+        }
+        if (event.type === 'strategy-abstain') {
+          setStreamStatus('Unable to verify; abstaining');
+          pushActivity('Abstained due to verification blockers');
+          return;
+        }
+        if (event.type === 'strategy-plan-finish') {
+          if (event.mode === 'verified') {
+            setStreamStatus('Verified response ready');
+            pushActivity('Verified response ready');
+          } else {
+            setStreamStatus('Abstention ready');
+            pushActivity('Abstention ready');
+          }
+          return;
+        }
         if (event.type === 'stream-error') {
           const msg =
             typeof event.error === 'string' ? event.error : 'error';

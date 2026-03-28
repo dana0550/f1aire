@@ -21,6 +21,14 @@ const BASE_EVENT_TYPES = new Set([
   'tool-timing',
   'tool-bridge',
   'pyodide-runtime',
+  'strategy-plan-start',
+  'strategy-plan-finish',
+  'strategy-draft-start',
+  'strategy-draft-invalid',
+  'strategy-check-start',
+  'strategy-check-finish',
+  'strategy-repair-attempt',
+  'strategy-abstain',
 ]);
 const STREAM_PART_TYPES = new Set([
   'tool-call',

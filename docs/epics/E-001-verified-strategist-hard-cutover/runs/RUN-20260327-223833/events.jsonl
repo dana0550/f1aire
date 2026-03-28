@@ -1,0 +1,20 @@
+{"checkpoint_id": "C-E001-001", "runner": "codex", "type": "checkpoint_start"}
+{"checkpoint_id": "C-E001-001", "command": "", "output": "Runner command not configured; validation-only execution.", "prompt_path": "/Users/dshakiba/f1aire/docs/epics/E-001-verified-strategist-hard-cutover/runs/RUN-20260327-223833/C-E001-001.prompt.md", "rc": 0, "type": "runner_invocation"}
+{"checkpoint_id": "C-E001-001", "command": "specctl check --root .", "output": "", "phase": "primary", "rc": 0, "type": "validation_command"}
+{"checkpoint_id": "C-E001-001", "type": "checkpoint_passed"}
+{"checkpoint_id": "C-E001-002", "runner": "codex", "type": "checkpoint_start"}
+{"checkpoint_id": "C-E001-002", "command": "", "output": "Runner command not configured; validation-only execution.", "prompt_path": "/Users/dshakiba/f1aire/docs/epics/E-001-verified-strategist-hard-cutover/runs/RUN-20260327-223833/C-E001-002.prompt.md", "rc": 0, "type": "runner_invocation"}
+{"checkpoint_id": "C-E001-002", "command": "specctl check --root .", "output": "", "phase": "primary", "rc": 0, "type": "validation_command"}
+{"checkpoint_id": "C-E001-002", "type": "checkpoint_passed"}
+{"checkpoint_id": "C-E001-003", "runner": "codex", "type": "checkpoint_start"}
+{"checkpoint_id": "C-E001-003", "command": "", "output": "Runner command not configured; validation-only execution.", "prompt_path": "/Users/dshakiba/f1aire/docs/epics/E-001-verified-strategist-hard-cutover/runs/RUN-20260327-223833/C-E001-003.prompt.md", "rc": 0, "type": "runner_invocation"}
+{"checkpoint_id": "C-E001-003", "command": "specctl check --root .", "output": "", "phase": "primary", "rc": 0, "type": "validation_command"}
+{"checkpoint_id": "C-E001-003", "type": "checkpoint_passed"}
+{"checkpoint_id": "C-E001-004", "runner": "codex", "type": "checkpoint_start"}
+{"checkpoint_id": "C-E001-004", "command": "", "output": "Runner command not configured; validation-only execution.", "prompt_path": "/Users/dshakiba/f1aire/docs/epics/E-001-verified-strategist-hard-cutover/runs/RUN-20260327-223833/C-E001-004.prompt.md", "rc": 0, "type": "runner_invocation"}
+{"checkpoint_id": "C-E001-004", "command": "specctl check --root .", "output": "", "phase": "primary", "rc": 0, "type": "validation_command"}
+{"checkpoint_id": "C-E001-004", "type": "checkpoint_passed"}
+{"checkpoint_id": "C-E001-005", "runner": "codex", "type": "checkpoint_start"}
+{"checkpoint_id": "C-E001-005", "command": "", "output": "Runner command not configured; validation-only execution.", "prompt_path": "/Users/dshakiba/f1aire/docs/epics/E-001-verified-strategist-hard-cutover/runs/RUN-20260327-223833/C-E001-005.prompt.md", "rc": 0, "type": "runner_invocation"}
+{"checkpoint_id": "C-E001-005", "command": "specctl check --root .", "output": "", "phase": "primary", "rc": 0, "type": "validation_command"}
+{"checkpoint_id": "C-E001-005", "type": "checkpoint_passed"}

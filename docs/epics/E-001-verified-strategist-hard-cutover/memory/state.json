@@ -1,0 +1,16 @@
+{
+  "checkpoint_status": {
+    "C-E001-001": "passed",
+    "C-E001-002": "passed",
+    "C-E001-003": "passed",
+    "C-E001-004": "passed",
+    "C-E001-005": "passed"
+  },
+  "completed_at": "20260327-223843",
+  "epic_id": "E-001",
+  "last_checkpoint": "C-E001-005",
+  "run_id": "RUN-20260327-223833",
+  "runner": "codex",
+  "started_at": "20260327-223833",
+  "status": "completed"
+}

@@ -1,0 +1,109 @@
+epic_id: E-001
+root_feature_id: F-002
+scope_feature_ids:
+  - F-002
+  - F-002.01
+  - F-002.01.01
+  - F-002.01.02
+  - F-002.01.03
+  - F-002.01.04
+  - F-002.02
+  - F-002.02.01
+  - F-002.02.02
+  - F-002.02.03
+  - F-002.02.04
+  - F-002.03
+  - F-002.03.01
+  - F-002.03.02
+  - F-002.03.03
+  - F-002.03.04
+  - F-002.04
+  - F-002.04.01
+  - F-002.04.02
+  - F-002.04.03
+  - F-002.04.04
+runner: codex
+checkpoint_graph:
+  - checkpoint_id: C-E001-001
+    name: Trust Kernel Complete
+    feature_id: F-002.01
+    task_ids:
+      - T-F002.01-001
+      - T-F002.01-002
+      - T-F002.01-003
+      - T-F002.01.01-001
+      - T-F002.01.02-001
+      - T-F002.01.03-001
+      - T-F002.01.04-001
+    depends_on: []
+    blocker_type: implementation_gap
+  - checkpoint_id: C-E001-002
+    name: Strategy Metric Layer Complete
+    feature_id: F-002.02
+    task_ids:
+      - T-F002.02-001
+      - T-F002.02-002
+      - T-F002.02-003
+      - T-F002.02.01-001
+      - T-F002.02.02-001
+      - T-F002.02.03-001
+      - T-F002.02.04-001
+    depends_on:
+      - C-E001-001
+    blocker_type: implementation_gap
+  - checkpoint_id: C-E001-003
+    name: Evolution Framework Complete
+    feature_id: F-002.03
+    task_ids:
+      - T-F002.03-001
+      - T-F002.03-002
+      - T-F002.03-003
+      - T-F002.03.01-001
+      - T-F002.03.02-001
+      - T-F002.03.03-001
+      - T-F002.03.04-001
+    depends_on:
+      - C-E001-002
+    blocker_type: implementation_gap
+  - checkpoint_id: C-E001-004
+    name: Determinism and Audit Complete
+    feature_id: F-002.04
+    task_ids:
+      - T-F002.04-001
+      - T-F002.04-002
+      - T-F002.04-003
+      - T-F002.04.01-001
+      - T-F002.04.02-001
+      - T-F002.04.03-001
+      - T-F002.04.04-001
+    depends_on:
+      - C-E001-003
+    blocker_type: implementation_gap
+  - checkpoint_id: C-E001-005
+    name: Hard Cutover Complete
+    feature_id: F-002
+    task_ids:
+      - T-F002-001
+      - T-F002-002
+      - T-F002-003
+    depends_on:
+      - C-E001-004
+    blocker_type: implementation_gap
+validation_commands:
+  - specctl check --root .
+repair_policy:
+  max_retries_per_checkpoint: 1
+  commands: []
+blocker_policy:
+  hard_stop_types:
+    - data_loss_risk
+    - security_vulnerability
+    - destructive_migration_without_rollback
+    - compliance_privacy_breach
+    - broken_repository_integrity
+finalize_gates:
+  require_zero_open_blockers: true
+  require_zero_placeholder_markers: true
+  require_full_traceability: true
+  required_validation_commands:
+    - specctl check --root .

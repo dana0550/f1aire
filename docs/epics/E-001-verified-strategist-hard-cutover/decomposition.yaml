@@ -1,0 +1,95 @@
+children:
+- components:
+  - feature_id: F-002.01.01
+    name: User asks for tactical advice and receives only verified strategy output.
+      - Contract/API
+  - feature_id: F-002.01.02
+    name: User asks for tactical advice and receives only verified strategy output.
+      - Domain/Data
+  - feature_id: F-002.01.03
+    name: User asks for tactical advice and receives only verified strategy output.
+      - Execution/Integration
+  - feature_id: F-002.01.04
+    name: User asks for tactical advice and receives only verified strategy output.
+      - Verification/Observability
+  feature_id: F-002.01
+  name: User asks for tactical advice and receives only verified strategy output.
+- components:
+  - feature_id: F-002.02.01
+    name: User asks in sparse-data conditions and receives abstention with actionable
+      next query. - Contract/API
+  - feature_id: F-002.02.02
+    name: User asks in sparse-data conditions and receives abstention with actionable
+      next query. - Domain/Data
+  - feature_id: F-002.02.03
+    name: User asks in sparse-data conditions and receives abstention with actionable
+      next query. - Execution/Integration
+  - feature_id: F-002.02.04
+    name: User asks in sparse-data conditions and receives abstention with actionable
+      next query. - Verification/Observability
+  feature_id: F-002.02
+  name: User asks in sparse-data conditions and receives abstention with actionable
+    next query.
+- components:
+  - feature_id: F-002.03.01
+    name: Maintainer adds a new strategy rule pack and promotes it through benchmark
+      criteria. - Contract/API
+  - feature_id: F-002.03.02
+    name: Maintainer adds a new strategy rule pack and promotes it through benchmark
+      criteria. - Domain/Data
+  - feature_id: F-002.03.03
+    name: Maintainer adds a new strategy rule pack and promotes it through benchmark
+      criteria. - Execution/Integration
+  - feature_id: F-002.03.04
+    name: Maintainer adds a new strategy rule pack and promotes it through benchmark
+      criteria. - Verification/Observability
+  feature_id: F-002.03
+  name: Maintainer adds a new strategy rule pack and promotes it through benchmark
+    criteria.
+- components:
+  - feature_id: F-002.04.01
+    name: Maintainer onboards a new timing topic via adapter/capability registration
+      without changing verifier core. - Contract/API
+  - feature_id: F-002.04.02
+    name: Maintainer onboards a new timing topic via adapter/capability registration
+      without changing verifier core. - Domain/Data
+  - feature_id: F-002.04.03
+    name: Maintainer onboards a new timing topic via adapter/capability registration
+      without changing verifier core. - Execution/Integration
+  - feature_id: F-002.04.04
+    name: Maintainer onboards a new timing topic via adapter/capability registration
+      without changing verifier core. - Verification/Observability
+  feature_id: F-002.04
+  name: Maintainer onboards a new timing topic via adapter/capability registration
+    without changing verifier core.
+epic_id: E-001
+generated_components:
+- Contract/API
+- Domain/Data
+- Execution/Integration
+- Verification/Observability
+name: Verified Strategist Hard Cutover
+root_feature_id: F-002
+scope_feature_ids:
+- F-002
+- F-002.01
+- F-002.01.01
+- F-002.01.02
+- F-002.01.03
+- F-002.01.04
+- F-002.02
+- F-002.02.01
+- F-002.02.02
+- F-002.02.03
+- F-002.02.04
+- F-002.03
+- F-002.03.01
+- F-002.03.02
+- F-002.03.03
+- F-002.03.04
+- F-002.04
+- F-002.04.01
+- F-002.04.02
+- F-002.04.03
+- F-002.04.04
+source_mode: user_journeys

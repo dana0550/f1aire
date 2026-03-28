@@ -57,8 +57,1652 @@
           }
         }
       }
+    },
+    "F-002": {
+      "nodes": {
+        "D-F002-001": {
+          "entity_type": "design",
+          "hash": "2b48fb9ad7c302a0b8909b087fa49059af4cad02074f4811e1e28b70ce8d59e0",
+          "line": 9,
+          "path": "docs/features/F-002-verified-strategist-hard-cutover/design.md",
+          "references": [
+            "R-F002-001",
+            "R-F002-002"
+          ],
+          "reviewed_upstream_hashes": {
+            "R-F002-001": "53e288cf1caa02d9a7d959561fb558e0a80b4fce9ce8472b7df1f8bc8c4f6fe7",
+            "R-F002-002": "fd63dbc699ab0fde2c4f0a58648907fcd3ff7b43fc00ddaa9aa62320365609e0"
+          }
+        },
+        "D-F002-002": {
+          "entity_type": "design",
+          "hash": "d5e54d37e4d45a19d7563a94fe0d296307bef5cde51e6918ccf7652d08625afc",
+          "line": 10,
+          "path": "docs/features/F-002-verified-strategist-hard-cutover/design.md",
+          "references": [
+            "R-F002-002",
+            "R-F002-003"
+          ],
+          "reviewed_upstream_hashes": {
+            "R-F002-002": "fd63dbc699ab0fde2c4f0a58648907fcd3ff7b43fc00ddaa9aa62320365609e0",
+            "R-F002-003": "b43033cb4124afe9b469ff1296d77a85f74b9341e4b7e127bdb3d7965a386e69"
+          }
+        },
+        "EVIDENCE(S-F002-001)": {
+          "entity_type": "evidence",
+          "hash": "03626549a59abf648ee59163b3b8acbf66c36513cb1e76d6e277bc044c926e30",
+          "line": 10,
+          "path": "docs/features/F-002-verified-strategist-hard-cutover/verification.md",
+          "references": [
+            "S-F002-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "S-F002-001": "da4c2b7d120a3ab5d99a2275c97df840e7b303ff29f052c11128b99f03090318"
+          }
+        },
+        "EVIDENCE(S-F002-002)": {
+          "entity_type": "evidence",
+          "hash": "03626549a59abf648ee59163b3b8acbf66c36513cb1e76d6e277bc044c926e30",
+          "line": 12,
+          "path": "docs/features/F-002-verified-strategist-hard-cutover/verification.md",
+          "references": [
+            "S-F002-002"
+          ],
+          "reviewed_upstream_hashes": {
+            "S-F002-002": "f4b83e838cb7d3df4207c0a3bd2fe37bf12d6cbbe63df7d960048966d208758a"
+          }
+        },
+        "R-F002-001": {
+          "entity_type": "requirement",
+          "hash": "53e288cf1caa02d9a7d959561fb558e0a80b4fce9ce8472b7df1f8bc8c4f6fe7",
+          "line": 11,
+          "path": "docs/features/F-002-verified-strategist-hard-cutover/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "R-F002-002": {
+          "entity_type": "requirement",
+          "hash": "fd63dbc699ab0fde2c4f0a58648907fcd3ff7b43fc00ddaa9aa62320365609e0",
+          "line": 12,
+          "path": "docs/features/F-002-verified-strategist-hard-cutover/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "R-F002-003": {
+          "entity_type": "requirement",
+          "hash": "b43033cb4124afe9b469ff1296d77a85f74b9341e4b7e127bdb3d7965a386e69",
+          "line": 13,
+          "path": "docs/features/F-002-verified-strategist-hard-cutover/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "S-F002-001": {
+          "entity_type": "scenario",
+          "hash": "da4c2b7d120a3ab5d99a2275c97df840e7b303ff29f052c11128b99f03090318",
+          "line": 14,
+          "path": "docs/features/F-002-verified-strategist-hard-cutover/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "S-F002-002": {
+          "entity_type": "scenario",
+          "hash": "f4b83e838cb7d3df4207c0a3bd2fe37bf12d6cbbe63df7d960048966d208758a",
+          "line": 15,
+          "path": "docs/features/F-002-verified-strategist-hard-cutover/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "T-F002-001": {
+          "entity_type": "task",
+          "hash": "f481d074215d474908db5449e48490686bc4032ef83af403750d1734bfcae749",
+          "line": 9,
+          "path": "docs/features/F-002-verified-strategist-hard-cutover/tasks.md",
+          "references": [
+            "D-F002-001",
+            "R-F002-001",
+            "R-F002-002"
+          ],
+          "reviewed_upstream_hashes": {
+            "D-F002-001": "2b48fb9ad7c302a0b8909b087fa49059af4cad02074f4811e1e28b70ce8d59e0",
+            "R-F002-001": "53e288cf1caa02d9a7d959561fb558e0a80b4fce9ce8472b7df1f8bc8c4f6fe7",
+            "R-F002-002": "fd63dbc699ab0fde2c4f0a58648907fcd3ff7b43fc00ddaa9aa62320365609e0"
+          }
+        },
+        "T-F002-002": {
+          "entity_type": "task",
+          "hash": "f5cb4ebf78a243226f85ce9c0ba584b65ed4517f0405fb4d9a4a2436972841a6",
+          "line": 10,
+          "path": "docs/features/F-002-verified-strategist-hard-cutover/tasks.md",
+          "references": [
+            "D-F002-001",
+            "D-F002-002",
+            "R-F002-002",
+            "R-F002-003"
+          ],
+          "reviewed_upstream_hashes": {
+            "D-F002-001": "2b48fb9ad7c302a0b8909b087fa49059af4cad02074f4811e1e28b70ce8d59e0",
+            "D-F002-002": "d5e54d37e4d45a19d7563a94fe0d296307bef5cde51e6918ccf7652d08625afc",
+            "R-F002-002": "fd63dbc699ab0fde2c4f0a58648907fcd3ff7b43fc00ddaa9aa62320365609e0",
+            "R-F002-003": "b43033cb4124afe9b469ff1296d77a85f74b9341e4b7e127bdb3d7965a386e69"
+          }
+        },
+        "T-F002-003": {
+          "entity_type": "task",
+          "hash": "cfe5321fe258852f80a203a0b6afa49305a65a66f19c57814f20afe7f7229b59",
+          "line": 11,
+          "path": "docs/features/F-002-verified-strategist-hard-cutover/tasks.md",
+          "references": [
+            "D-F002-002",
+            "R-F002-001",
+            "R-F002-003"
+          ],
+          "reviewed_upstream_hashes": {
+            "D-F002-002": "d5e54d37e4d45a19d7563a94fe0d296307bef5cde51e6918ccf7652d08625afc",
+            "R-F002-001": "53e288cf1caa02d9a7d959561fb558e0a80b4fce9ce8472b7df1f8bc8c4f6fe7",
+            "R-F002-003": "b43033cb4124afe9b469ff1296d77a85f74b9341e4b7e127bdb3d7965a386e69"
+          }
+        }
+      }
+    },
+    "F-002.01": {
+      "nodes": {
+        "D-F002.01-001": {
+          "entity_type": "design",
+          "hash": "766cfa98be4a7c77ce3f41f721271e5e1dd7d2aca5d25b9622f74e38d005ead1",
+          "line": 9,
+          "path": "docs/features/F-002.01-user-asks-for-tactical-advice-and-receives-only-verified-strategy-output/design.md",
+          "references": [
+            "R-F002.01-001",
+            "R-F002.01-002"
+          ],
+          "reviewed_upstream_hashes": {
+            "R-F002.01-001": "1b62eda4cb8d1e253f578138cc579995327e1c3a88bcb2498df25525e4c7eb6e",
+            "R-F002.01-002": "06e1957bb75832ab295330a05912291d5a9b287808b1c9447af34e3ac0ed54e7"
+          }
+        },
+        "D-F002.01-002": {
+          "entity_type": "design",
+          "hash": "1e01415654590085fbc14042d1246f0c03c40b619b12592b08dd5ccd0c68c15d",
+          "line": 10,
+          "path": "docs/features/F-002.01-user-asks-for-tactical-advice-and-receives-only-verified-strategy-output/design.md",
+          "references": [
+            "R-F002.01-002",
+            "R-F002.01-003"
+          ],
+          "reviewed_upstream_hashes": {
+            "R-F002.01-002": "06e1957bb75832ab295330a05912291d5a9b287808b1c9447af34e3ac0ed54e7",
+            "R-F002.01-003": "38928a45d22df7a3ff445009ad4099109564b3404ab809d752cc42f78114ea5f"
+          }
+        },
+        "EVIDENCE(S-F002.01-001)": {
+          "entity_type": "evidence",
+          "hash": "03626549a59abf648ee59163b3b8acbf66c36513cb1e76d6e277bc044c926e30",
+          "line": 10,
+          "path": "docs/features/F-002.01-user-asks-for-tactical-advice-and-receives-only-verified-strategy-output/verification.md",
+          "references": [
+            "S-F002.01-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "S-F002.01-001": "55d484e6acd8dc7c91755d4d477878f845a082e1e5ed13174ecd9ea08690956d"
+          }
+        },
+        "EVIDENCE(S-F002.01-002)": {
+          "entity_type": "evidence",
+          "hash": "03626549a59abf648ee59163b3b8acbf66c36513cb1e76d6e277bc044c926e30",
+          "line": 12,
+          "path": "docs/features/F-002.01-user-asks-for-tactical-advice-and-receives-only-verified-strategy-output/verification.md",
+          "references": [
+            "S-F002.01-002"
+          ],
+          "reviewed_upstream_hashes": {
+            "S-F002.01-002": "52a4ca3b6c171d90fcd7aa0d92ad929c91724e02633988fd17a6e8aef2186bda"
+          }
+        },
+        "R-F002.01-001": {
+          "entity_type": "requirement",
+          "hash": "1b62eda4cb8d1e253f578138cc579995327e1c3a88bcb2498df25525e4c7eb6e",
+          "line": 11,
+          "path": "docs/features/F-002.01-user-asks-for-tactical-advice-and-receives-only-verified-strategy-output/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "R-F002.01-002": {
+          "entity_type": "requirement",
+          "hash": "06e1957bb75832ab295330a05912291d5a9b287808b1c9447af34e3ac0ed54e7",
+          "line": 12,
+          "path": "docs/features/F-002.01-user-asks-for-tactical-advice-and-receives-only-verified-strategy-output/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "R-F002.01-003": {
+          "entity_type": "requirement",
+          "hash": "38928a45d22df7a3ff445009ad4099109564b3404ab809d752cc42f78114ea5f",
+          "line": 13,
+          "path": "docs/features/F-002.01-user-asks-for-tactical-advice-and-receives-only-verified-strategy-output/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "S-F002.01-001": {
+          "entity_type": "scenario",
+          "hash": "55d484e6acd8dc7c91755d4d477878f845a082e1e5ed13174ecd9ea08690956d",
+          "line": 14,
+          "path": "docs/features/F-002.01-user-asks-for-tactical-advice-and-receives-only-verified-strategy-output/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "S-F002.01-002": {
+          "entity_type": "scenario",
+          "hash": "52a4ca3b6c171d90fcd7aa0d92ad929c91724e02633988fd17a6e8aef2186bda",
+          "line": 15,
+          "path": "docs/features/F-002.01-user-asks-for-tactical-advice-and-receives-only-verified-strategy-output/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "T-F002.01-001": {
+          "entity_type": "task",
+          "hash": "ebda353d1bbd7885c6ab4430366a45de53f3f02dd20eeb939f8f073f7a8bc185",
+          "line": 9,
+          "path": "docs/features/F-002.01-user-asks-for-tactical-advice-and-receives-only-verified-strategy-output/tasks.md",
+          "references": [
+            "D-F002.01-001",
+            "D-F002.01-002",
+            "R-F002.01-001",
+            "R-F002.01-002"
+          ],
+          "reviewed_upstream_hashes": {
+            "D-F002.01-001": "766cfa98be4a7c77ce3f41f721271e5e1dd7d2aca5d25b9622f74e38d005ead1",
+            "D-F002.01-002": "1e01415654590085fbc14042d1246f0c03c40b619b12592b08dd5ccd0c68c15d",
+            "R-F002.01-001": "1b62eda4cb8d1e253f578138cc579995327e1c3a88bcb2498df25525e4c7eb6e",
+            "R-F002.01-002": "06e1957bb75832ab295330a05912291d5a9b287808b1c9447af34e3ac0ed54e7"
+          }
+        },
+        "T-F002.01-002": {
+          "entity_type": "task",
+          "hash": "39f5361306590423c8ab9792f1427d3d26ac3f7cfb4050d48050bd558691500d",
+          "line": 10,
+          "path": "docs/features/F-002.01-user-asks-for-tactical-advice-and-receives-only-verified-strategy-output/tasks.md",
+          "references": [
+            "D-F002.01-001",
+            "R-F002.01-001",
+            "R-F002.01-003"
+          ],
+          "reviewed_upstream_hashes": {
+            "D-F002.01-001": "766cfa98be4a7c77ce3f41f721271e5e1dd7d2aca5d25b9622f74e38d005ead1",
+            "R-F002.01-001": "1b62eda4cb8d1e253f578138cc579995327e1c3a88bcb2498df25525e4c7eb6e",
+            "R-F002.01-003": "38928a45d22df7a3ff445009ad4099109564b3404ab809d752cc42f78114ea5f"
+          }
+        },
+        "T-F002.01-003": {
+          "entity_type": "task",
+          "hash": "3cbbf8d48832c7e4117b825ae09accdf68041a82158e96a89ca2e3eaf5c0af64",
+          "line": 11,
+          "path": "docs/features/F-002.01-user-asks-for-tactical-advice-and-receives-only-verified-strategy-output/tasks.md",
+          "references": [
+            "D-F002.01-002",
+            "R-F002.01-003"
+          ],
+          "reviewed_upstream_hashes": {
+            "D-F002.01-002": "1e01415654590085fbc14042d1246f0c03c40b619b12592b08dd5ccd0c68c15d",
+            "R-F002.01-003": "38928a45d22df7a3ff445009ad4099109564b3404ab809d752cc42f78114ea5f"
+          }
+        }
+      }
+    },
+    "F-002.01.01": {
+      "nodes": {
+        "D-F002.01.01-001": {
+          "entity_type": "design",
+          "hash": "979f998d6a72591a7dc0b7d3cb473d02077c2dc69ebbfd53e26a0d4f810cf916",
+          "line": 9,
+          "path": "docs/features/F-002.01.01-user-asks-for-tactical-advice-and-receives-only-verified-strategy-output-contract-api/design.md",
+          "references": [
+            "R-F002.01.01-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "R-F002.01.01-001": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87"
+          }
+        },
+        "EVIDENCE(S-F002.01.01-001)": {
+          "entity_type": "evidence",
+          "hash": "03626549a59abf648ee59163b3b8acbf66c36513cb1e76d6e277bc044c926e30",
+          "line": 10,
+          "path": "docs/features/F-002.01.01-user-asks-for-tactical-advice-and-receives-only-verified-strategy-output-contract-api/verification.md",
+          "references": [
+            "S-F002.01.01-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "S-F002.01.01-001": "75196deb121a8f546154338c009e7fe018a6fd476089a75e15552823494d44f8"
+          }
+        },
+        "R-F002.01.01-001": {
+          "entity_type": "requirement",
+          "hash": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87",
+          "line": 11,
+          "path": "docs/features/F-002.01.01-user-asks-for-tactical-advice-and-receives-only-verified-strategy-output-contract-api/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "S-F002.01.01-001": {
+          "entity_type": "scenario",
+          "hash": "75196deb121a8f546154338c009e7fe018a6fd476089a75e15552823494d44f8",
+          "line": 12,
+          "path": "docs/features/F-002.01.01-user-asks-for-tactical-advice-and-receives-only-verified-strategy-output-contract-api/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "T-F002.01.01-001": {
+          "entity_type": "task",
+          "hash": "3cc85ec15aa721d522f72d2e9df69e3bf92ba15cdee2ee333d73ac77b578f2ee",
+          "line": 9,
+          "path": "docs/features/F-002.01.01-user-asks-for-tactical-advice-and-receives-only-verified-strategy-output-contract-api/tasks.md",
+          "references": [
+            "D-F002.01.01-001",
+            "R-F002.01.01-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "D-F002.01.01-001": "979f998d6a72591a7dc0b7d3cb473d02077c2dc69ebbfd53e26a0d4f810cf916",
+            "R-F002.01.01-001": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87"
+          }
+        }
+      }
+    },
+    "F-002.01.02": {
+      "nodes": {
+        "D-F002.01.02-001": {
+          "entity_type": "design",
+          "hash": "1f516f379af14820f86d20be5c1bfd64c28cb673e38176a964b4c62bfda245d0",
+          "line": 9,
+          "path": "docs/features/F-002.01.02-user-asks-for-tactical-advice-and-receives-only-verified-strategy-output-domain-data/design.md",
+          "references": [
+            "R-F002.01.02-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "R-F002.01.02-001": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87"
+          }
+        },
+        "EVIDENCE(S-F002.01.02-001)": {
+          "entity_type": "evidence",
+          "hash": "03626549a59abf648ee59163b3b8acbf66c36513cb1e76d6e277bc044c926e30",
+          "line": 10,
+          "path": "docs/features/F-002.01.02-user-asks-for-tactical-advice-and-receives-only-verified-strategy-output-domain-data/verification.md",
+          "references": [
+            "S-F002.01.02-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "S-F002.01.02-001": "75196deb121a8f546154338c009e7fe018a6fd476089a75e15552823494d44f8"
+          }
+        },
+        "R-F002.01.02-001": {
+          "entity_type": "requirement",
+          "hash": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87",
+          "line": 11,
+          "path": "docs/features/F-002.01.02-user-asks-for-tactical-advice-and-receives-only-verified-strategy-output-domain-data/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "S-F002.01.02-001": {
+          "entity_type": "scenario",
+          "hash": "75196deb121a8f546154338c009e7fe018a6fd476089a75e15552823494d44f8",
+          "line": 12,
+          "path": "docs/features/F-002.01.02-user-asks-for-tactical-advice-and-receives-only-verified-strategy-output-domain-data/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "T-F002.01.02-001": {
+          "entity_type": "task",
+          "hash": "815fcbbf4fc4d580d9c63c90e9601954b8845d057009abae1665c6cce54f875e",
+          "line": 9,
+          "path": "docs/features/F-002.01.02-user-asks-for-tactical-advice-and-receives-only-verified-strategy-output-domain-data/tasks.md",
+          "references": [
+            "D-F002.01.02-001",
+            "R-F002.01.02-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "D-F002.01.02-001": "1f516f379af14820f86d20be5c1bfd64c28cb673e38176a964b4c62bfda245d0",
+            "R-F002.01.02-001": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87"
+          }
+        }
+      }
+    },
+    "F-002.01.03": {
+      "nodes": {
+        "D-F002.01.03-001": {
+          "entity_type": "design",
+          "hash": "260f050289b36e9b307487014c9d9b772a724c5260d440b021e656f8ec813c53",
+          "line": 9,
+          "path": "docs/features/F-002.01.03-user-asks-for-tactical-advice-and-receives-only-verified-strategy-output-execution-integration/design.md",
+          "references": [
+            "R-F002.01.03-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "R-F002.01.03-001": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87"
+          }
+        },
+        "EVIDENCE(S-F002.01.03-001)": {
+          "entity_type": "evidence",
+          "hash": "03626549a59abf648ee59163b3b8acbf66c36513cb1e76d6e277bc044c926e30",
+          "line": 10,
+          "path": "docs/features/F-002.01.03-user-asks-for-tactical-advice-and-receives-only-verified-strategy-output-execution-integration/verification.md",
+          "references": [
+            "S-F002.01.03-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "S-F002.01.03-001": "75196deb121a8f546154338c009e7fe018a6fd476089a75e15552823494d44f8"
+          }
+        },
+        "R-F002.01.03-001": {
+          "entity_type": "requirement",
+          "hash": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87",
+          "line": 11,
+          "path": "docs/features/F-002.01.03-user-asks-for-tactical-advice-and-receives-only-verified-strategy-output-execution-integration/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "S-F002.01.03-001": {
+          "entity_type": "scenario",
+          "hash": "75196deb121a8f546154338c009e7fe018a6fd476089a75e15552823494d44f8",
+          "line": 12,
+          "path": "docs/features/F-002.01.03-user-asks-for-tactical-advice-and-receives-only-verified-strategy-output-execution-integration/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "T-F002.01.03-001": {
+          "entity_type": "task",
+          "hash": "d4c7e7e558d497d4fc6659daeec8e24f35fecb30f46b008eff344f16b695ddcb",
+          "line": 9,
+          "path": "docs/features/F-002.01.03-user-asks-for-tactical-advice-and-receives-only-verified-strategy-output-execution-integration/tasks.md",
+          "references": [
+            "D-F002.01.03-001",
+            "R-F002.01.03-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "D-F002.01.03-001": "260f050289b36e9b307487014c9d9b772a724c5260d440b021e656f8ec813c53",
+            "R-F002.01.03-001": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87"
+          }
+        }
+      }
+    },
+    "F-002.01.04": {
+      "nodes": {
+        "D-F002.01.04-001": {
+          "entity_type": "design",
+          "hash": "cac8c609e137b93d19df5e34844393092c4a694ea2a264fa73390de3eb47f433",
+          "line": 9,
+          "path": "docs/features/F-002.01.04-user-asks-for-tactical-advice-and-receives-only-verified-strategy-output-verification-observability/design.md",
+          "references": [
+            "R-F002.01.04-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "R-F002.01.04-001": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87"
+          }
+        },
+        "EVIDENCE(S-F002.01.04-001)": {
+          "entity_type": "evidence",
+          "hash": "03626549a59abf648ee59163b3b8acbf66c36513cb1e76d6e277bc044c926e30",
+          "line": 10,
+          "path": "docs/features/F-002.01.04-user-asks-for-tactical-advice-and-receives-only-verified-strategy-output-verification-observability/verification.md",
+          "references": [
+            "S-F002.01.04-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "S-F002.01.04-001": "75196deb121a8f546154338c009e7fe018a6fd476089a75e15552823494d44f8"
+          }
+        },
+        "R-F002.01.04-001": {
+          "entity_type": "requirement",
+          "hash": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87",
+          "line": 11,
+          "path": "docs/features/F-002.01.04-user-asks-for-tactical-advice-and-receives-only-verified-strategy-output-verification-observability/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "S-F002.01.04-001": {
+          "entity_type": "scenario",
+          "hash": "75196deb121a8f546154338c009e7fe018a6fd476089a75e15552823494d44f8",
+          "line": 12,
+          "path": "docs/features/F-002.01.04-user-asks-for-tactical-advice-and-receives-only-verified-strategy-output-verification-observability/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "T-F002.01.04-001": {
+          "entity_type": "task",
+          "hash": "d51e97c20f135767cc225b5b52c51df19a51aed738fe6c4d365a009a377dcf30",
+          "line": 9,
+          "path": "docs/features/F-002.01.04-user-asks-for-tactical-advice-and-receives-only-verified-strategy-output-verification-observability/tasks.md",
+          "references": [
+            "D-F002.01.04-001",
+            "R-F002.01.04-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "D-F002.01.04-001": "cac8c609e137b93d19df5e34844393092c4a694ea2a264fa73390de3eb47f433",
+            "R-F002.01.04-001": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87"
+          }
+        }
+      }
+    },
+    "F-002.02": {
+      "nodes": {
+        "D-F002.02-001": {
+          "entity_type": "design",
+          "hash": "3a49e964a5216c600638f10303ebf7d4f40c7f018a62a3910c2c452022311c3e",
+          "line": 9,
+          "path": "docs/features/F-002.02-user-asks-in-sparse-data-conditions-and-receives-abstention-with-actionable-next-query/design.md",
+          "references": [
+            "R-F002.02-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "R-F002.02-001": "fdbece2151ea35e35d2a4a6bd5508fdc4f05d579031b9b439c6b3a78fda3a283"
+          }
+        },
+        "D-F002.02-002": {
+          "entity_type": "design",
+          "hash": "71967e0715b1c29c628ae7cf8d2768ed0fa45f0cad0912fdaf0391cc642ea4d6",
+          "line": 10,
+          "path": "docs/features/F-002.02-user-asks-in-sparse-data-conditions-and-receives-abstention-with-actionable-next-query/design.md",
+          "references": [
+            "R-F002.02-002",
+            "R-F002.02-003"
+          ],
+          "reviewed_upstream_hashes": {
+            "R-F002.02-002": "a0fcb2d24cc606052b628528ee90e8af87d41ef07536ec1791c3d9743f95abc9",
+            "R-F002.02-003": "561547905774a9f015f2e83f55178abb8dc9ab0f95fda1ad853cc5007f6b3c03"
+          }
+        },
+        "EVIDENCE(S-F002.02-001)": {
+          "entity_type": "evidence",
+          "hash": "03626549a59abf648ee59163b3b8acbf66c36513cb1e76d6e277bc044c926e30",
+          "line": 10,
+          "path": "docs/features/F-002.02-user-asks-in-sparse-data-conditions-and-receives-abstention-with-actionable-next-query/verification.md",
+          "references": [
+            "S-F002.02-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "S-F002.02-001": "2be36383355fc5139c023325d8a3c1fe7c898f105fa6ee30910aa18cf28980ae"
+          }
+        },
+        "EVIDENCE(S-F002.02-002)": {
+          "entity_type": "evidence",
+          "hash": "03626549a59abf648ee59163b3b8acbf66c36513cb1e76d6e277bc044c926e30",
+          "line": 12,
+          "path": "docs/features/F-002.02-user-asks-in-sparse-data-conditions-and-receives-abstention-with-actionable-next-query/verification.md",
+          "references": [
+            "S-F002.02-002"
+          ],
+          "reviewed_upstream_hashes": {
+            "S-F002.02-002": "c4755e39746698891c1f20c594585cc178e0532dc7f71870c4734bcd0c266239"
+          }
+        },
+        "R-F002.02-001": {
+          "entity_type": "requirement",
+          "hash": "fdbece2151ea35e35d2a4a6bd5508fdc4f05d579031b9b439c6b3a78fda3a283",
+          "line": 11,
+          "path": "docs/features/F-002.02-user-asks-in-sparse-data-conditions-and-receives-abstention-with-actionable-next-query/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "R-F002.02-002": {
+          "entity_type": "requirement",
+          "hash": "a0fcb2d24cc606052b628528ee90e8af87d41ef07536ec1791c3d9743f95abc9",
+          "line": 12,
+          "path": "docs/features/F-002.02-user-asks-in-sparse-data-conditions-and-receives-abstention-with-actionable-next-query/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "R-F002.02-003": {
+          "entity_type": "requirement",
+          "hash": "561547905774a9f015f2e83f55178abb8dc9ab0f95fda1ad853cc5007f6b3c03",
+          "line": 13,
+          "path": "docs/features/F-002.02-user-asks-in-sparse-data-conditions-and-receives-abstention-with-actionable-next-query/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "S-F002.02-001": {
+          "entity_type": "scenario",
+          "hash": "2be36383355fc5139c023325d8a3c1fe7c898f105fa6ee30910aa18cf28980ae",
+          "line": 14,
+          "path": "docs/features/F-002.02-user-asks-in-sparse-data-conditions-and-receives-abstention-with-actionable-next-query/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "S-F002.02-002": {
+          "entity_type": "scenario",
+          "hash": "c4755e39746698891c1f20c594585cc178e0532dc7f71870c4734bcd0c266239",
+          "line": 15,
+          "path": "docs/features/F-002.02-user-asks-in-sparse-data-conditions-and-receives-abstention-with-actionable-next-query/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "T-F002.02-001": {
+          "entity_type": "task",
+          "hash": "83ee4beddbcaee0a62c3aa75d8ab6268ec901913b783201a6c4f9ca8d1e08653",
+          "line": 9,
+          "path": "docs/features/F-002.02-user-asks-in-sparse-data-conditions-and-receives-abstention-with-actionable-next-query/tasks.md",
+          "references": [
+            "D-F002.02-001",
+            "R-F002.02-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "D-F002.02-001": "3a49e964a5216c600638f10303ebf7d4f40c7f018a62a3910c2c452022311c3e",
+            "R-F002.02-001": "fdbece2151ea35e35d2a4a6bd5508fdc4f05d579031b9b439c6b3a78fda3a283"
+          }
+        },
+        "T-F002.02-002": {
+          "entity_type": "task",
+          "hash": "5af63f30b437ad436a40ef45a1a86a18fc429ea4d62573daf552803d4864f3c1",
+          "line": 10,
+          "path": "docs/features/F-002.02-user-asks-in-sparse-data-conditions-and-receives-abstention-with-actionable-next-query/tasks.md",
+          "references": [
+            "D-F002.02-002",
+            "R-F002.02-002",
+            "R-F002.02-003"
+          ],
+          "reviewed_upstream_hashes": {
+            "D-F002.02-002": "71967e0715b1c29c628ae7cf8d2768ed0fa45f0cad0912fdaf0391cc642ea4d6",
+            "R-F002.02-002": "a0fcb2d24cc606052b628528ee90e8af87d41ef07536ec1791c3d9743f95abc9",
+            "R-F002.02-003": "561547905774a9f015f2e83f55178abb8dc9ab0f95fda1ad853cc5007f6b3c03"
+          }
+        },
+        "T-F002.02-003": {
+          "entity_type": "task",
+          "hash": "acac60612bb352590fcff8def8733e4acfe42ab827495c673c7d344a0b9fabcc",
+          "line": 11,
+          "path": "docs/features/F-002.02-user-asks-in-sparse-data-conditions-and-receives-abstention-with-actionable-next-query/tasks.md",
+          "references": [
+            "D-F002.02-001",
+            "D-F002.02-002",
+            "R-F002.02-001",
+            "R-F002.02-002"
+          ],
+          "reviewed_upstream_hashes": {
+            "D-F002.02-001": "3a49e964a5216c600638f10303ebf7d4f40c7f018a62a3910c2c452022311c3e",
+            "D-F002.02-002": "71967e0715b1c29c628ae7cf8d2768ed0fa45f0cad0912fdaf0391cc642ea4d6",
+            "R-F002.02-001": "fdbece2151ea35e35d2a4a6bd5508fdc4f05d579031b9b439c6b3a78fda3a283",
+            "R-F002.02-002": "a0fcb2d24cc606052b628528ee90e8af87d41ef07536ec1791c3d9743f95abc9"
+          }
+        }
+      }
+    },
+    "F-002.02.01": {
+      "nodes": {
+        "D-F002.02.01-001": {
+          "entity_type": "design",
+          "hash": "731aa2d3a9a149c7422dacb9eb92e5497ed40db7ec00b794f9589671a3400fad",
+          "line": 9,
+          "path": "docs/features/F-002.02.01-user-asks-in-sparse-data-conditions-and-receives-abstention-with-actionable-next-query-contract-api/design.md",
+          "references": [
+            "R-F002.02.01-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "R-F002.02.01-001": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87"
+          }
+        },
+        "EVIDENCE(S-F002.02.01-001)": {
+          "entity_type": "evidence",
+          "hash": "03626549a59abf648ee59163b3b8acbf66c36513cb1e76d6e277bc044c926e30",
+          "line": 10,
+          "path": "docs/features/F-002.02.01-user-asks-in-sparse-data-conditions-and-receives-abstention-with-actionable-next-query-contract-api/verification.md",
+          "references": [
+            "S-F002.02.01-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "S-F002.02.01-001": "75196deb121a8f546154338c009e7fe018a6fd476089a75e15552823494d44f8"
+          }
+        },
+        "R-F002.02.01-001": {
+          "entity_type": "requirement",
+          "hash": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87",
+          "line": 11,
+          "path": "docs/features/F-002.02.01-user-asks-in-sparse-data-conditions-and-receives-abstention-with-actionable-next-query-contract-api/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "S-F002.02.01-001": {
+          "entity_type": "scenario",
+          "hash": "75196deb121a8f546154338c009e7fe018a6fd476089a75e15552823494d44f8",
+          "line": 12,
+          "path": "docs/features/F-002.02.01-user-asks-in-sparse-data-conditions-and-receives-abstention-with-actionable-next-query-contract-api/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "T-F002.02.01-001": {
+          "entity_type": "task",
+          "hash": "86918a9825f208443903260eadc2a4108f2f8b12d9d1cdd3daa8011c7c862f8b",
+          "line": 9,
+          "path": "docs/features/F-002.02.01-user-asks-in-sparse-data-conditions-and-receives-abstention-with-actionable-next-query-contract-api/tasks.md",
+          "references": [
+            "D-F002.02.01-001",
+            "R-F002.02.01-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "D-F002.02.01-001": "731aa2d3a9a149c7422dacb9eb92e5497ed40db7ec00b794f9589671a3400fad",
+            "R-F002.02.01-001": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87"
+          }
+        }
+      }
+    },
+    "F-002.02.02": {
+      "nodes": {
+        "D-F002.02.02-001": {
+          "entity_type": "design",
+          "hash": "b6426c79a9906c2ad7803cce135a4c999b2f7584be8f25cc31cde2e5355ff2e5",
+          "line": 9,
+          "path": "docs/features/F-002.02.02-user-asks-in-sparse-data-conditions-and-receives-abstention-with-actionable-next-query-domain-data/design.md",
+          "references": [
+            "R-F002.02.02-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "R-F002.02.02-001": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87"
+          }
+        },
+        "EVIDENCE(S-F002.02.02-001)": {
+          "entity_type": "evidence",
+          "hash": "03626549a59abf648ee59163b3b8acbf66c36513cb1e76d6e277bc044c926e30",
+          "line": 10,
+          "path": "docs/features/F-002.02.02-user-asks-in-sparse-data-conditions-and-receives-abstention-with-actionable-next-query-domain-data/verification.md",
+          "references": [
+            "S-F002.02.02-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "S-F002.02.02-001": "75196deb121a8f546154338c009e7fe018a6fd476089a75e15552823494d44f8"
+          }
+        },
+        "R-F002.02.02-001": {
+          "entity_type": "requirement",
+          "hash": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87",
+          "line": 11,
+          "path": "docs/features/F-002.02.02-user-asks-in-sparse-data-conditions-and-receives-abstention-with-actionable-next-query-domain-data/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "S-F002.02.02-001": {
+          "entity_type": "scenario",
+          "hash": "75196deb121a8f546154338c009e7fe018a6fd476089a75e15552823494d44f8",
+          "line": 12,
+          "path": "docs/features/F-002.02.02-user-asks-in-sparse-data-conditions-and-receives-abstention-with-actionable-next-query-domain-data/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "T-F002.02.02-001": {
+          "entity_type": "task",
+          "hash": "256cfe41b1e3a103d9166f670bba81518388803fe70bd2c8aed87c6f465f262a",
+          "line": 9,
+          "path": "docs/features/F-002.02.02-user-asks-in-sparse-data-conditions-and-receives-abstention-with-actionable-next-query-domain-data/tasks.md",
+          "references": [
+            "D-F002.02.02-001",
+            "R-F002.02.02-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "D-F002.02.02-001": "b6426c79a9906c2ad7803cce135a4c999b2f7584be8f25cc31cde2e5355ff2e5",
+            "R-F002.02.02-001": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87"
+          }
+        }
+      }
+    },
+    "F-002.02.03": {
+      "nodes": {
+        "D-F002.02.03-001": {
+          "entity_type": "design",
+          "hash": "5d3ae594b44946c59d72661eaa384cdf0df5fd40ad43fb6e12223bd7d9258051",
+          "line": 9,
+          "path": "docs/features/F-002.02.03-user-asks-in-sparse-data-conditions-and-receives-abstention-with-actionable-next-query-execution-integration/design.md",
+          "references": [
+            "R-F002.02.03-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "R-F002.02.03-001": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87"
+          }
+        },
+        "EVIDENCE(S-F002.02.03-001)": {
+          "entity_type": "evidence",
+          "hash": "03626549a59abf648ee59163b3b8acbf66c36513cb1e76d6e277bc044c926e30",
+          "line": 10,
+          "path": "docs/features/F-002.02.03-user-asks-in-sparse-data-conditions-and-receives-abstention-with-actionable-next-query-execution-integration/verification.md",
+          "references": [
+            "S-F002.02.03-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "S-F002.02.03-001": "75196deb121a8f546154338c009e7fe018a6fd476089a75e15552823494d44f8"
+          }
+        },
+        "R-F002.02.03-001": {
+          "entity_type": "requirement",
+          "hash": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87",
+          "line": 11,
+          "path": "docs/features/F-002.02.03-user-asks-in-sparse-data-conditions-and-receives-abstention-with-actionable-next-query-execution-integration/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "S-F002.02.03-001": {
+          "entity_type": "scenario",
+          "hash": "75196deb121a8f546154338c009e7fe018a6fd476089a75e15552823494d44f8",
+          "line": 12,
+          "path": "docs/features/F-002.02.03-user-asks-in-sparse-data-conditions-and-receives-abstention-with-actionable-next-query-execution-integration/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "T-F002.02.03-001": {
+          "entity_type": "task",
+          "hash": "615e8122fa30ec1b2d52017e6ca6ecb63c8e64320b0ebaa6df467b52ef1defc8",
+          "line": 9,
+          "path": "docs/features/F-002.02.03-user-asks-in-sparse-data-conditions-and-receives-abstention-with-actionable-next-query-execution-integration/tasks.md",
+          "references": [
+            "D-F002.02.03-001",
+            "R-F002.02.03-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "D-F002.02.03-001": "5d3ae594b44946c59d72661eaa384cdf0df5fd40ad43fb6e12223bd7d9258051",
+            "R-F002.02.03-001": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87"
+          }
+        }
+      }
+    },
+    "F-002.02.04": {
+      "nodes": {
+        "D-F002.02.04-001": {
+          "entity_type": "design",
+          "hash": "b5e03a49d2227094bb5ec06348508329d99aeba52e838693f6a9d2ed24fd9ea2",
+          "line": 9,
+          "path": "docs/features/F-002.02.04-user-asks-in-sparse-data-conditions-and-receives-abstention-with-actionable-next-query-verification-observability/design.md",
+          "references": [
+            "R-F002.02.04-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "R-F002.02.04-001": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87"
+          }
+        },
+        "EVIDENCE(S-F002.02.04-001)": {
+          "entity_type": "evidence",
+          "hash": "03626549a59abf648ee59163b3b8acbf66c36513cb1e76d6e277bc044c926e30",
+          "line": 10,
+          "path": "docs/features/F-002.02.04-user-asks-in-sparse-data-conditions-and-receives-abstention-with-actionable-next-query-verification-observability/verification.md",
+          "references": [
+            "S-F002.02.04-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "S-F002.02.04-001": "75196deb121a8f546154338c009e7fe018a6fd476089a75e15552823494d44f8"
+          }
+        },
+        "R-F002.02.04-001": {
+          "entity_type": "requirement",
+          "hash": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87",
+          "line": 11,
+          "path": "docs/features/F-002.02.04-user-asks-in-sparse-data-conditions-and-receives-abstention-with-actionable-next-query-verification-observability/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "S-F002.02.04-001": {
+          "entity_type": "scenario",
+          "hash": "75196deb121a8f546154338c009e7fe018a6fd476089a75e15552823494d44f8",
+          "line": 12,
+          "path": "docs/features/F-002.02.04-user-asks-in-sparse-data-conditions-and-receives-abstention-with-actionable-next-query-verification-observability/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "T-F002.02.04-001": {
+          "entity_type": "task",
+          "hash": "ed4ecd4997942fc8b3375fb4fb142cb7e4e4b978b5c35e8ec1ee98a5d4521ce0",
+          "line": 9,
+          "path": "docs/features/F-002.02.04-user-asks-in-sparse-data-conditions-and-receives-abstention-with-actionable-next-query-verification-observability/tasks.md",
+          "references": [
+            "D-F002.02.04-001",
+            "R-F002.02.04-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "D-F002.02.04-001": "b5e03a49d2227094bb5ec06348508329d99aeba52e838693f6a9d2ed24fd9ea2",
+            "R-F002.02.04-001": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87"
+          }
+        }
+      }
+    },
+    "F-002.03": {
+      "nodes": {
+        "D-F002.03-001": {
+          "entity_type": "design",
+          "hash": "e37f5cf94a0e9762883c15e4d68fbad78f4ead2445cc8073467e86d5af0364a3",
+          "line": 9,
+          "path": "docs/features/F-002.03-maintainer-adds-a-new-strategy-rule-pack-and-promotes-it-through-benchmark-criteria/design.md",
+          "references": [
+            "R-F002.03-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "R-F002.03-001": "5408055bbd4289838e95990921534f1772c6072a27a6706e0aecf0c43635d154"
+          }
+        },
+        "D-F002.03-002": {
+          "entity_type": "design",
+          "hash": "fd6ad23d0222e8d55774ceb9fa6f1819f58af1af640389c9b714db6d547d8d34",
+          "line": 10,
+          "path": "docs/features/F-002.03-maintainer-adds-a-new-strategy-rule-pack-and-promotes-it-through-benchmark-criteria/design.md",
+          "references": [
+            "R-F002.03-002",
+            "R-F002.03-003"
+          ],
+          "reviewed_upstream_hashes": {
+            "R-F002.03-002": "724df70df32836484d65f053f1152274eb47479b2882e2456005d271370b284e",
+            "R-F002.03-003": "6180298a86852fd7d81713f1af1bcc99caf9f0c4040414f5f83bf3dc88a93353"
+          }
+        },
+        "EVIDENCE(S-F002.03-001)": {
+          "entity_type": "evidence",
+          "hash": "03626549a59abf648ee59163b3b8acbf66c36513cb1e76d6e277bc044c926e30",
+          "line": 10,
+          "path": "docs/features/F-002.03-maintainer-adds-a-new-strategy-rule-pack-and-promotes-it-through-benchmark-criteria/verification.md",
+          "references": [
+            "S-F002.03-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "S-F002.03-001": "4577d0755418b51caf6a1ac25e7f731df92410678ec783031ba3d4deb4100c05"
+          }
+        },
+        "EVIDENCE(S-F002.03-002)": {
+          "entity_type": "evidence",
+          "hash": "03626549a59abf648ee59163b3b8acbf66c36513cb1e76d6e277bc044c926e30",
+          "line": 12,
+          "path": "docs/features/F-002.03-maintainer-adds-a-new-strategy-rule-pack-and-promotes-it-through-benchmark-criteria/verification.md",
+          "references": [
+            "S-F002.03-002"
+          ],
+          "reviewed_upstream_hashes": {
+            "S-F002.03-002": "113f222ee855557c256e014c85286c2538d7b4df03b624d89b600a41dd5b1367"
+          }
+        },
+        "R-F002.03-001": {
+          "entity_type": "requirement",
+          "hash": "5408055bbd4289838e95990921534f1772c6072a27a6706e0aecf0c43635d154",
+          "line": 11,
+          "path": "docs/features/F-002.03-maintainer-adds-a-new-strategy-rule-pack-and-promotes-it-through-benchmark-criteria/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "R-F002.03-002": {
+          "entity_type": "requirement",
+          "hash": "724df70df32836484d65f053f1152274eb47479b2882e2456005d271370b284e",
+          "line": 12,
+          "path": "docs/features/F-002.03-maintainer-adds-a-new-strategy-rule-pack-and-promotes-it-through-benchmark-criteria/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "R-F002.03-003": {
+          "entity_type": "requirement",
+          "hash": "6180298a86852fd7d81713f1af1bcc99caf9f0c4040414f5f83bf3dc88a93353",
+          "line": 13,
+          "path": "docs/features/F-002.03-maintainer-adds-a-new-strategy-rule-pack-and-promotes-it-through-benchmark-criteria/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "S-F002.03-001": {
+          "entity_type": "scenario",
+          "hash": "4577d0755418b51caf6a1ac25e7f731df92410678ec783031ba3d4deb4100c05",
+          "line": 14,
+          "path": "docs/features/F-002.03-maintainer-adds-a-new-strategy-rule-pack-and-promotes-it-through-benchmark-criteria/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "S-F002.03-002": {
+          "entity_type": "scenario",
+          "hash": "113f222ee855557c256e014c85286c2538d7b4df03b624d89b600a41dd5b1367",
+          "line": 15,
+          "path": "docs/features/F-002.03-maintainer-adds-a-new-strategy-rule-pack-and-promotes-it-through-benchmark-criteria/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "T-F002.03-001": {
+          "entity_type": "task",
+          "hash": "be47d4464d06988e6d240ccc9fb770188311a4bdb056fafae27e6c4a3ebc7196",
+          "line": 9,
+          "path": "docs/features/F-002.03-maintainer-adds-a-new-strategy-rule-pack-and-promotes-it-through-benchmark-criteria/tasks.md",
+          "references": [
+            "D-F002.03-001",
+            "R-F002.03-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "D-F002.03-001": "e37f5cf94a0e9762883c15e4d68fbad78f4ead2445cc8073467e86d5af0364a3",
+            "R-F002.03-001": "5408055bbd4289838e95990921534f1772c6072a27a6706e0aecf0c43635d154"
+          }
+        },
+        "T-F002.03-002": {
+          "entity_type": "task",
+          "hash": "112d3854626208513ad0c5463189eacbf1d2ebe539d1f39ea72a665c09de14e7",
+          "line": 10,
+          "path": "docs/features/F-002.03-maintainer-adds-a-new-strategy-rule-pack-and-promotes-it-through-benchmark-criteria/tasks.md",
+          "references": [
+            "D-F002.03-002",
+            "R-F002.03-002",
+            "R-F002.03-003"
+          ],
+          "reviewed_upstream_hashes": {
+            "D-F002.03-002": "fd6ad23d0222e8d55774ceb9fa6f1819f58af1af640389c9b714db6d547d8d34",
+            "R-F002.03-002": "724df70df32836484d65f053f1152274eb47479b2882e2456005d271370b284e",
+            "R-F002.03-003": "6180298a86852fd7d81713f1af1bcc99caf9f0c4040414f5f83bf3dc88a93353"
+          }
+        },
+        "T-F002.03-003": {
+          "entity_type": "task",
+          "hash": "8b8fba7ec7f150674a7828e1de00bb10327cbec46915814ec9c2f3e54dc2f787",
+          "line": 11,
+          "path": "docs/features/F-002.03-maintainer-adds-a-new-strategy-rule-pack-and-promotes-it-through-benchmark-criteria/tasks.md",
+          "references": [
+            "D-F002.03-001",
+            "D-F002.03-002",
+            "R-F002.03-001",
+            "R-F002.03-002"
+          ],
+          "reviewed_upstream_hashes": {
+            "D-F002.03-001": "e37f5cf94a0e9762883c15e4d68fbad78f4ead2445cc8073467e86d5af0364a3",
+            "D-F002.03-002": "fd6ad23d0222e8d55774ceb9fa6f1819f58af1af640389c9b714db6d547d8d34",
+            "R-F002.03-001": "5408055bbd4289838e95990921534f1772c6072a27a6706e0aecf0c43635d154",
+            "R-F002.03-002": "724df70df32836484d65f053f1152274eb47479b2882e2456005d271370b284e"
+          }
+        }
+      }
+    },
+    "F-002.03.01": {
+      "nodes": {
+        "D-F002.03.01-001": {
+          "entity_type": "design",
+          "hash": "b39c057be58f0152b9eca54cd6d9b25f569317364d270ef0f2fb284838fcdc0d",
+          "line": 9,
+          "path": "docs/features/F-002.03.01-maintainer-adds-a-new-strategy-rule-pack-and-promotes-it-through-benchmark-criteria-contract-api/design.md",
+          "references": [
+            "R-F002.03.01-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "R-F002.03.01-001": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87"
+          }
+        },
+        "EVIDENCE(S-F002.03.01-001)": {
+          "entity_type": "evidence",
+          "hash": "03626549a59abf648ee59163b3b8acbf66c36513cb1e76d6e277bc044c926e30",
+          "line": 10,
+          "path": "docs/features/F-002.03.01-maintainer-adds-a-new-strategy-rule-pack-and-promotes-it-through-benchmark-criteria-contract-api/verification.md",
+          "references": [
+            "S-F002.03.01-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "S-F002.03.01-001": "75196deb121a8f546154338c009e7fe018a6fd476089a75e15552823494d44f8"
+          }
+        },
+        "R-F002.03.01-001": {
+          "entity_type": "requirement",
+          "hash": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87",
+          "line": 11,
+          "path": "docs/features/F-002.03.01-maintainer-adds-a-new-strategy-rule-pack-and-promotes-it-through-benchmark-criteria-contract-api/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "S-F002.03.01-001": {
+          "entity_type": "scenario",
+          "hash": "75196deb121a8f546154338c009e7fe018a6fd476089a75e15552823494d44f8",
+          "line": 12,
+          "path": "docs/features/F-002.03.01-maintainer-adds-a-new-strategy-rule-pack-and-promotes-it-through-benchmark-criteria-contract-api/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "T-F002.03.01-001": {
+          "entity_type": "task",
+          "hash": "dea8a5115c33744444f5d7ed95c89bf2ded272136b87adb889cf084c5dffc016",
+          "line": 9,
+          "path": "docs/features/F-002.03.01-maintainer-adds-a-new-strategy-rule-pack-and-promotes-it-through-benchmark-criteria-contract-api/tasks.md",
+          "references": [
+            "D-F002.03.01-001",
+            "R-F002.03.01-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "D-F002.03.01-001": "b39c057be58f0152b9eca54cd6d9b25f569317364d270ef0f2fb284838fcdc0d",
+            "R-F002.03.01-001": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87"
+          }
+        }
+      }
+    },
+    "F-002.03.02": {
+      "nodes": {
+        "D-F002.03.02-001": {
+          "entity_type": "design",
+          "hash": "fceb9923630695b16abed47dcfe0b3860465e52c9c815d29e4cad88868aa79ea",
+          "line": 9,
+          "path": "docs/features/F-002.03.02-maintainer-adds-a-new-strategy-rule-pack-and-promotes-it-through-benchmark-criteria-domain-data/design.md",
+          "references": [
+            "R-F002.03.02-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "R-F002.03.02-001": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87"
+          }
+        },
+        "EVIDENCE(S-F002.03.02-001)": {
+          "entity_type": "evidence",
+          "hash": "03626549a59abf648ee59163b3b8acbf66c36513cb1e76d6e277bc044c926e30",
+          "line": 10,
+          "path": "docs/features/F-002.03.02-maintainer-adds-a-new-strategy-rule-pack-and-promotes-it-through-benchmark-criteria-domain-data/verification.md",
+          "references": [
+            "S-F002.03.02-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "S-F002.03.02-001": "75196deb121a8f546154338c009e7fe018a6fd476089a75e15552823494d44f8"
+          }
+        },
+        "R-F002.03.02-001": {
+          "entity_type": "requirement",
+          "hash": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87",
+          "line": 11,
+          "path": "docs/features/F-002.03.02-maintainer-adds-a-new-strategy-rule-pack-and-promotes-it-through-benchmark-criteria-domain-data/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "S-F002.03.02-001": {
+          "entity_type": "scenario",
+          "hash": "75196deb121a8f546154338c009e7fe018a6fd476089a75e15552823494d44f8",
+          "line": 12,
+          "path": "docs/features/F-002.03.02-maintainer-adds-a-new-strategy-rule-pack-and-promotes-it-through-benchmark-criteria-domain-data/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "T-F002.03.02-001": {
+          "entity_type": "task",
+          "hash": "116de2cc3c0f77e61c1d6959da2455d5b3c1304b5e0f76cf88cdd485315d40f0",
+          "line": 9,
+          "path": "docs/features/F-002.03.02-maintainer-adds-a-new-strategy-rule-pack-and-promotes-it-through-benchmark-criteria-domain-data/tasks.md",
+          "references": [
+            "D-F002.03.02-001",
+            "R-F002.03.02-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "D-F002.03.02-001": "fceb9923630695b16abed47dcfe0b3860465e52c9c815d29e4cad88868aa79ea",
+            "R-F002.03.02-001": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87"
+          }
+        }
+      }
+    },
+    "F-002.03.03": {
+      "nodes": {
+        "D-F002.03.03-001": {
+          "entity_type": "design",
+          "hash": "c2cfea1e315867a61e5a8b7175976281c91ccae27225c5b6677f63c3c3a43d56",
+          "line": 9,
+          "path": "docs/features/F-002.03.03-maintainer-adds-a-new-strategy-rule-pack-and-promotes-it-through-benchmark-criteria-execution-integration/design.md",
+          "references": [
+            "R-F002.03.03-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "R-F002.03.03-001": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87"
+          }
+        },
+        "EVIDENCE(S-F002.03.03-001)": {
+          "entity_type": "evidence",
+          "hash": "03626549a59abf648ee59163b3b8acbf66c36513cb1e76d6e277bc044c926e30",
+          "line": 10,
+          "path": "docs/features/F-002.03.03-maintainer-adds-a-new-strategy-rule-pack-and-promotes-it-through-benchmark-criteria-execution-integration/verification.md",
+          "references": [
+            "S-F002.03.03-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "S-F002.03.03-001": "75196deb121a8f546154338c009e7fe018a6fd476089a75e15552823494d44f8"
+          }
+        },
+        "R-F002.03.03-001": {
+          "entity_type": "requirement",
+          "hash": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87",
+          "line": 11,
+          "path": "docs/features/F-002.03.03-maintainer-adds-a-new-strategy-rule-pack-and-promotes-it-through-benchmark-criteria-execution-integration/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "S-F002.03.03-001": {
+          "entity_type": "scenario",
+          "hash": "75196deb121a8f546154338c009e7fe018a6fd476089a75e15552823494d44f8",
+          "line": 12,
+          "path": "docs/features/F-002.03.03-maintainer-adds-a-new-strategy-rule-pack-and-promotes-it-through-benchmark-criteria-execution-integration/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "T-F002.03.03-001": {
+          "entity_type": "task",
+          "hash": "90a616f29b4cf466bbc728bf1d07364f14814861d0c98c8471f31400959a8b70",
+          "line": 9,
+          "path": "docs/features/F-002.03.03-maintainer-adds-a-new-strategy-rule-pack-and-promotes-it-through-benchmark-criteria-execution-integration/tasks.md",
+          "references": [
+            "D-F002.03.03-001",
+            "R-F002.03.03-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "D-F002.03.03-001": "c2cfea1e315867a61e5a8b7175976281c91ccae27225c5b6677f63c3c3a43d56",
+            "R-F002.03.03-001": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87"
+          }
+        }
+      }
+    },
+    "F-002.03.04": {
+      "nodes": {
+        "D-F002.03.04-001": {
+          "entity_type": "design",
+          "hash": "13b2b8eae82dd8249ebe32b9f8d8479741eea31ddda13deac23c9c5903162235",
+          "line": 9,
+          "path": "docs/features/F-002.03.04-maintainer-adds-a-new-strategy-rule-pack-and-promotes-it-through-benchmark-criteria-verification-observability/design.md",
+          "references": [
+            "R-F002.03.04-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "R-F002.03.04-001": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87"
+          }
+        },
+        "EVIDENCE(S-F002.03.04-001)": {
+          "entity_type": "evidence",
+          "hash": "03626549a59abf648ee59163b3b8acbf66c36513cb1e76d6e277bc044c926e30",
+          "line": 10,
+          "path": "docs/features/F-002.03.04-maintainer-adds-a-new-strategy-rule-pack-and-promotes-it-through-benchmark-criteria-verification-observability/verification.md",
+          "references": [
+            "S-F002.03.04-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "S-F002.03.04-001": "75196deb121a8f546154338c009e7fe018a6fd476089a75e15552823494d44f8"
+          }
+        },
+        "R-F002.03.04-001": {
+          "entity_type": "requirement",
+          "hash": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87",
+          "line": 11,
+          "path": "docs/features/F-002.03.04-maintainer-adds-a-new-strategy-rule-pack-and-promotes-it-through-benchmark-criteria-verification-observability/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "S-F002.03.04-001": {
+          "entity_type": "scenario",
+          "hash": "75196deb121a8f546154338c009e7fe018a6fd476089a75e15552823494d44f8",
+          "line": 12,
+          "path": "docs/features/F-002.03.04-maintainer-adds-a-new-strategy-rule-pack-and-promotes-it-through-benchmark-criteria-verification-observability/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "T-F002.03.04-001": {
+          "entity_type": "task",
+          "hash": "ff2f7d52cbbd8553628bbadb7b8da5d9414235b73774fd1de334156cdd115079",
+          "line": 9,
+          "path": "docs/features/F-002.03.04-maintainer-adds-a-new-strategy-rule-pack-and-promotes-it-through-benchmark-criteria-verification-observability/tasks.md",
+          "references": [
+            "D-F002.03.04-001",
+            "R-F002.03.04-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "D-F002.03.04-001": "13b2b8eae82dd8249ebe32b9f8d8479741eea31ddda13deac23c9c5903162235",
+            "R-F002.03.04-001": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87"
+          }
+        }
+      }
+    },
+    "F-002.04": {
+      "nodes": {
+        "D-F002.04-001": {
+          "entity_type": "design",
+          "hash": "c722edd6c5ef3fe5dfc502d579aa0c1287f71492bae8db6f33550d90a76a8ee1",
+          "line": 9,
+          "path": "docs/features/F-002.04-maintainer-onboards-a-new-timing-topic-via-adapter-capability-registration-without-changing-verifier-core/design.md",
+          "references": [
+            "R-F002.04-001",
+            "R-F002.04-003"
+          ],
+          "reviewed_upstream_hashes": {
+            "R-F002.04-001": "37765ac308b0d199ea1032286f9dc42b3ecd66de8311908faa12b01df67bd2ff",
+            "R-F002.04-003": "479a8ce6d554b39e269ed2febefa46ceb146ee10e0aed69ed4aa454e9918fbd9"
+          }
+        },
+        "D-F002.04-002": {
+          "entity_type": "design",
+          "hash": "4dbde62742ffe1140d1f8e4d2508af645ff2ad28928b09e3d3dab0796384657d",
+          "line": 10,
+          "path": "docs/features/F-002.04-maintainer-onboards-a-new-timing-topic-via-adapter-capability-registration-without-changing-verifier-core/design.md",
+          "references": [
+            "R-F002.04-002",
+            "R-F002.04-003"
+          ],
+          "reviewed_upstream_hashes": {
+            "R-F002.04-002": "89a725184124b35bc8e07777c4f55b461295973f627277328f251f455d73464d",
+            "R-F002.04-003": "479a8ce6d554b39e269ed2febefa46ceb146ee10e0aed69ed4aa454e9918fbd9"
+          }
+        },
+        "EVIDENCE(S-F002.04-001)": {
+          "entity_type": "evidence",
+          "hash": "03626549a59abf648ee59163b3b8acbf66c36513cb1e76d6e277bc044c926e30",
+          "line": 10,
+          "path": "docs/features/F-002.04-maintainer-onboards-a-new-timing-topic-via-adapter-capability-registration-without-changing-verifier-core/verification.md",
+          "references": [
+            "S-F002.04-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "S-F002.04-001": "2f2745bfe9085527a1e6da6a0f815c81c9e37aa1f29d27d1faeb36ae4b9914b7"
+          }
+        },
+        "EVIDENCE(S-F002.04-002)": {
+          "entity_type": "evidence",
+          "hash": "03626549a59abf648ee59163b3b8acbf66c36513cb1e76d6e277bc044c926e30",
+          "line": 12,
+          "path": "docs/features/F-002.04-maintainer-onboards-a-new-timing-topic-via-adapter-capability-registration-without-changing-verifier-core/verification.md",
+          "references": [
+            "S-F002.04-002"
+          ],
+          "reviewed_upstream_hashes": {
+            "S-F002.04-002": "0445aceecf710e5c22c862294b5a207cdbecafc7c218dea208fd2fac8746e6ff"
+          }
+        },
+        "R-F002.04-001": {
+          "entity_type": "requirement",
+          "hash": "37765ac308b0d199ea1032286f9dc42b3ecd66de8311908faa12b01df67bd2ff",
+          "line": 11,
+          "path": "docs/features/F-002.04-maintainer-onboards-a-new-timing-topic-via-adapter-capability-registration-without-changing-verifier-core/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "R-F002.04-002": {
+          "entity_type": "requirement",
+          "hash": "89a725184124b35bc8e07777c4f55b461295973f627277328f251f455d73464d",
+          "line": 12,
+          "path": "docs/features/F-002.04-maintainer-onboards-a-new-timing-topic-via-adapter-capability-registration-without-changing-verifier-core/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "R-F002.04-003": {
+          "entity_type": "requirement",
+          "hash": "479a8ce6d554b39e269ed2febefa46ceb146ee10e0aed69ed4aa454e9918fbd9",
+          "line": 13,
+          "path": "docs/features/F-002.04-maintainer-onboards-a-new-timing-topic-via-adapter-capability-registration-without-changing-verifier-core/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "S-F002.04-001": {
+          "entity_type": "scenario",
+          "hash": "2f2745bfe9085527a1e6da6a0f815c81c9e37aa1f29d27d1faeb36ae4b9914b7",
+          "line": 14,
+          "path": "docs/features/F-002.04-maintainer-onboards-a-new-timing-topic-via-adapter-capability-registration-without-changing-verifier-core/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "S-F002.04-002": {
+          "entity_type": "scenario",
+          "hash": "0445aceecf710e5c22c862294b5a207cdbecafc7c218dea208fd2fac8746e6ff",
+          "line": 15,
+          "path": "docs/features/F-002.04-maintainer-onboards-a-new-timing-topic-via-adapter-capability-registration-without-changing-verifier-core/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "T-F002.04-001": {
+          "entity_type": "task",
+          "hash": "7f0ed8a46fd370a92edc8dce741c95e91962847e70d9d2e8ebbcbf8dcb97dc1a",
+          "line": 9,
+          "path": "docs/features/F-002.04-maintainer-onboards-a-new-timing-topic-via-adapter-capability-registration-without-changing-verifier-core/tasks.md",
+          "references": [
+            "D-F002.04-001",
+            "R-F002.04-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "D-F002.04-001": "c722edd6c5ef3fe5dfc502d579aa0c1287f71492bae8db6f33550d90a76a8ee1",
+            "R-F002.04-001": "37765ac308b0d199ea1032286f9dc42b3ecd66de8311908faa12b01df67bd2ff"
+          }
+        },
+        "T-F002.04-002": {
+          "entity_type": "task",
+          "hash": "fe1ecf504ebf8cfa800910cd53f4a4d29951f89ed478647c7e5aa1f40dd90d27",
+          "line": 10,
+          "path": "docs/features/F-002.04-maintainer-onboards-a-new-timing-topic-via-adapter-capability-registration-without-changing-verifier-core/tasks.md",
+          "references": [
+            "D-F002.04-001",
+            "D-F002.04-002",
+            "R-F002.04-002",
+            "R-F002.04-003"
+          ],
+          "reviewed_upstream_hashes": {
+            "D-F002.04-001": "c722edd6c5ef3fe5dfc502d579aa0c1287f71492bae8db6f33550d90a76a8ee1",
+            "D-F002.04-002": "4dbde62742ffe1140d1f8e4d2508af645ff2ad28928b09e3d3dab0796384657d",
+            "R-F002.04-002": "89a725184124b35bc8e07777c4f55b461295973f627277328f251f455d73464d",
+            "R-F002.04-003": "479a8ce6d554b39e269ed2febefa46ceb146ee10e0aed69ed4aa454e9918fbd9"
+          }
+        },
+        "T-F002.04-003": {
+          "entity_type": "task",
+          "hash": "60183bb051a34ef156e898ecdaa8bacb2d98f7ee717e40c49390839479a0a11b",
+          "line": 11,
+          "path": "docs/features/F-002.04-maintainer-onboards-a-new-timing-topic-via-adapter-capability-registration-without-changing-verifier-core/tasks.md",
+          "references": [
+            "D-F002.04-002",
+            "R-F002.04-002"
+          ],
+          "reviewed_upstream_hashes": {
+            "D-F002.04-002": "4dbde62742ffe1140d1f8e4d2508af645ff2ad28928b09e3d3dab0796384657d",
+            "R-F002.04-002": "89a725184124b35bc8e07777c4f55b461295973f627277328f251f455d73464d"
+          }
+        }
+      }
+    },
+    "F-002.04.01": {
+      "nodes": {
+        "D-F002.04.01-001": {
+          "entity_type": "design",
+          "hash": "37a274d291766fb6cf073e93cb0b77ae69361456ccf969c7e6f3174909bcb5a4",
+          "line": 9,
+          "path": "docs/features/F-002.04.01-maintainer-onboards-a-new-timing-topic-via-adapter-capability-registration-without-changing-verifier-core-contract-api/design.md",
+          "references": [
+            "R-F002.04.01-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "R-F002.04.01-001": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87"
+          }
+        },
+        "EVIDENCE(S-F002.04.01-001)": {
+          "entity_type": "evidence",
+          "hash": "03626549a59abf648ee59163b3b8acbf66c36513cb1e76d6e277bc044c926e30",
+          "line": 10,
+          "path": "docs/features/F-002.04.01-maintainer-onboards-a-new-timing-topic-via-adapter-capability-registration-without-changing-verifier-core-contract-api/verification.md",
+          "references": [
+            "S-F002.04.01-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "S-F002.04.01-001": "75196deb121a8f546154338c009e7fe018a6fd476089a75e15552823494d44f8"
+          }
+        },
+        "R-F002.04.01-001": {
+          "entity_type": "requirement",
+          "hash": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87",
+          "line": 11,
+          "path": "docs/features/F-002.04.01-maintainer-onboards-a-new-timing-topic-via-adapter-capability-registration-without-changing-verifier-core-contract-api/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "S-F002.04.01-001": {
+          "entity_type": "scenario",
+          "hash": "75196deb121a8f546154338c009e7fe018a6fd476089a75e15552823494d44f8",
+          "line": 12,
+          "path": "docs/features/F-002.04.01-maintainer-onboards-a-new-timing-topic-via-adapter-capability-registration-without-changing-verifier-core-contract-api/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "T-F002.04.01-001": {
+          "entity_type": "task",
+          "hash": "adab51590955685588cc5d7448b25a779a3cf5e2f77f6771add85f4b81aa8173",
+          "line": 9,
+          "path": "docs/features/F-002.04.01-maintainer-onboards-a-new-timing-topic-via-adapter-capability-registration-without-changing-verifier-core-contract-api/tasks.md",
+          "references": [
+            "D-F002.04.01-001",
+            "R-F002.04.01-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "D-F002.04.01-001": "37a274d291766fb6cf073e93cb0b77ae69361456ccf969c7e6f3174909bcb5a4",
+            "R-F002.04.01-001": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87"
+          }
+        }
+      }
+    },
+    "F-002.04.02": {
+      "nodes": {
+        "D-F002.04.02-001": {
+          "entity_type": "design",
+          "hash": "f083c44b285e5fb8dfc53c1e87e9edaefa65551a36bfef640f4025b1c0d1f44c",
+          "line": 9,
+          "path": "docs/features/F-002.04.02-maintainer-onboards-a-new-timing-topic-via-adapter-capability-registration-without-changing-verifier-core-domain-data/design.md",
+          "references": [
+            "R-F002.04.02-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "R-F002.04.02-001": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87"
+          }
+        },
+        "EVIDENCE(S-F002.04.02-001)": {
+          "entity_type": "evidence",
+          "hash": "03626549a59abf648ee59163b3b8acbf66c36513cb1e76d6e277bc044c926e30",
+          "line": 10,
+          "path": "docs/features/F-002.04.02-maintainer-onboards-a-new-timing-topic-via-adapter-capability-registration-without-changing-verifier-core-domain-data/verification.md",
+          "references": [
+            "S-F002.04.02-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "S-F002.04.02-001": "75196deb121a8f546154338c009e7fe018a6fd476089a75e15552823494d44f8"
+          }
+        },
+        "R-F002.04.02-001": {
+          "entity_type": "requirement",
+          "hash": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87",
+          "line": 11,
+          "path": "docs/features/F-002.04.02-maintainer-onboards-a-new-timing-topic-via-adapter-capability-registration-without-changing-verifier-core-domain-data/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "S-F002.04.02-001": {
+          "entity_type": "scenario",
+          "hash": "75196deb121a8f546154338c009e7fe018a6fd476089a75e15552823494d44f8",
+          "line": 12,
+          "path": "docs/features/F-002.04.02-maintainer-onboards-a-new-timing-topic-via-adapter-capability-registration-without-changing-verifier-core-domain-data/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "T-F002.04.02-001": {
+          "entity_type": "task",
+          "hash": "cd719dd6d5907d9abd953af1bdfbdc719ed93d0785c8a6a173e1f2e71452cc6a",
+          "line": 9,
+          "path": "docs/features/F-002.04.02-maintainer-onboards-a-new-timing-topic-via-adapter-capability-registration-without-changing-verifier-core-domain-data/tasks.md",
+          "references": [
+            "D-F002.04.02-001",
+            "R-F002.04.02-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "D-F002.04.02-001": "f083c44b285e5fb8dfc53c1e87e9edaefa65551a36bfef640f4025b1c0d1f44c",
+            "R-F002.04.02-001": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87"
+          }
+        }
+      }
+    },
+    "F-002.04.03": {
+      "nodes": {
+        "D-F002.04.03-001": {
+          "entity_type": "design",
+          "hash": "9b215a6c89ae231656b97fcc3bbb86cee76288e6a907986a653a10a977994613",
+          "line": 9,
+          "path": "docs/features/F-002.04.03-maintainer-onboards-a-new-timing-topic-via-adapter-capability-registration-without-changing-verifier-core-execution-integration/design.md",
+          "references": [
+            "R-F002.04.03-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "R-F002.04.03-001": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87"
+          }
+        },
+        "EVIDENCE(S-F002.04.03-001)": {
+          "entity_type": "evidence",
+          "hash": "03626549a59abf648ee59163b3b8acbf66c36513cb1e76d6e277bc044c926e30",
+          "line": 10,
+          "path": "docs/features/F-002.04.03-maintainer-onboards-a-new-timing-topic-via-adapter-capability-registration-without-changing-verifier-core-execution-integration/verification.md",
+          "references": [
+            "S-F002.04.03-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "S-F002.04.03-001": "75196deb121a8f546154338c009e7fe018a6fd476089a75e15552823494d44f8"
+          }
+        },
+        "R-F002.04.03-001": {
+          "entity_type": "requirement",
+          "hash": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87",
+          "line": 11,
+          "path": "docs/features/F-002.04.03-maintainer-onboards-a-new-timing-topic-via-adapter-capability-registration-without-changing-verifier-core-execution-integration/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "S-F002.04.03-001": {
+          "entity_type": "scenario",
+          "hash": "75196deb121a8f546154338c009e7fe018a6fd476089a75e15552823494d44f8",
+          "line": 12,
+          "path": "docs/features/F-002.04.03-maintainer-onboards-a-new-timing-topic-via-adapter-capability-registration-without-changing-verifier-core-execution-integration/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "T-F002.04.03-001": {
+          "entity_type": "task",
+          "hash": "bea0ee64e25db947fda0d692190a89aaa3bbd7b30aaa1c0ae3de58b23e0f6e33",
+          "line": 9,
+          "path": "docs/features/F-002.04.03-maintainer-onboards-a-new-timing-topic-via-adapter-capability-registration-without-changing-verifier-core-execution-integration/tasks.md",
+          "references": [
+            "D-F002.04.03-001",
+            "R-F002.04.03-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "D-F002.04.03-001": "9b215a6c89ae231656b97fcc3bbb86cee76288e6a907986a653a10a977994613",
+            "R-F002.04.03-001": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87"
+          }
+        }
+      }
+    },
+    "F-002.04.04": {
+      "nodes": {
+        "D-F002.04.04-001": {
+          "entity_type": "design",
+          "hash": "07fba512a8796c96343c352eeab139377613707322825dd7391540320ab10837",
+          "line": 9,
+          "path": "docs/features/F-002.04.04-maintainer-onboards-a-new-timing-topic-via-adapter-capability-registration-without-changing-verifier-core-verification-observability/design.md",
+          "references": [
+            "R-F002.04.04-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "R-F002.04.04-001": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87"
+          }
+        },
+        "EVIDENCE(S-F002.04.04-001)": {
+          "entity_type": "evidence",
+          "hash": "03626549a59abf648ee59163b3b8acbf66c36513cb1e76d6e277bc044c926e30",
+          "line": 10,
+          "path": "docs/features/F-002.04.04-maintainer-onboards-a-new-timing-topic-via-adapter-capability-registration-without-changing-verifier-core-verification-observability/verification.md",
+          "references": [
+            "S-F002.04.04-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "S-F002.04.04-001": "75196deb121a8f546154338c009e7fe018a6fd476089a75e15552823494d44f8"
+          }
+        },
+        "R-F002.04.04-001": {
+          "entity_type": "requirement",
+          "hash": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87",
+          "line": 11,
+          "path": "docs/features/F-002.04.04-maintainer-onboards-a-new-timing-topic-via-adapter-capability-registration-without-changing-verifier-core-verification-observability/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "S-F002.04.04-001": {
+          "entity_type": "scenario",
+          "hash": "75196deb121a8f546154338c009e7fe018a6fd476089a75e15552823494d44f8",
+          "line": 12,
+          "path": "docs/features/F-002.04.04-maintainer-onboards-a-new-timing-topic-via-adapter-capability-registration-without-changing-verifier-core-verification-observability/requirements.md",
+          "references": [],
+          "reviewed_upstream_hashes": {}
+        },
+        "T-F002.04.04-001": {
+          "entity_type": "task",
+          "hash": "e1dfab32480bdabf3183fe81c7ca90f5fd51f97cfec1473c5b7e3fb6ca481b22",
+          "line": 9,
+          "path": "docs/features/F-002.04.04-maintainer-onboards-a-new-timing-topic-via-adapter-capability-registration-without-changing-verifier-core-verification-observability/tasks.md",
+          "references": [
+            "D-F002.04.04-001",
+            "R-F002.04.04-001"
+          ],
+          "reviewed_upstream_hashes": {
+            "D-F002.04.04-001": "07fba512a8796c96343c352eeab139377613707322825dd7391540320ab10837",
+            "R-F002.04.04-001": "b607b48c380c426bd4f02c574d356ccf210c06437a05644f44f70be9a5167d87"
+          }
+        }
+      }
     }
   },
-  "generated_at": "20260327-215615",
+  "generated_at": "20260327-222516",
   "schema_version": "1"
 }
