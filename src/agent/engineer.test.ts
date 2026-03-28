@@ -14,10 +14,59 @@ function buildDraft(expectedValue: number): string {
       {
         claimId: 'C-1',
         statement: 'Undercut delta is favorable',
+        claimRole: 'rationale',
         claimType: 'comparison',
         checks: [
           {
             checkId: 'K-1',
+            toolName: 'get_metric',
+            args: { metric: 'undercut_delta' },
+            targetPath: 'value',
+            op: 'eq',
+            expected: expectedValue,
+          },
+        ],
+      },
+      {
+        claimId: 'C-2',
+        statement: 'Pit this lap for undercut',
+        claimRole: 'recommendation',
+        claimType: 'recommendation',
+        checks: [
+          {
+            checkId: 'K-2',
+            toolName: 'get_metric',
+            args: { metric: 'undercut_delta' },
+            targetPath: 'value',
+            op: 'eq',
+            expected: expectedValue,
+          },
+        ],
+      },
+      {
+        claimId: 'C-3',
+        statement: 'Unexpected VSC',
+        claimRole: 'invalidator',
+        claimType: 'forecast',
+        checks: [
+          {
+            checkId: 'K-3',
+            toolName: 'get_metric',
+            args: { metric: 'undercut_delta' },
+            targetPath: 'value',
+            op: 'eq',
+            expected: expectedValue,
+          },
+        ],
+      },
+      {
+        claimId: 'C-4',
+        statement: 'Next 2 laps',
+        claimRole: 'observation-window',
+        claimType: 'fact',
+        checks: [
+          {
+            checkId: 'K-4',
             toolName: 'get_metric',
             args: { metric: 'undercut_delta' },
             targetPath: 'value',

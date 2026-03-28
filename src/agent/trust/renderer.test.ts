@@ -13,6 +13,7 @@ const answer: StrategyAnswerV1 = {
     {
       claimId: 'C-1',
       statement: 'Undercut pays ~1.5s',
+      claimRole: 'rationale',
       claimType: 'fact',
       checks: [
         {
@@ -27,11 +28,44 @@ const answer: StrategyAnswerV1 = {
     },
     {
       claimId: 'C-2',
-      statement: 'Traffic risk is low',
-      claimType: 'fact',
+      statement: 'Pit now',
+      claimRole: 'recommendation',
+      claimType: 'recommendation',
       checks: [
         {
           checkId: 'K-2',
+          toolName: 'x',
+          args: {},
+          targetPath: 'value',
+          op: 'eq',
+          expected: 1,
+        },
+      ],
+    },
+    {
+      claimId: 'C-3',
+      statement: 'VSC',
+      claimRole: 'invalidator',
+      claimType: 'forecast',
+      checks: [
+        {
+          checkId: 'K-3',
+          toolName: 'x',
+          args: {},
+          targetPath: 'value',
+          op: 'eq',
+          expected: 1,
+        },
+      ],
+    },
+    {
+      claimId: 'C-4',
+      statement: '2 laps',
+      claimRole: 'observation-window',
+      claimType: 'fact',
+      checks: [
+        {
+          checkId: 'K-4',
           toolName: 'x',
           args: {},
           targetPath: 'value',
@@ -56,7 +90,17 @@ const report: VerificationReportV1 = {
     },
     {
       claimId: 'C-2',
-      ok: false,
+      ok: true,
+      checkResults: [],
+    },
+    {
+      claimId: 'C-3',
+      ok: true,
+      checkResults: [],
+    },
+    {
+      claimId: 'C-4',
+      ok: true,
       checkResults: [],
     },
   ],
@@ -64,15 +108,39 @@ const report: VerificationReportV1 = {
 
 describe('renderer', () => {
   it('renders only verified claims in final answer', () => {
-    const text = renderVerifiedAnswer(answer, report);
+    const rendered = renderVerifiedAnswer(answer, report);
+    expect(rendered.ok).toBe(true);
+    if (!rendered.ok) return;
+    const text = rendered.text;
     expect(text).toContain('Recommendation: Pit now');
     expect(text).toContain('- Undercut pays ~1.5s');
-    expect(text).not.toContain('- Traffic risk is low');
+    expect(text).toContain('Invalidators:');
+    expect(text).toContain('- VSC');
+    expect(text).toContain('Next observation window: 2 laps');
   });
 
   it('renders abstention with reason codes', () => {
     const text = renderAbstention(['eq-mismatch']);
     expect(text).toContain('Unable to provide a verified strategy answer for this request.');
     expect(text).toContain('- eq-mismatch');
+  });
+
+  it('fails closed if required claim roles are missing', () => {
+    const missingRoles = {
+      ...answer,
+      claims: [answer.claims[0]!],
+    };
+    const rendered = renderVerifiedAnswer(missingRoles, {
+      ...report,
+      claimResults: [{ claimId: 'C-1', ok: true, checkResults: [] }],
+      failedCheckCount: 0,
+      reasonCodes: [],
+      ok: true,
+    });
+    expect(rendered.ok).toBe(false);
+    if (rendered.ok) return;
+    expect(rendered.reasonCodes).toContain('missing-recommendation-claim');
+    expect(rendered.reasonCodes).toContain('missing-invalidator-claim');
+    expect(rendered.reasonCodes).toContain('missing-observation-window-claim');
   });
 });

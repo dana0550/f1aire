@@ -32,6 +32,7 @@ Return ONLY one JSON object with this schema:
       "claimId": "C-...",
       "statement": "string",
       "claimType": "fact|comparison|forecast|recommendation",
+      "claimRole": "recommendation|rationale|alternative|invalidator|observation-window|evidence",
       "checks": [
         {
           "checkId": "K-...",
@@ -50,6 +51,7 @@ Rules:
 - Do not output markdown or prose outside JSON.
 - Every claim MUST have at least one deterministic check.
 - Never use run_py as a final verification check tool.
+- Include at least one claimRole=recommendation, one claimRole=invalidator, and one claimRole=observation-window.
 `;
 
 function buildTrustSystem(system: string): string {
@@ -180,8 +182,8 @@ export function createEngineerSession({
       logger?.({ type: 'send-start', inputLength: input.length });
       onEvent?.({ type: 'send-start', inputLength: input.length });
       messages.push({ role: 'user', content: input });
-      onEvent?.({ type: 'strategy-plan-start' });
-      logger?.({ type: 'strategy-plan-start' });
+      onEvent?.({ type: 'strategy-plan-start', schemaVersion: '1' });
+      logger?.({ type: 'strategy-plan-start', schemaVersion: '1' });
 
       let sawToolCall = false;
       let finalText = '';
@@ -248,6 +250,7 @@ export function createEngineerSession({
           for (const checkResult of claimResult.checkResults) {
             const event = {
               type: 'strategy-check-result',
+              schemaVersion: '1',
               attempt: attempt + 1,
               claimId: claimResult.claimId,
               checkId: checkResult.checkId,
@@ -262,12 +265,14 @@ export function createEngineerSession({
         }
         onEvent?.({
           type: 'strategy-check-finish',
+          schemaVersion: '1',
           attempt: attempt + 1,
           ok: report.ok,
           failedCheckCount: report.failedCheckCount,
         });
         logger?.({
           type: 'strategy-check-finish',
+          schemaVersion: '1',
           attempt: attempt + 1,
           ok: report.ok,
           failedCheckCount: report.failedCheckCount,
@@ -275,8 +280,29 @@ export function createEngineerSession({
         });
 
         if (report.ok) {
-          finalText = renderVerifiedAnswer(parsed.value, report);
-          mode = 'verified';
+          const rendered = renderVerifiedAnswer(parsed.value, report);
+          if (rendered.ok) {
+            finalText = rendered.text;
+            mode = 'verified';
+            break;
+          }
+          lastError = rendered.reasonCodes.join(',') || 'rendering-failed';
+          if (attempt < 1) {
+            repairHint = buildRepairPrompt(input, `rendering-failed:${lastError}`);
+            onEvent?.({
+              type: 'strategy-repair-attempt',
+              attempt: attempt + 1,
+              reason: `rendering-failed:${lastError}`,
+            });
+            logger?.({
+              type: 'strategy-repair-attempt',
+              attempt: attempt + 1,
+              reason: `rendering-failed:${lastError}`,
+            });
+            continue;
+          }
+          finalText = renderAbstention(rendered.reasonCodes);
+          abstainReasons = rendered.reasonCodes;
           break;
         }
 
@@ -307,12 +333,20 @@ export function createEngineerSession({
       }
 
       if (mode === 'abstained') {
-        onEvent?.({ type: 'strategy-abstain', reasonCodes: abstainReasons });
-        logger?.({ type: 'strategy-abstain', reasonCodes: abstainReasons });
+        onEvent?.({
+          type: 'strategy-abstain',
+          schemaVersion: '1',
+          reasonCodes: abstainReasons,
+        });
+        logger?.({
+          type: 'strategy-abstain',
+          schemaVersion: '1',
+          reasonCodes: abstainReasons,
+        });
       }
 
-      onEvent?.({ type: 'strategy-plan-finish', mode });
-      logger?.({ type: 'strategy-plan-finish', mode });
+      onEvent?.({ type: 'strategy-plan-finish', schemaVersion: '1', mode });
+      logger?.({ type: 'strategy-plan-finish', schemaVersion: '1', mode });
       yield finalText;
 
       logger?.({

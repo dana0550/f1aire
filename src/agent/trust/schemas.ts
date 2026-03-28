@@ -30,10 +30,20 @@ export const StrategyClaimTypeSchema = z.enum([
   'recommendation',
 ]);
 
+export const StrategyClaimRoleSchema = z.enum([
+  'recommendation',
+  'rationale',
+  'alternative',
+  'invalidator',
+  'observation-window',
+  'evidence',
+]);
+
 export const StrategyClaimV1Schema = z.object({
   claimId: z.string().min(1),
   statement: z.string().min(1),
   claimType: StrategyClaimTypeSchema.default('fact'),
+  claimRole: StrategyClaimRoleSchema.optional(),
   checks: z.array(StrategyCheckV1Schema).min(1),
   numericPayload: z.record(z.string(), z.unknown()).optional(),
 });
@@ -89,6 +99,7 @@ export const TrustedTurnResultV1Schema = z.object({
 export type StrategyCheckOp = z.infer<typeof StrategyCheckOpSchema>;
 export type StrategyCheckV1 = z.infer<typeof StrategyCheckV1Schema>;
 export type StrategyClaimV1 = z.infer<typeof StrategyClaimV1Schema>;
+export type StrategyClaimRole = z.infer<typeof StrategyClaimRoleSchema>;
 export type StrategyRequestV1 = z.infer<typeof StrategyRequestV1Schema>;
 export type StrategyAnswerV1 = z.infer<typeof StrategyAnswerV1Schema>;
 export type VerificationCheckResultV1 = z.infer<typeof VerificationCheckResultV1Schema>;
