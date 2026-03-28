@@ -1,3 +1,5 @@
+![f1aire header](./assets/readme-header.png)
+
 # f1aire
 
 Terminal-first Formula 1 race engineering with real session data.
