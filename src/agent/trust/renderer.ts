@@ -3,6 +3,10 @@ import type {
   StrategyClaimV1,
   VerificationReportV1,
 } from './schemas.js';
+import {
+  computeDeterministicStrategyMetrics,
+  rankStrategyCandidates,
+} from './strategy-metrics.js';
 
 type VerifiedRenderResult =
   | { ok: true; text: string }
@@ -37,8 +41,81 @@ export function renderVerifiedAnswer(
     return { ok: false, reasonCodes: missing };
   }
 
+  const scoredRecommendationClaims = recommendationClaims.map((claim) => {
+    const payload = claim.numericPayload ?? {};
+    const requiredKeys = [
+      'undercutPayoffMs',
+      'overcutPayoffMs',
+      'trafficRejoinRiskMs',
+      'drsTrainRiskMs',
+      'scVscSensitivityMs',
+      'executionPenaltyMs',
+      'uncertaintyPenaltyMs',
+    ] as const;
+    for (const key of requiredKeys) {
+      if (typeof payload[key] !== 'number' || !Number.isFinite(payload[key] as number)) {
+        return {
+          claim,
+          valid: false as const,
+          reason: `missing-strategy-metrics:${claim.claimId}:${key}`,
+        };
+      }
+    }
+    const metrics = computeDeterministicStrategyMetrics({
+      undercutPayoffMs: payload.undercutPayoffMs as number,
+      overcutPayoffMs: payload.overcutPayoffMs as number,
+      trafficRejoinRiskMs: payload.trafficRejoinRiskMs as number,
+      drsTrainRiskMs: payload.drsTrainRiskMs as number,
+      scVscSensitivityMs: payload.scVscSensitivityMs as number,
+      executionPenaltyMs: payload.executionPenaltyMs as number,
+      uncertaintyPenaltyMs: payload.uncertaintyPenaltyMs as number,
+    });
+    return {
+      claim,
+      valid: true as const,
+      candidate: {
+        candidateId: claim.claimId,
+        ...metrics,
+      },
+    };
+  });
+
+  const invalidMetricClaims = scoredRecommendationClaims.filter((entry) => !entry.valid);
+  if (invalidMetricClaims.length > 0) {
+    return {
+      ok: false,
+      reasonCodes: invalidMetricClaims.map((entry) => entry.reason),
+    };
+  }
+  const validMetricClaims = scoredRecommendationClaims.filter(
+    (
+      entry,
+    ): entry is {
+      claim: StrategyClaimV1;
+      valid: true;
+      candidate: {
+        candidateId: string;
+        expectedGainMs: number;
+        riskPenaltyMs: number;
+        executionPenaltyMs: number;
+        uncertaintyPenaltyMs: number;
+      };
+    } => entry.valid,
+  );
+
+  const rankedRecommendationIds = rankStrategyCandidates(
+    validMetricClaims.map((entry) => entry.candidate),
+  );
+  const bestRecommendationId = rankedRecommendationIds[0]?.candidateId;
+  const bestRecommendationClaim = recommendationClaims.find(
+    (claim) => claim.claimId === bestRecommendationId,
+  );
+  if (!bestRecommendationClaim) {
+    return { ok: false, reasonCodes: ['missing-ranked-recommendation'] };
+  }
+
   const lines: string[] = [];
-  lines.push(`Recommendation: ${recommendationClaims[0]!.statement}`);
+  lines.push(`Recommendation: ${bestRecommendationClaim.statement}`);
   if (rationaleClaims.length > 0) {
     lines.push('Why now:');
     for (const claim of rationaleClaims) {

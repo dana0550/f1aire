@@ -124,4 +124,26 @@ describe('verifyStrategyAnswer', () => {
     expect(report.ok).toBe(false);
     expect(report.reasonCodes).toContain('disallowed-tool:run_py');
   });
+
+  it('is deterministic for identical input/tools replay', async () => {
+    const answer = makeAnswer([
+      {
+        checkId: 'K-1',
+        toolName: 'get_metric',
+        args: { metric: 'delta' },
+        targetPath: 'value',
+        op: 'eq',
+        expected: 7,
+      },
+    ]);
+    const tools = {
+      get_metric: {
+        execute: async () => ({ value: 7 }),
+      },
+    } as any;
+
+    const first = await verifyStrategyAnswer(answer, tools);
+    const second = await verifyStrategyAnswer(answer, tools);
+    expect(second).toEqual(first);
+  });
 });

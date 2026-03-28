@@ -31,6 +31,15 @@ const answer: StrategyAnswerV1 = {
       statement: 'Pit now',
       claimRole: 'recommendation',
       claimType: 'recommendation',
+      numericPayload: {
+        undercutPayoffMs: 1800,
+        overcutPayoffMs: 1200,
+        trafficRejoinRiskMs: 300,
+        drsTrainRiskMs: 150,
+        scVscSensitivityMs: 100,
+        executionPenaltyMs: 75,
+        uncertaintyPenaltyMs: 50,
+      },
       checks: [
         {
           checkId: 'K-2',
@@ -142,5 +151,28 @@ describe('renderer', () => {
     expect(rendered.reasonCodes).toContain('missing-recommendation-claim');
     expect(rendered.reasonCodes).toContain('missing-invalidator-claim');
     expect(rendered.reasonCodes).toContain('missing-observation-window-claim');
+  });
+
+  it('fails closed when recommendation metrics payload is missing', () => {
+    const missingMetrics = {
+      ...answer,
+      claims: answer.claims.map((claim) =>
+        claim.claimId === 'C-2'
+          ? {
+              ...claim,
+              numericPayload: undefined,
+            }
+          : claim,
+      ),
+    };
+    const rendered = renderVerifiedAnswer(missingMetrics, {
+      ...report,
+      ok: true,
+      failedCheckCount: 0,
+      reasonCodes: [],
+    });
+    expect(rendered.ok).toBe(false);
+    if (rendered.ok) return;
+    expect(rendered.reasonCodes.some((code) => code.startsWith('missing-strategy-metrics:C-2'))).toBe(true);
   });
 });

@@ -47,6 +47,37 @@ describe('evaluateBenchmarkSuite', () => {
     expect(report.passed).toBe(1);
     expect(report.passRate).toBe(0.5);
     expect(report.abstainRate).toBe(0.5);
+    expect(report.falseClaimCount).toBe(0);
     expect(report.ok).toBe(true);
+  });
+
+  it('rejects suites with false-claim risk when zero-false-claims is required', async () => {
+    const cases: BenchmarkCase[] = [
+      {
+        id: '1',
+        expectMode: 'abstained',
+        run: async () => ({
+          schemaVersion: '1',
+          mode: 'verified',
+          response: 'confident but wrong expectation',
+          report: {
+            schemaVersion: '1',
+            ok: true,
+            claimResults: [],
+            failedCheckCount: 0,
+            reasonCodes: [],
+          },
+        }),
+      },
+    ];
+
+    const report = await evaluateBenchmarkSuite(cases, {
+      minPassRate: 0,
+      maxAbstainRate: 1,
+      requireZeroFalseClaims: true,
+    });
+
+    expect(report.falseClaimCount).toBe(1);
+    expect(report.ok).toBe(false);
   });
 });

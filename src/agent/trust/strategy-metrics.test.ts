@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { rankStrategyCandidates, scoreStrategyCandidate } from './strategy-metrics.js';
+import {
+  computeDeterministicStrategyMetrics,
+  rankStrategyCandidates,
+  scoreStrategyCandidate,
+} from './strategy-metrics.js';
 
 describe('strategy metrics', () => {
   it('scores candidate as gain minus penalties', () => {
@@ -39,5 +43,23 @@ describe('strategy metrics', () => {
     ]);
 
     expect(ranked.map((r) => r.candidateId)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('computes deterministic metrics from explicit strategy factors', () => {
+    const metrics = computeDeterministicStrategyMetrics({
+      undercutPayoffMs: 1800,
+      overcutPayoffMs: 1200,
+      trafficRejoinRiskMs: 300,
+      drsTrainRiskMs: 150,
+      scVscSensitivityMs: 100,
+      executionPenaltyMs: 75,
+      uncertaintyPenaltyMs: 50,
+    });
+    expect(metrics).toEqual({
+      expectedGainMs: 1800,
+      riskPenaltyMs: 550,
+      executionPenaltyMs: 75,
+      uncertaintyPenaltyMs: 50,
+    });
   });
 });

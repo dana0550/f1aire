@@ -32,6 +32,15 @@ function buildDraft(expectedValue: number): string {
         statement: 'Pit this lap for undercut',
         claimRole: 'recommendation',
         claimType: 'recommendation',
+        numericPayload: {
+          undercutPayoffMs: 1800,
+          overcutPayoffMs: 1200,
+          trafficRejoinRiskMs: 300,
+          drsTrainRiskMs: 150,
+          scVscSensitivityMs: 100,
+          executionPenaltyMs: 75,
+          uncertaintyPenaltyMs: 50,
+        },
         checks: [
           {
             checkId: 'K-2',

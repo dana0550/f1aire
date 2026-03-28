@@ -9,6 +9,7 @@ export type BenchmarkCase = {
 export type BenchmarkThresholds = {
   minPassRate: number;
   maxAbstainRate: number;
+  requireZeroFalseClaims?: boolean;
 };
 
 export type BenchmarkCaseResult = {
@@ -22,6 +23,7 @@ export type BenchmarkReport = {
   passed: number;
   passRate: number;
   abstainRate: number;
+  falseClaimCount: number;
   ok: boolean;
   caseResults: BenchmarkCaseResult[];
 };
@@ -44,17 +46,27 @@ export async function evaluateBenchmarkSuite(
   const total = caseResults.length;
   const passed = caseResults.filter((entry) => entry.pass).length;
   const abstained = caseResults.filter((entry) => entry.mode === 'abstained').length;
+  const falseClaimCount = cases.reduce((count, entry, idx) => {
+    const result = caseResults[idx];
+    if (!result) return count;
+    // A "verified" mode outcome that is not an expected pass is treated as false-claim risk.
+    if (result.mode === 'verified' && !result.pass) return count + 1;
+    return count;
+  }, 0);
   const passRate = total > 0 ? passed / total : 1;
   const abstainRate = total > 0 ? abstained / total : 0;
+  const requireZeroFalseClaims = thresholds.requireZeroFalseClaims ?? true;
   const ok =
     passRate >= thresholds.minPassRate &&
-    abstainRate <= thresholds.maxAbstainRate;
+    abstainRate <= thresholds.maxAbstainRate &&
+    (!requireZeroFalseClaims || falseClaimCount === 0);
 
   return {
     total,
     passed,
     passRate,
     abstainRate,
+    falseClaimCount,
     ok,
     caseResults,
   };

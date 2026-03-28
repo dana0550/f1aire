@@ -52,6 +52,8 @@ Rules:
 - Every claim MUST have at least one deterministic check.
 - Never use run_py as a final verification check tool.
 - Include at least one claimRole=recommendation, one claimRole=invalidator, and one claimRole=observation-window.
+- Each recommendation claim MUST include numericPayload with:
+  undercutPayoffMs, overcutPayoffMs, trafficRejoinRiskMs, drsTrainRiskMs, scVscSensitivityMs, executionPenaltyMs, uncertaintyPenaltyMs.
 `;
 
 function buildTrustSystem(system: string): string {
