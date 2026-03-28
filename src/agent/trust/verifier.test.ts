@@ -81,6 +81,32 @@ describe('verifyStrategyAnswer', () => {
     expect(report.reasonCodes).toContain('missing-capability:timing-data-fresh');
   });
 
+  it('fails closed when required capability exists but no capability set is provided', async () => {
+    const answer = makeAnswer([
+      {
+        checkId: 'K-1',
+        toolName: 'get_metric',
+        args: {},
+        targetPath: 'value',
+        op: 'eq',
+        expected: 1,
+        requiredCapability: 'timing-data-fresh',
+      },
+    ]);
+
+    const report = await verifyStrategyAnswer(
+      answer,
+      {
+        get_metric: {
+          execute: async () => ({ value: 1 }),
+        },
+      } as any,
+    );
+
+    expect(report.ok).toBe(false);
+    expect(report.reasonCodes).toContain('missing-capability:timing-data-fresh');
+  });
+
   it('fails if run_py is used as final verification tool', async () => {
     const answer = makeAnswer([
       {

@@ -464,6 +464,15 @@ export function App(): React.JSX.Element {
           pushActivity(`Verifying claims (${claimCount})`);
           return;
         }
+        if (event.type === 'strategy-check-result') {
+          if (event.ok === true) return;
+          const checkId =
+            typeof event.checkId === 'string' ? event.checkId : 'unknown-check';
+          const error =
+            typeof event.error === 'string' ? event.error : 'verification-failed';
+          pushActivity(`Check ${checkId} failed: ${error}`);
+          return;
+        }
         if (event.type === 'strategy-check-finish') {
           const ok = event.ok === true;
           if (ok) {

@@ -161,7 +161,7 @@ async function executeCheck(
 ): Promise<VerificationCheckResultV1> {
   if (check.requiredCapability) {
     const available = opts.availableCapabilities;
-    if (available && !available.has(check.requiredCapability)) {
+    if (!available || !available.has(check.requiredCapability)) {
       return {
         checkId: check.checkId,
         ok: false,

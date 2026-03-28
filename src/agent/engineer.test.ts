@@ -32,6 +32,7 @@ function buildDraft(expectedValue: number): string {
 
 describe('engineer session', () => {
   it('returns a verified response when checks pass', async () => {
+    const onEvent = vi.fn();
     const session = createEngineerSession({
       model: {} as any,
       tools: {
@@ -40,6 +41,7 @@ describe('engineer session', () => {
         },
       } as any,
       system: 'x',
+      onEvent,
       streamTextFn: (async () =>
         ({
           fullStream: (async function* () {
@@ -54,6 +56,15 @@ describe('engineer session', () => {
     expect(output).toContain('Recommendation: Pit this lap for undercut');
     expect(output).toContain('Verified claims:');
     expect(output).toContain('- Undercut delta is favorable');
+    expect(onEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'strategy-check-result',
+        claimId: 'C-1',
+        checkId: 'K-1',
+        ok: true,
+        toolName: 'get_metric',
+      }),
+    );
   });
 
   it('allows enough tool steps for python self-healing', async () => {

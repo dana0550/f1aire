@@ -26,6 +26,7 @@ const BASE_EVENT_TYPES = new Set([
   'strategy-draft-start',
   'strategy-draft-invalid',
   'strategy-check-start',
+  'strategy-check-result',
   'strategy-check-finish',
   'strategy-repair-attempt',
   'strategy-abstain',

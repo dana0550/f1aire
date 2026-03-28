@@ -244,6 +244,22 @@ export function createEngineerSession({
           claimCount: parsed.value.claims.length,
         });
         const report = await verifyStrategyAnswer(parsed.value, tools);
+        for (const claimResult of report.claimResults) {
+          for (const checkResult of claimResult.checkResults) {
+            const event = {
+              type: 'strategy-check-result',
+              attempt: attempt + 1,
+              claimId: claimResult.claimId,
+              checkId: checkResult.checkId,
+              ok: checkResult.ok,
+              error: checkResult.error,
+              toolName: checkResult.toolName,
+              targetPath: checkResult.targetPath,
+            };
+            onEvent?.(event);
+            logger?.(event);
+          }
+        }
         onEvent?.({
           type: 'strategy-check-finish',
           attempt: attempt + 1,
